@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase, { getConnectionStatus, isConnected } from '@/lib/mongoose';
-import { testConnection } from '@/lib/mongodb';
 
 /**
  * GET /api/test-db
@@ -8,9 +7,6 @@ import { testConnection } from '@/lib/mongodb';
  */
 export async function GET() {
   try {
-    // Test native MongoDB connection
-    const mongodbConnected = await testConnection();
-    
     // Test Mongoose connection
     let mongooseConnected = isConnected();
     
@@ -38,9 +34,8 @@ export async function GET() {
     
     return NextResponse.json({
       success: true,
-      connections: {
-        mongodb: mongodbConnected,
-        mongoose: mongooseConnected,
+      connection: {
+        connected: mongooseConnected,
         status: status
       },
       database: dbInfo,
