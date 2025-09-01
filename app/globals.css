@@ -1,26 +1,162 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base Background */
+  --pure-white: #FFFFFF;
+  --cool-gray: #F1F5F9;
+  --slate-gray: #1e293b;
+  
+  /* Primary Colors */
+  --sky-blue: #60A5FA;
+  --royal-blue: #2563EB;
+  --vivid-violet: #8B5CF6;
+  --deep-purple: #7C3AED;
+  
+  /* Supporting Colors */
+  --lilac-mist: #C4B5FD;
+  --sky-tint: #E0F2FE;
+  --neutral-gray: #475569;
+  
+  /* Data Visualization */
+  --color-growth: #22C55E;
+  --color-drop: #EF4444;
+  --color-user-metrics: #60A5FA;
+  --color-ai-insights: #8B5CF6;
+  
+  /* Gradients */
+  --gradient-blue-purple: linear-gradient(135deg, #60A5FA, #8B5CF6);
+  --gradient-royal-deep: linear-gradient(135deg, #2563EB, #7C3AED);
+  
+  /* Semantic Assignments */
+  --background: var(--pure-white);
+  --foreground: var(--slate-gray);
+  --color-card-bg: var(--cool-gray);
+  --color-primary: var(--sky-blue);
+  --color-primary-strong: var(--royal-blue);
+  --color-secondary: var(--vivid-violet);
+  --color-accent: var(--deep-purple);
+  --color-hover-bg: var(--lilac-mist);
+  --color-subtle-bg: var(--sky-tint);
+  --color-border: var(--neutral-gray);
+  --color-text-secondary: var(--neutral-gray);
+  --color-text-label: var(--slate-gray);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* Theme colors are defined in :root above */
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* Base Background - Dark Mode */
+    --pure-white: #0a0a0a;
+    --cool-gray: #1E293B;
+    --slate-gray: #CBD5E1;
+    
+    /* Adjust colors for dark mode */
+    --sky-blue: #60A5FA;
+    --royal-blue: #3B82F6;
+    --vivid-violet: #A78BFA;
+    --deep-purple: #9333EA;
+    --lilac-mist: #312E81;
+    --sky-tint: #1E293B;
+    --neutral-gray: #64748B;
+    
+    /* Update semantic assignments */
     --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground: #CBD5E1;
+    --color-card-bg: #1E293B;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-roboto), 'Roboto', sans-serif;
+}
+
+/* Utility Classes */
+.btn-primary {
+  background-color: var(--sky-blue);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--royal-blue);
+}
+
+.btn-secondary {
+  background-color: var(--vivid-violet);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: var(--deep-purple);
+}
+
+.link {
+  color: var(--sky-blue);
+}
+
+.link:hover {
+  color: var(--royal-blue);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.border-default {
+  border-color: var(--color-border);
+}
+
+.bg-subtle {
+  background-color: var(--color-subtle-bg);
+}
+
+.bg-hover {
+  background-color: var(--color-hover-bg);
+}
+
+/* Card & Panel Styles */
+.card {
+  background-color: var(--color-card-bg);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.panel {
+  background-color: var(--cool-gray);
+  border: 1px solid var(--color-border);
+}
+
+/* Gradient Utilities */
+.gradient-blue-purple {
+  background: var(--gradient-blue-purple);
+}
+
+.gradient-royal-deep {
+  background: var(--gradient-royal-deep);
+}
+
+/* Text Colors */
+.text-label {
+  color: var(--color-text-label);
+}
+
+/* Data Visualization Colors */
+.data-growth {
+  color: var(--color-growth);
+}
+
+.data-drop {
+  color: var(--color-drop);
+}
+
+.data-metrics {
+  color: var(--color-user-metrics);
+}
+
+.data-insights {
+  color: var(--color-ai-insights);
 }
