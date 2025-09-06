@@ -43,7 +43,7 @@ const MetricCard = ({ title, value, change, changeType, icon: Icon, prefix = "" 
   const isPositive = changeType === "increase";
   
   return (
-    <Card className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+    <Card>
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             <Filter className="h-4 w-4" />
             Filter
           </Button>
-          <Button variant="default" size="sm" className="gap-2">
+          <Button size="sm" className="gap-2 bg-sky-600 hover:bg-sky-700 text-white border-black">
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Revenue Trend Chart */}
-        <Card className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
               Attributed Revenue Trend
@@ -228,7 +228,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Top Stores Table */}
-        <Card className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
               Top Stores by Revenue
@@ -278,7 +278,7 @@ export default function DashboardPage() {
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -296,7 +296,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -314,7 +314,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>

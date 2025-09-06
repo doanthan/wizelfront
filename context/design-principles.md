@@ -31,17 +31,86 @@ $info: #60A5FA;           // Blue for informational (uses sky-blue)
 // Background & Surface Colors
 $pure-white: #FFFFFF;     // Main backgrounds
 $cool-gray: #F1F5F9;      // Cards, panels, neutral zones
+```
 
-// Gradient Definitions
-$gradient-blue-purple: linear-gradient(135deg, #60A5FA, #8B5CF6);
-$gradient-royal-deep: linear-gradient(135deg, #2563EB, #7C3AED);
+### Gradient System
+
+```scss
+// Primary Gradients - For buttons and key CTAs
+$gradient-primary: linear-gradient(135deg, #60A5FA 0%, #8B5CF6 100%);     // Sky blue to vivid violet
+$gradient-primary-hover: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); // Royal blue to deep purple
+
+// Subtle Gradients - For headers and backgrounds
+$gradient-header: linear-gradient(90deg, #E0F2FE 0%, #C4B5FD 100%);       // Sky tint to lilac mist
+$gradient-header-dark: linear-gradient(90deg, #1f2937 0%, #1f2937 100%);  // Consistent dark mode
+
+// Special Purpose Gradients
+$gradient-today: linear-gradient(135deg, #E0F2FE 0%, #C4B5FD 100%);       // Calendar today highlight
+$gradient-today-dark: linear-gradient(135deg, #1E3A8A 0%, #4C1D95 100%);  // Dark mode today
+
+// Success/Warning/Danger Gradients
+$gradient-success: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+$gradient-warning: linear-gradient(135deg, #F59E0B 0%, #DC2626 100%);
+$gradient-danger: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+```
+
+### Gradient Usage Guidelines
+
+#### Primary Action Buttons
+```css
+/* Standard primary button with gradient */
+.btn-primary {
+  background: linear-gradient(135deg, #60A5FA 0%, #8B5CF6 100%);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+  box-shadow: 0 10px 25px -5px rgba(96, 165, 250, 0.25);
+}
+```
+
+#### Header Sections
+```css
+/* Subtle gradient for header areas */
+.header-section {
+  background: linear-gradient(90deg, #E0F2FE 0%, #C4B5FD 100%);
+}
+
+/* Dark mode */
+.dark .header-section {
+  background: linear-gradient(90deg, #1f2937 0%, #374151 100%);
+}
+```
+
+#### Special Elements
+```css
+/* Calendar today indicator */
+.calendar-today {
+  background: linear-gradient(135deg, #E0F2FE 0%, #C4B5FD 100%);
+  border: 2px solid #60A5FA;
+}
+```
+
+### When to Use Gradients
+1. **Primary CTAs**: New Campaign, Create, Save buttons
+2. **Header Sections**: Page headers, navigation bars
+3. **Special States**: Today's date, active selections
+4. **Feature Highlights**: Premium features, new features
+5. **Empty States**: Placeholder backgrounds
+
+### When NOT to Use Gradients
+1. **Body Text**: Never on readable content
+2. **Form Inputs**: Keep inputs clean and simple
+3. **Data Tables**: Maintain readability
+4. **Small UI Elements**: Icons, badges (unless specifically designed)
 ```
 
 ### Typography System
 
 ```scss
 // Font families
-$font-sans: 'Roboto', system-ui, -apple-system, sans-serif;
+$font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 $font-mono: 'JetBrains Mono', 'SF Mono', monospace;
 
 // Font sizes
@@ -228,6 +297,74 @@ Right Panel
 }
 ```
 
+### Card Layouts
+
+#### Card Component Guidelines
+```scss
+// CRITICAL: Prevent content overflow in cards
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;  // Always include gap to prevent badges from touching content
+  
+  .card-content-area {
+    flex: 1;
+    min-width: 0;  // Critical for text truncation
+    
+    .card-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  
+  .card-badge {
+    flex-shrink: 0;  // Prevent badge from shrinking
+  }
+}
+
+// Store Cards Pattern
+.store-card {
+  padding: 24px;
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 16px;
+    
+    .store-info {
+      flex: 1;
+      min-width: 0;  // Enable truncation
+      display: flex;
+      gap: 12px;
+      
+      .icon-container {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+      }
+      
+      .text-content {
+        flex: 1;
+        min-width: 0;
+        
+        h3, p {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+    }
+    
+    .status-badge {
+      flex-shrink: 0;  // Never shrink badges
+    }
+  }
+}
+```
+
 ### Form Controls
 
 #### Input Field Specifications
@@ -356,34 +493,85 @@ Right Panel
 
 ## Iconography
 
-### Icon System
-- **Icon Library**: Lucide React (consistent 24x24 grid)
-- **Stroke Width**: 1.5px for regular, 2px for emphasis
-- **Colors**: Inherit from parent text color
-- **Interactive Icons**: Scale 1.1x on hover with transition
+### Icon System Standards
+- **Primary Library**: **Lucide React** - MUST be used for all UI icons (consistent 24x24 grid)
+- **Installation**: `npm install lucide-react`
+- **Import Pattern**: `import { IconName } from 'lucide-react'`
+- **Stroke Width**: 1.5px for regular icons, 2px for emphasis/headers
+- **Colors**: Semantic coloring based on context
+- **Interactive Icons**: Scale 1.1x on hover with 200ms transition
+- **Size Standards**: `h-4 w-4` (16px) for inline, `h-5 w-5` (20px) for headers, `h-6 w-6` (24px) for prominent actions
 
-### Common Icons
+### Semantic Color Mapping
+```jsx
+// Communication channels
+<Mail className="h-4 w-4 text-blue-600" />        // Email
+<MessageSquare className="h-4 w-4 text-green-600" /> // SMS
+<Bell className="h-4 w-4 text-purple-600" />      // Notifications
+
+// User metrics
+<Users className="h-4 w-4 text-blue-600" />       // Recipients
+<Eye className="h-4 w-4 text-green-600" />        // Open rates
+<MousePointer className="h-4 w-4 text-yellow-600" /> // Click rates
+<ShoppingCart className="h-4 w-4 text-purple-600" /> // Conversions
+<DollarSign className="h-5 w-5 text-green-600" />  // Revenue
+
+// Actions
+<Plus className="h-4 w-4" />                       // Add/Create
+<Filter className="h-4 w-4" />                     // Filter
+<Search className="h-4 w-4" />                     // Search
 ```
-Actions:
-- Plus → Add new
-- Trash → Delete
-- Copy → Duplicate
-- Edit → Modify
-- Eye → Preview
-- Download → Export
 
-Navigation:
-- ChevronRight → Expand
-- ChevronDown → Collapse
-- Menu → Settings
-- X → Close
-- ArrowLeft → Back
+### Icon Usage Rules
+1. **Never use emojis** in professional UI - always use Lucide React icons
+2. **Consistent sizing** - use Tailwind classes: h-4 w-4, h-5 w-5, h-6 w-6
+3. **Semantic coloring** - match icon colors to their functional meaning
+4. **Import optimization** - only import icons you use to reduce bundle size
+5. **Accessibility** - icons should have semantic meaning, not just decoration
 
-States:
-- Check → Success
-- AlertCircle → Warning
-- XCircle → Error
-- Info → Information
+### Common Icons Reference
+```jsx
+// Actions
+import { Plus, Trash, Copy, Edit, Eye, Download, Filter } from 'lucide-react';
+
+// Navigation  
+import { ChevronRight, ChevronDown, Menu, X, ArrowLeft } from 'lucide-react';
+
+// Communication
+import { Mail, MessageSquare, Bell, Phone } from 'lucide-react';
+
+// Analytics
+import { Users, Eye, MousePointer, ShoppingCart, DollarSign } from 'lucide-react';
+
+// States
+import { Check, AlertCircle, XCircle, Info, Loader } from 'lucide-react';
+```
+
+### Implementation Pattern
+```jsx
+// ✅ CORRECT - Professional icon usage
+import { Mail, Users } from 'lucide-react';
+
+function CampaignCard({ campaign }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Mail className="h-4 w-4 text-blue-600" />
+      <span>{campaign.channel}</span>
+      <Users className="h-4 w-4 text-neutral-gray" />
+      <span>{campaign.recipients}</span>
+    </div>
+  );
+}
+
+// ❌ WRONG - Don't use emojis
+function CampaignCard({ campaign }) {
+  return (
+    <div>
+      <span>📧 {campaign.channel}</span>
+      <span>👥 {campaign.recipients}</span>
+    </div>
+  );
+}
 ```
 
 ## Motion & Animation

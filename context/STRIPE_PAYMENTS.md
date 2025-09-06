@@ -1,6 +1,19 @@
 # Product Requirements Document (PRD)
 # Stripe Billing Integration
 
+> ⚠️ **IMPORTANT: Stripe Integration Currently Disabled for Testing**
+> 
+> The Stripe integration is temporarily commented out to allow testing without payment processing.
+> 
+> **To re-enable Stripe later:**
+> Simply uncomment the Stripe imports and code blocks in:
+> - `/app/api/store/route.js`
+> - `/app/api/auth/register/route.js`
+> - `/app/api/stripe/webhook/route.js`
+> - `/app/api/credits/purchase/route.js`
+>
+> The system will use mock IDs (test_customer_*, test_sub_*, etc.) until Stripe is re-enabled.
+
 ## 1. Executive Summary
 
 ### 1.1 Overview
@@ -21,43 +34,99 @@ Implement a comprehensive billing system using Stripe to monetize the email mark
 
 ## 2. Product Architecture
 
-### 2.1 Billing Components
+### 2.1 Contract-Based Billing System
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     STRIPE BILLING SYSTEM                    │
+│                  CONTRACT-BASED BILLING                      │
 ├───────────────────┬────────────────────┬───────────────────┤
-│   SUBSCRIPTIONS   │    USAGE-BASED     │   ADD-ON APPS    │
+│    CONTRACTS      │      STORES        │    AI CREDITS     │
 ├───────────────────┼────────────────────┼───────────────────┤
-│ Store Reporting   │   AI Credits       │  Loyalty (P3)     │
-│ $29/store/month   │   Pay-as-you-go    │  Mobile Wallet(P3)│
+│ • One Stripe      │ • $29/store/month  │ • Contract-based  │
+│   customer        │ • Unlimited per    │ • Shared across   │
+│ • Multi-user      │   contract         │   contract stores │
+│ • Shared credits  │ • Individual subs  │ • Pay-as-you-go   │
 └───────────────────┴────────────────────┴───────────────────┘
+
+User Relationship Flow:
+User → Multiple Contracts → Multiple Stores per Contract → Shared Credits per Contract
 ```
 
 ### 2.2 Database Schema
 
 ```javascript
-// Billing Models
-Store {
-  stripe_subscription_id: String,
-  stripe_customer_id: String,
-  subscription_status: Enum['active','cancelled','past_due','trialing'],
-  subscription_tier: Enum['free','pro','enterprise'],
+// Contract-Based Billing Models
+Contract {
+  _id: ObjectId,
+  name: String,
   billing_email: String,
-  trial_ends_at: Date,
-}
-
-User {
-  stripe_customer_id: String,
+  owner_id: ObjectId, // User who owns this contract
+  organization_id: ObjectId,
+  stripe_customer_id: String, // One Stripe customer per contract
+  contract_type: Enum['individual','team','enterprise'],
+  max_stores: Number,
+  max_users: Number,
   ai_credits_balance: Number,
   ai_credits_purchased: Number,
   ai_credits_used: Number,
-  payment_methods: [PaymentMethod],
+  features_enabled: [String],
+  is_active: Boolean,
+  is_deleted: Boolean,
+  created_at: Date,
+  updated_at: Date,
+}
+
+Store {
+  _id: ObjectId,
+  name: String,
+  url: String,
+  platform: Enum['shopify','woocommerce','custom'],
+  user_id: ObjectId, // User who created the store
+  contract_id: ObjectId, // Contract this store belongs to
+  created_by: ObjectId,
+  stripe_customer_id: String, // Inherited from contract
+  stripe_subscription_id: String, // $29/month per store
+  subscription_status: Enum['active','cancelled','past_due','trialing'],
+  subscription_tier: Enum['free','pro','enterprise'],
+  billing_email: String, // Inherited from contract
+  trial_ends_at: Date,
+  integrations: Object,
+  settings: Object,
+  metrics: Object,
+  is_active: Boolean,
+  is_deleted: Boolean,
+  created_at: Date,
+  updated_at: Date,
+}
+
+User {
+  _id: ObjectId,
+  email: String,
+  password: String,
+  name: String,
+  role: Enum['user','admin','super_admin'],
+  primary_contract_id: ObjectId, // Default contract
+  contract_access: [{ // Access to multiple contracts
+    contract_id: ObjectId,
+    role: Enum['owner','admin','member'],
+    added_at: Date
+  }],
+  stripe_customer_id: String, // Inherited from primary contract
+  timezone: String,
+  language: String,
+  is_active: Boolean,
+  is_deleted: Boolean,
+  email_verified: Boolean,
+  last_login: Date,
+  created_at: Date,
+  updated_at: Date,
 }
 
 BillingHistory {
+  _id: ObjectId,
   user_id: ObjectId,
   store_id: ObjectId,
+  contract_id: ObjectId, // Which contract was billed
   stripe_invoice_id: String,
   amount: Number,
   currency: String,
@@ -72,9 +141,11 @@ BillingHistory {
 }
 
 AIUsageLog {
+  _id: ObjectId,
   user_id: ObjectId,
   store_id: ObjectId,
-  action: Enum['generate_email','ai_recommendation','content_optimization'],
+  contract_id: ObjectId, // Credits consumed from this contract
+  action: Enum['simple_email','personalized_email','multi_variant_campaign','campaign_series','content_suggestions','audience_segmentation','performance_predictions','grammar_check','image_suggestions','ab_test_variations'],
   credits_consumed: Number,
   metadata: Object,
   timestamp: Date,
@@ -113,11 +184,11 @@ AIUsageLog {
 #### 3.2.1 Credit Pricing
 **Tiered Pricing Structure**:
 ```
-$10 = 100 credits (10¢ per credit)
-$25 = 275 credits (9¢ per credit) - 10% bonus
-$50 = 600 credits (8.3¢ per credit) - 20% bonus
-$100 = 1,300 credits (7.7¢ per credit) - 30% bonus
-$250 = 3,500 credits (7.1¢ per credit) - 40% bonus
+$10 = 10 credits 
+$25 = 25 credits 
+$50 = 50 credits 
+$100 = 100 credits 
+$250 = 250 credits 
 ```
 
 #### 3.2.2 Credit Consumption
@@ -205,6 +276,23 @@ $250 = 3,500 credits (7.1¢ per credit) - 40% bonus
 
 #### 4.1.2 API Endpoints
 ```javascript
+// Store Management (Contract-based)
+POST   /api/store                    // Create store with contract
+GET    /api/store                    // Get user's stores across contracts
+DELETE /api/store?id=storeId         // Delete store and cancel subscription
+
+// Contract Management  
+POST   /api/contract                 // Create new contract
+GET    /api/contract                 // Get user's contracts
+PUT    /api/contract/:id             // Update contract settings
+DELETE /api/contract/:id             // Delete contract
+
+// AI Credits (Contract-specific)
+POST   /api/credits/purchase         // Purchase credits for contract
+GET    /api/credits/purchase?contract_id=id // Get contract balance
+POST   /api/ai/consume               // Consume credits from store's contract
+GET    /api/ai/consume               // Get credit costs and packages
+
 // Subscription Management
 POST   /api/billing/subscribe
 POST   /api/billing/cancel
@@ -212,12 +300,6 @@ POST   /api/billing/pause
 POST   /api/billing/resume
 PUT    /api/billing/update-plan
 GET    /api/billing/subscription/:storeId
-
-// Credit Management
-POST   /api/billing/credits/purchase
-GET    /api/billing/credits/balance
-GET    /api/billing/credits/history
-POST   /api/billing/credits/refill
 
 // Payment Methods
 POST   /api/billing/payment-method/add

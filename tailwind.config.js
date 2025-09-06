@@ -86,7 +86,8 @@ module.exports = {
         'gradient-royal-deep': 'linear-gradient(135deg, #2563EB, #7C3AED)',
       },
       fontFamily: {
-        'roboto': ['Roboto', 'sans-serif'],
+        'sans': ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        'inter': ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',

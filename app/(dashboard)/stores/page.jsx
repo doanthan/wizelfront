@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   Store, 
   Tag, 
@@ -16,7 +17,16 @@ import {
   ArrowDownRight,
   DollarSign,
   ShoppingCart,
-  TrendingUp
+  TrendingUp,
+  Package,
+  Palette,
+  Mail,
+  Settings,
+  ExternalLink,
+  CheckCircle,
+  LayoutGrid,
+  List,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -31,6 +41,8 @@ import TagManager from "@/app/components/stores/tag-manager";
 import PermissionsDialog from "@/app/components/stores/permissions-dialog";
 
 export default function StoresPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { 
     stores, 
     tags, 
@@ -38,7 +50,9 @@ export default function StoresPage() {
     currentUser,
     deleteStore,
     assignTagToStore,
-    removeTagFromStore 
+    removeTagFromStore,
+    refreshStores,
+    isLoadingStores 
   } = useStores();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,9 +61,27 @@ export default function StoresPage() {
   const [showTagManager, setShowTagManager] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
+  const [viewMode, setViewMode] = useState("card"); // "card" or "table"
 
-  // Get accessible stores for current user
-  const accessibleStores = getUserAccessibleStores();
+  // Refresh stores when page mounts and check for action parameter
+  useEffect(() => {
+    console.log('Stores page mounted, refreshing stores...');
+    refreshStores();
+    
+    // Check if we should open the add store dialog
+    if (searchParams.get('action') === 'new') {
+      setShowStoreDialog(true);
+      // Remove the query parameter to clean up the URL
+      router.replace('/stores');
+    }
+  }, [searchParams, router]);
+
+  // Get accessible stores for current user - use stores directly since API already filters
+  // The getUserAccessibleStores function has issues with session not being ready
+  const accessibleStores = stores || [];
+  console.log('Stores page - raw stores from context:', stores);
+  console.log('Stores page - accessible stores:', accessibleStores);
+  console.log('Stores page - accessible stores count:', accessibleStores.length);
 
   // Filter stores based on search and selected tags
   const filteredStores = accessibleStores.filter(store => {
@@ -58,10 +90,11 @@ export default function StoresPage() {
       selectedTags.some(tag => store.tags.includes(tag));
     return matchesSearch && matchesTags;
   });
+  console.log('Stores page - filtered stores:', filteredStores.length);
 
   const handleEditStore = (store) => {
-    setEditingStore(store);
-    setShowStoreDialog(true);
+    // Navigate to individual store edit page using public_id
+    router.push(`/store/${store.public_id}`);
   };
 
   const handleDeleteStore = (storeId) => {
@@ -87,58 +120,30 @@ export default function StoresPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Store Management
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Stores
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage your stores, tags, and permissions
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Manage your connected stores and integrations
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <CanEdit feature={FEATURES.STORES}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTagManager(true)}
-              className="gap-2"
-            >
-              <Tag className="h-4 w-4" />
-              Manage Tags
-            </Button>
-          </CanEdit>
-          
-          <PermissionGuard feature={FEATURES.STORES} action={ACTIONS.MANAGE}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPermissions(true)}
-              className="gap-2"
-            >
-              <Shield className="h-4 w-4" />
-              Permissions
-            </Button>
-          </PermissionGuard>
-          
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => {
-              setEditingStore(null);
-              setShowStoreDialog(true);
-            }}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Store
-          </Button>
-        </div>
+        <Button
+          onClick={() => {
+            setEditingStore(null);
+            setShowStoreDialog(true);
+          }}
+          className="gap-2 bg-royal-blue hover:bg-blue-700 text-white transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Store
+        </Button>
       </div>
 
 
-      {/* Search and Filters */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="relative flex-1">
+      {/* Search Bar and View Toggle */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
@@ -148,141 +153,240 @@ export default function StoresPage() {
             className="pl-10"
           />
         </div>
-        
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="h-4 w-4 text-gray-500" />
-          {tags.map(tag => (
-            <Badge
-              key={tag.id}
-              variant={selectedTags.includes(tag.id) ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => toggleTagFilter(tag.id)}
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mr-2">
+            {filteredStores.length} of {accessibleStores.length} stores
+          </p>
+          <div className="flex gap-1 border border-gray-300 dark:border-gray-600 rounded-lg p-1">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className={viewMode === "card" ? "h-7 px-2" : "h-7 px-2 hover:bg-gray-100 dark:hover:bg-gray-800"}
             >
-              {tag.name}
-            </Badge>
-          ))}
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className={viewMode === "table" ? "h-7 px-2" : "h-7 px-2 hover:bg-gray-100 dark:hover:bg-gray-800"}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Stores Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredStores.map(store => (
-          <Card key={store.id} className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+      {/* Loading State */}
+      {isLoadingStores && (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+        </div>
+      )}
+
+      {/* Stores Display - Card or Table View */}
+      {!isLoadingStores && viewMode === "card" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredStores.map(store => (
+            <Card key={store.id} className="p-6">
+            <div className="flex items-start justify-between mb-4 gap-2">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-lg bg-vivid-violet/10 dark:bg-vivid-violet/20 flex items-center justify-center flex-shrink-0">
+                  <Store className="h-6 w-6 text-vivid-violet" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                     {store.name}
-                  </CardTitle>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {store.tagNames?.map(tagName => (
-                      <Badge 
-                        key={tagName} 
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {tagName}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <CanEdit feature={FEATURES.STORES}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditStore(store)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                  </CanEdit>
-                  
-                  <CanDelete feature={FEATURES.STORES}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteStore(store.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CanDelete>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-4">
-              {/* Revenue */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Revenue</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    ${store.revenue.toLocaleString()}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                    {store.url || `www.${store.name.toLowerCase().replace(/\s/g, '')}.com`}
                   </p>
-                  <div className="flex items-center justify-end gap-1">
-                    {store.metrics.change > 0 ? (
-                      <ArrowUpRight className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3 text-red-500" />
-                    )}
-                    <span className={`text-xs ${store.metrics.change > 0 ? "text-green-500" : "text-red-500"}`}>
-                      {store.metrics.change > 0 ? "+" : ""}{store.metrics.change}%
-                    </span>
-                  </div>
                 </div>
               </div>
+              <Badge variant="success" className="text-xs flex-shrink-0">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Active
+              </Badge>
+            </div>
 
-              {/* Orders */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Orders</span>
-                </div>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {store.orders}
-                </p>
-              </div>
-
-              {/* AOV */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">AOV</span>
-                </div>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  ${store.metrics.aov.toFixed(2)}
-                </p>
-              </div>
-
-              {/* Conversion Rate */}
-              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-4">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Conversion</span>
-                <Badge variant="gradient">
-                  {store.metrics.conversionRate}%
+            {/* Integrations */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Integrations</p>
+              <div className="flex gap-2">
+                <Badge variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800">
+                  <span className="w-2 h-2 rounded-full bg-gray-400 mr-1.5"></span>
+                  Shopify
+                </Badge>
+                <Badge variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20">
+                  <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
+                  Klaviyo
                 </Badge>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <Package className="h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">0</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Products</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <Palette className="h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">0</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Brands</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <Mail className="h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-lg font-semibold text-vivid-violet">0</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Campaigns</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 h-9 text-sm"
+                onClick={() => handleEditStore(store)}
+              >
+                <Settings className="h-3.5 w-3.5 mr-1.5" />
+                Manage
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0"
+                onClick={() => window.open(store.url || `https://${store.name.toLowerCase().replace(/\s/g, '')}.com`, '_blank')}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            </Card>
+          ))}
+        </div>
+      ) : !isLoadingStores ? (
+        /* Table View */
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-800/50">
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 dark:text-gray-300">Store</th>
+                <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell">Status</th>
+                <th className="text-left py-3 px-4 font-medium text-sm text-gray-700 dark:text-gray-300 hidden lg:table-cell">Integrations</th>
+                <th className="text-center py-3 px-4 font-medium text-sm text-gray-700 dark:text-gray-300 hidden md:table-cell">Products</th>
+                <th className="text-center py-3 px-4 font-medium text-sm text-gray-700 dark:text-gray-300 hidden md:table-cell">Brands</th>
+                <th className="text-center py-3 px-4 font-medium text-sm text-gray-700 dark:text-gray-300">Campaigns</th>
+                <th className="text-right py-3 px-4 font-medium text-sm text-gray-700 dark:text-gray-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredStores.map(store => (
+                <tr key={store.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <td className="py-4 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-vivid-violet/10 dark:bg-vivid-violet/20 flex items-center justify-center flex-shrink-0">
+                        <Store className="h-5 w-5 text-vivid-violet" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{store.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {store.url || `www.${store.name.toLowerCase().replace(/\s/g, '')}.com`}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 px-4 hidden sm:table-cell">
+                    <Badge variant="success" className="text-xs">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Active
+                    </Badge>
+                  </td>
+                  <td className="py-4 px-4 hidden lg:table-cell">
+                    <div className="flex gap-2">
+                      <Badge variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800">
+                        <span className="w-2 h-2 rounded-full bg-gray-400 mr-1.5"></span>
+                        Shopify
+                      </Badge>
+                      <Badge variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20">
+                        <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
+                        Klaviyo
+                      </Badge>
+                    </div>
+                  </td>
+                  <td className="py-4 px-4 text-center hidden md:table-cell">
+                    <span className="text-gray-900 dark:text-white font-medium">0</span>
+                  </td>
+                  <td className="py-4 px-4 text-center hidden md:table-cell">
+                    <span className="text-gray-900 dark:text-white font-medium">0</span>
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    <span className="text-vivid-violet font-medium">0</span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => handleEditStore(store)}
+                      >
+                        <Settings className="h-3.5 w-3.5 mr-1" />
+                        Manage
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => window.open(store.url || `https://${store.name.toLowerCase().replace(/\s/g, '')}.com`, '_blank')}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </Card>
+      ) : null}
 
       {/* Empty State */}
-      {filteredStores.length === 0 && (
-        <Card className="border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-          <CardContent className="py-12 text-center">
-            <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No stores found
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              {searchQuery || selectedTags.length > 0
-                ? "Try adjusting your search or filters"
-                : "Get started by adding your first store"}
-            </p>
-          </CardContent>
-        </Card>
+      {!isLoadingStores && filteredStores.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+            <Store className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No stores found
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-sm">
+            {searchQuery
+              ? "Try adjusting your search terms"
+              : "Get started by connecting your first store"}
+          </p>
+          {!searchQuery && (
+            <Button
+              onClick={() => {
+                setEditingStore(null);
+                setShowStoreDialog(true);
+              }}
+              className="mt-4 gap-2 bg-royal-blue hover:bg-blue-700 text-white transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add Your First Store
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Dialogs */}

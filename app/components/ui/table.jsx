@@ -18,7 +18,7 @@ const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
   <thead
     ref={ref}
     className={cn(
-      "border-b border-neutral-gray bg-cool-gray/50",
+      "border-b border-neutral-gray bg-cool-gray/50 dark:bg-gray-800/50 dark:border-gray-700",
       className
     )}
     {...props}
@@ -51,7 +51,7 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b border-neutral-gray/30 transition-colors hover:bg-sky-tint/50 data-[state=selected]:bg-lilac-mist/50",
+      "border-b border-neutral-gray/30 transition-colors hover:bg-sky-tint/50 data-[state=selected]:bg-lilac-mist/50 dark:border-gray-700/50 dark:hover:bg-gray-800/50",
       className
     )}
     {...props}
@@ -63,7 +63,7 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
   <th
     ref={ref}
     className={cn(
-      "h-12 px-4 text-left align-middle font-medium text-slate-gray [&:has([role=checkbox])]:pr-0",
+      "h-12 px-4 text-left align-middle font-medium text-slate-gray dark:text-gray-200 [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}
@@ -75,7 +75,7 @@ const TableCell = React.forwardRef(({ className, ...props }, ref) => (
   <td
     ref={ref}
     className={cn(
-      "p-4 align-middle text-slate-gray [&:has([role=checkbox])]:pr-0",
+      "p-4 align-middle text-slate-gray dark:text-gray-300 [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}
@@ -96,7 +96,7 @@ const ModernTable = React.forwardRef(({ className, children, ...props }, ref) =>
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-neutral-gray bg-white shadow-sm overflow-hidden",
+      "rounded-xl border border-neutral-gray bg-white shadow-sm overflow-hidden dark:bg-gray-900 dark:border-gray-700",
       className
     )}
     {...props}

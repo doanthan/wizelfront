@@ -321,6 +321,101 @@ const brandSettingsSchema = new mongoose.Schema(
             // Default values: market-leader, challenger, niche-player, innovator, value-leader
         },
         uniqueFeatures: [String],
+        competitiveAdvantages: [String],
+
+        // Market Opportunities & Threats
+        marketOpportunities: [{
+            opportunity: String,
+            impact: String,
+            timeframe: String,
+            actionRequired: String
+        }],
+        marketThreats: [{
+            threat: String,
+            severity: String,
+            likelihood: String,
+            mitigationStrategy: String
+        }],
+
+        // Content Strategy
+        contentStrategy: {
+            contentThemes: [{
+                theme: String,
+                description: String,
+                topics: [String],
+                formats: [String],
+                frequency: String
+            }],
+            contentPillars: [{
+                pillar: String,
+                purpose: String,
+                contentTypes: [String],
+                kpis: [String],
+                percentage: Number
+            }],
+            editorialCalendar: {
+                weeklyThemes: {
+                    monday: String,
+                    tuesday: String,
+                    wednesday: String,
+                    thursday: String,
+                    friday: String,
+                    saturday: String,
+                    sunday: String
+                },
+                monthlyFocus: [String],
+                seasonalOpportunities: [{
+                    season: String,
+                    themes: [String],
+                    campaigns: [String]
+                }],
+                keyDates: [{
+                    date: String,
+                    event: String,
+                    contentStrategy: String
+                }],
+                optimalPostingTimes: {
+                    email: String,
+                    social: String,
+                    blog: String
+                }
+            },
+            contentTone: {
+                educational: String,
+                promotional: String,
+                community: String,
+                support: String,
+                brandStory: String,
+                doWords: [String],
+                dontWords: [String]
+            },
+            storyAngles: [{
+                angle: String,
+                narrative: String,
+                emotionalHook: String,
+                callToAction: String,
+                contentFormats: [String]
+            }]
+        },
+
+        // Customer Journey Insights
+        customerJourneyInsights: {
+            decisionFactors: [{
+                factor: String,
+                importance: String,
+                description: String
+            }],
+            trustBuilders: [{
+                builder: String,
+                impact: String,
+                implementation: String
+            }],
+            purchaseTriggers: [String],
+            objectionHandlers: [String],
+            riskReducers: [String],
+            socialValidation: [String],
+            urgencyCreators: [String]
+        },
 
         // Deep Customer Psychology
         customerLifecycleStage: [{
@@ -335,6 +430,8 @@ const brandSettingsSchema = new mongoose.Schema(
         }],
         purchaseBarriers: [String],
         customerFears: [String],
+        decisionFactors: [String], // For backward compatibility with existing UI
+        trustBuilders: [String], // For backward compatibility with existing UI
         socialProof: {
             reviewCount: Number,
             averageRating: Number,
@@ -548,6 +645,8 @@ const brandSettingsSchema = new mongoose.Schema(
                 enum: ['story-driven', 'visual-driven', 'value-driven', 'luxury', 'problem-solver', 
                         'community-driven', 'replenishment', 'seasonal', 'artisan', 'tech-innovation']
             }],
+            description: String,
+            messaging: String,
             confidence: {
                 type: Number,
                 min: 0,
@@ -563,19 +662,17 @@ const brandSettingsSchema = new mongoose.Schema(
 
         // Auto-detection Metrics
         brandMetrics: {
-            averageOrderValue: Number,
+            averageOrderValue: String,
+            customerLifetimeValue: String,
+            purchaseFrequency: String,
+            cartAbandonmentRate: Number,
+            conversionRate: Number,
+            repeatPurchaseRate: Number,
             medianOrderValue: Number,
             priceRange: {
                 min: Number,
                 max: Number,
                 currency: String
-            },
-            purchaseFrequency: {
-                average: Number, // days between purchases
-                mode: {
-                    type: String,
-                    enum: ['one-time', 'occasional', 'regular', 'subscription']
-                }
             },
             productCount: Number,
             categoryDiversity: {
@@ -595,6 +692,133 @@ const brandSettingsSchema = new mongoose.Schema(
                 averageLength: Number
             }
         },
+
+        // Extracted Content
+        extractedContent: {
+            heroHeadline: String,
+            heroSubheadline: String,
+            heroCTA: String,
+            productDescriptions: [String],
+            keyMessages: [String],
+            proofPoints: [String],
+            ctaVariations: [String]
+        },
+
+        // Permission and Access Control
+        access_control: {
+            // ContractSeat-based brand restrictions
+            restricted_to_seats: [{
+                seat_id: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'ContractSeat'
+                },
+                permission_level: {
+                    type: String,
+                    enum: ['edit', 'view', 'none'],
+                    default: 'edit'
+                }
+            }],
+            
+            // Franchise/Agency brand inheritance
+            inherited_from_parent: {
+                type: Boolean,
+                default: false
+            },
+            parent_brand_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'BrandSettings'
+            },
+            
+            // Brand guardian restrictions
+            requires_approval: {
+                type: Boolean,
+                default: false // True for franchise locations editing corporate brands
+            },
+            approved_by: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            approval_date: Date,
+            
+            // Lock level for brand compliance
+            lock_level: {
+                type: String,
+                enum: ['unlocked', 'content_locked', 'layout_locked', 'brand_locked', 'fully_locked'],
+                default: 'unlocked'
+            },
+            locked_by: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            locked_at: Date
+        },
+
+        // Additional fields from comprehensive MongoDB dataset
+        domain: String,
+        
+        // Analysis and metadata fields
+        brandAnalysis: {
+            analysisDate: String,
+            analysisVersion: String,
+            dataSource: String
+        },
+        
+        // Additional visual and CSS fields
+        cssStyles: {
+            buttons: [mongoose.Schema.Types.Mixed],
+            typography: {
+                h1: mongoose.Schema.Types.Mixed,
+                h2: mongoose.Schema.Types.Mixed,
+                h3: mongoose.Schema.Types.Mixed,
+                p: mongoose.Schema.Types.Mixed,
+                body: mongoose.Schema.Types.Mixed
+            },
+            cards: [mongoose.Schema.Types.Mixed],
+            headers: mongoose.Schema.Types.Mixed,
+            forms: mongoose.Schema.Types.Mixed,
+            colors: {
+                primary: [String],
+                text: [String],
+                background: [String]
+            },
+            spacing: {
+                commonPaddings: [String],
+                commonMargins: [String]
+            },
+            testimonials: [mongoose.Schema.Types.Mixed],
+            segments: [mongoose.Schema.Types.Mixed],
+            heroes: [mongoose.Schema.Types.Mixed],
+            email_blocks: [mongoose.Schema.Types.Mixed],
+            emailOptimized: {
+                button: mongoose.Schema.Types.Mixed,
+                heading: mongoose.Schema.Types.Mixed,
+                paragraph: mongoose.Schema.Types.Mixed,
+                card: mongoose.Schema.Types.Mixed,
+                link: mongoose.Schema.Types.Mixed,
+                testimonial: mongoose.Schema.Types.Mixed,
+                segment: mongoose.Schema.Types.Mixed,
+                hero: mongoose.Schema.Types.Mixed
+            },
+            cssRules: {
+                buttons: [mongoose.Schema.Types.Mixed],
+                links: [mongoose.Schema.Types.Mixed],
+                variables: mongoose.Schema.Types.Mixed,
+                importantSelectors: [mongoose.Schema.Types.Mixed]
+            }
+        },
+
+        // Platform detection
+        platform: {
+            platform: String,
+            confidence: String,
+            js_confirmed: Boolean,
+            indicators: [String]
+        },
+        
+        // Additional dates
+        scraped_at: Date,
+        updated_at: Date,
+        brand_settings_id: { type: String, index: true },
 
         // Metadata
         isActive: { type: Boolean, default: true },
@@ -788,6 +1012,71 @@ brandSettingsSchema.statics.findOrCreateDefault = async function (store_id, user
     }
 
     return brand;
+};
+
+// ContractSeat-based permission methods
+brandSettingsSchema.methods.canUserAccess = async function(userId, requiredLevel = 'view') {
+    const ContractSeat = mongoose.model('ContractSeat');
+    const Store = mongoose.model('Store');
+    
+    // Get the store this brand belongs to
+    const store = await Store.findById(this.store_id);
+    if (!store) return false;
+    
+    // Find user's seat for this store's contract
+    const seat = await ContractSeat.findUserSeatForContract(userId, store.contract_id);
+    if (!seat) return false;
+    
+    // Check if brand is restricted to specific seats
+    if (this.access_control.restricted_to_seats.length > 0) {
+        const seatAccess = this.access_control.restricted_to_seats.find(
+            restriction => restriction.seat_id.toString() === seat._id.toString()
+        );
+        
+        if (!seatAccess) return false;
+        
+        // Check permission level
+        if (requiredLevel === 'edit' && seatAccess.permission_level === 'view') {
+            return false;
+        }
+    }
+    
+    // Check if brand is locked and user has sufficient role level
+    if (this.access_control.lock_level !== 'unlocked') {
+        const Role = mongoose.model('Role');
+        const userRole = await Role.findById(seat.default_role_id);
+        
+        // Only brand guardians and above can edit locked brands
+        if (requiredLevel === 'edit' && userRole.level < 60) {
+            return false;
+        }
+    }
+    
+    return true;
+};
+
+brandSettingsSchema.methods.inheritFromParent = async function() {
+    if (!this.access_control.parent_brand_id) return;
+    
+    const parentBrand = await this.constructor.findById(this.access_control.parent_brand_id);
+    if (!parentBrand) return;
+    
+    // Inherit core brand elements
+    this.primaryColor = parentBrand.primaryColor;
+    this.secondaryColors = parentBrand.secondaryColors;
+    this.logo = parentBrand.logo;
+    this.brandVoice = parentBrand.brandVoice;
+    this.brandPersonality = parentBrand.brandPersonality;
+    this.coreValues = parentBrand.coreValues;
+    
+    // Mark as inherited
+    this.access_control.inherited_from_parent = true;
+};
+
+brandSettingsSchema.methods.lockBrand = function(lockLevel, lockedBy) {
+    this.access_control.lock_level = lockLevel;
+    this.access_control.locked_by = lockedBy;
+    this.access_control.locked_at = new Date();
 };
 
 const BrandSettings = mongoose.models.BrandSettings || mongoose.model("BrandSettings", brandSettingsSchema)

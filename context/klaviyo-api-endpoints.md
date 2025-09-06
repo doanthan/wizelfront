@@ -1,14 +1,35 @@
-# Klaviyo API Endpoints Reference
+# Klaviyo API Endpoints Reference with ContractSeat Permissions
 
 ## Base URL
 ```
 https://a.klaviyo.com/api/
 ```
 
-## Authentication
-- **API Key**: `Authorization: Klaviyo-API-Key {your-private-api-key}`
+## Authentication & Permission System
+
+### API Key Management
+- **Contract-Scoped API Keys**: Each contract maintains separate Klaviyo API keys
+- **ContractSeat Validation**: All API calls require active ContractSeat with appropriate role
+- **Usage Tracking**: API calls tracked per seat for billing attribution
+
+### Authentication Headers
+- **API Key**: `Authorization: Klaviyo-API-Key {contract-specific-api-key}`
 - **OAuth Bearer Token**: `Authorization: Bearer {access-token}`
 - **API Revision Header**: `revision: 2025-07-15`
+- **Internal Headers**: 
+  - `X-Contract-ID: {contract_id}` - For internal tracking
+  - `X-Seat-ID: {seat_id}` - For billing attribution
+
+### Permission Requirements by Role
+
+| Role | Profiles | Events | Lists/Segments | Campaigns | Templates | Analytics | Webhooks |
+|------|----------|--------|----------------|-----------|-----------|-----------|----------|
+| **owner** | All | All | All | All | All | All | All |
+| **admin** | All | All | All | All | All | All | All |
+| **manager** | View/Edit | View/Create | View/Edit | View/Edit/Approve | View/Edit | All | View |
+| **creator** | View/Edit Own | Create | View | Create/Edit Own | View/Edit | Own Only | None |
+| **reviewer** | View | View | View | Approve Only | View | All | None |
+| **viewer** | View | View | View | View | View | View Only | None |
 
 ## Core Endpoints
 
@@ -16,10 +37,15 @@ https://a.klaviyo.com/api/
 
 #### Profile Management
 - `GET /api/profiles/` - Get all profiles
-- `GET /api/profiles/{profile_id}/` - Get a specific profile
+  - **Required Role**: `viewer+` | **Credit Cost**: 0.1 | **Rate Limit**: Standard
+- `GET /api/profiles/{profile_id}/` - Get a specific profile  
+  - **Required Role**: `viewer+` | **Credit Cost**: 0.05 | **Rate Limit**: Standard
 - `POST /api/profiles/` - Create a new profile
+  - **Required Role**: `creator+` | **Credit Cost**: 0.2 | **Rate Limit**: Standard
 - `PATCH /api/profiles/{profile_id}/` - Update a profile
+  - **Required Role**: `creator+` | **Credit Cost**: 0.15 | **Rate Limit**: Standard
 - `POST /api/profiles/merge/` - Merge profiles
+  - **Required Role**: `manager+` | **Credit Cost**: 0.5 | **Rate Limit**: Low Volume
 
 #### Profile Relationships
 - `GET /api/profiles/{profile_id}/lists/` - Get lists for a profile
@@ -379,10 +405,153 @@ _learnq.push(['track', 'Viewed Product', {
 }]);
 ```
 
+## ContractSeat Integration & Billing
+
+### Per-Seat API Usage Tracking
+
+Each API call is tracked per ContractSeat for billing attribution:
+
+```javascript
+// Example usage tracking implementation
+async function trackKlaviyoAPIUsage(seatId, endpoint, method, creditsUsed) {
+    const seat = await ContractSeat.findById(seatId);
+    await seat.trackAPIUsage(endpoint, method, creditsUsed);
+    await seat.save();
+}
+
+// Usage in API wrapper
+const response = await fetch('https://a.klaviyo.com/api/profiles/', {
+    headers: {
+        'Authorization': `Klaviyo-API-Key ${contract.klaviyo_api_key}`,
+        'X-Contract-ID': contractId,
+        'X-Seat-ID': seatId
+    }
+});
+
+// Track the usage
+await trackKlaviyoAPIUsage(seatId, 'profiles', 'GET', 0.1);
+```
+
+### Billing Rates per API Category
+
+| Category | Read Operations | Write Operations | Bulk Operations | Premium Features |
+|----------|----------------|------------------|-----------------|------------------|
+| **Profiles** | 0.05 credits | 0.15 credits | 0.5 credits | 1.0 credits |
+| **Events** | 0.05 credits | 0.1 credits | 0.3 credits | 0.5 credits |
+| **Lists/Segments** | 0.1 credits | 0.2 credits | 0.8 credits | 1.5 credits |
+| **Campaigns** | 0.1 credits | 0.3 credits | 1.0 credits | 2.0 credits |
+| **Templates** | 0.05 credits | 0.2 credits | 0.5 credits | 1.0 credits |
+| **Analytics/Reports** | 0.2 credits | N/A | 1.0 credits | 3.0 credits |
+| **Webhooks** | 0.1 credits | 0.3 credits | N/A | 0.5 credits |
+
+### Multi-Contract Scenarios
+
+#### Scenario 1: Agency Managing Multiple Client Contracts
+```javascript
+// Agency user (sarah@agency.com) accessing client's Klaviyo data
+const agencySeat = await ContractSeat.findUserSeatForContract(userId, clientContractId);
+
+// Validate permissions
+if (!agencySeat || agencySeat.default_role_id.level < 40) { // creator+
+    throw new Error('Insufficient permissions for client API access');
+}
+
+// Use client's API key but track usage to agency seat
+const response = await fetch(klaviyoEndpoint, {
+    headers: {
+        'Authorization': `Klaviyo-API-Key ${clientContract.klaviyo_api_key}`,
+        'X-Contract-ID': clientContractId,
+        'X-Seat-ID': agencySeat._id // Billing goes to agency
+    }
+});
+```
+
+#### Scenario 2: Franchise Corporate → Location Access
+```javascript
+// Corporate user managing location's Klaviyo
+const corporateSeat = await ContractSeat.findOne({
+    user_id: corporateUserId,
+    contract_id: corporateContractId
+});
+
+const locationSeat = await ContractSeat.findOne({
+    user_id: corporateUserId,
+    contract_id: locationContractId
+});
+
+// Corporate can access location data if they have a seat in location contract
+if (!locationSeat) {
+    throw new Error('No access to location contract');
+}
+```
+
+#### Scenario 3: Contractor Working for Multiple Agencies
+```javascript
+// Contractor accessing different clients - credits isolated per contract
+async function validateContractorAccess(userId, contractId, creditsNeeded) {
+    const seat = await ContractSeat.findUserSeatForContract(userId, contractId);
+    
+    // Ensure contractor credits are isolated
+    if (seat.credit_limits.isolated_credits) {
+        const canConsume = seat.canConsumeCredits(creditsNeeded);
+        if (!canConsume) {
+            throw new Error('Contractor credit limit exceeded for this contract');
+        }
+    }
+    
+    return seat;
+}
+```
+
+### Enterprise Bulk Operations
+
+For enterprises managing 100+ seats:
+
+```javascript
+// Bulk API operations with distributed billing
+async function bulkKlaviyoOperation(contractId, operations) {
+    const contract = await Contract.findById(contractId);
+    const activeSeats = await ContractSeat.findByContract(contractId);
+    
+    // Distribute operations across seats based on role capabilities
+    const eligibleSeats = activeSeats.filter(seat => 
+        seat.default_role_id.permissions.campaigns.create
+    );
+    
+    // Track usage per seat for billing
+    const costPerSeat = operations.length / eligibleSeats.length;
+    
+    for (const seat of eligibleSeats) {
+        await seat.trackAPIUsage('campaigns', 'POST', costPerSeat);
+        await seat.save();
+    }
+}
+```
+
+### Brand-Level API Restrictions
+
+```javascript
+// Restrict API access based on brand assignments in ContractSeat
+async function validateBrandAPIAccess(userId, storeId, targetBrandId) {
+    const seat = await ContractSeat.findUserAccessToStore(userId, storeId);
+    const storeAccess = seat.store_access.find(access => 
+        access.store_id.toString() === storeId
+    );
+    
+    // Check if user has access to specific brands
+    if (storeAccess.assigned_brands.length > 0 && 
+        !storeAccess.assigned_brands.includes(targetBrandId)) {
+        throw new Error('No access to this brand via Klaviyo API');
+    }
+    
+    return true;
+}
+```
+
 ## Notes
 
 1. **API Revision**: Always include the `revision` header with the latest API version
-2. **Authentication**: Use API keys for server-side, OAuth for user-facing apps
+2. **Authentication**: Use contract-scoped API keys for proper billing attribution
 3. **Relationships**: Use `include` parameter to fetch related resources in one call
 4. **Filtering**: Use Klaviyo's filter syntax for complex queries
 5. **Pagination**: Use cursor-based pagination for large datasets
@@ -391,3 +560,7 @@ _learnq.push(['track', 'Viewed Product', {
 8. **Metric Aggregates**: Use for analytics and reporting needs
 9. **Client API**: Use for frontend/mobile implementations
 10. **Webhooks**: Subscribe to real-time events from Klaviyo
+11. ****NEW**: ContractSeat Validation**: All API calls must validate user's seat permissions
+12. ****NEW**: Usage Billing**: Track API usage per seat for accurate billing
+13. ****NEW**: Multi-Contract Support**: Handle users with seats in multiple contracts
+14. ****NEW**: Brand Restrictions**: Enforce brand-level access control via ContractSeat assignments

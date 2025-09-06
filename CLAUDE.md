@@ -44,16 +44,46 @@ The application uses a specific color scheme defined in `/context/design-princip
 5. **Include all interactive states**: hover, focus, active, disabled
 6. **Ensure accessibility** with proper ARIA labels and keyboard navigation
 
-### Button Patterns
+### Button Patterns & Gradients
 ```jsx
-// Primary button - uses Sky Blue
-<Button variant="default">Primary Action</Button>
+// Primary button with gradient (preferred for main CTAs)
+<Button 
+  className="bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-md hover:shadow-lg transition-all"
+>
+  Primary Action
+</Button>
 
-// Secondary button - uses Vivid Violet  
+// Secondary button - solid color
 <Button variant="secondary">Secondary Action</Button>
 
-// Gradient button - blue to purple gradient
-<Button variant="gradient">Special Action</Button>
+// Standard solid button
+<Button className="bg-sky-blue hover:bg-royal-blue text-white">
+  Standard Action
+</Button>
+```
+
+### Gradient Usage Guidelines
+Use gradients from the design system for:
+- **Primary CTAs**: New, Create, Save buttons
+- **Header backgrounds**: `bg-gradient-to-r from-sky-50 to-purple-50`
+- **Special states**: Today's date, active selections
+- **Feature highlights**: Premium or new features
+
+```jsx
+// Header with subtle gradient
+<div className="bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800">
+  {/* Header content */}
+</div>
+
+// Primary gradient button
+<Button className="bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple">
+  New Campaign
+</Button>
+
+// Special highlight element
+<div className="bg-gradient-to-br from-sky-tint to-lilac-mist border-2 border-sky-blue">
+  {/* Today's date or special content */}
+</div>
 ```
 
 ### Typography
@@ -61,6 +91,27 @@ The application uses a specific color scheme defined in `/context/design-princip
 - Headings: Use `font-bold` or `font-extrabold` with `text-slate-gray`
 - Body text: Use `text-neutral-gray` for secondary text
 - Always maintain proper hierarchy
+
+### Icons
+- **ALWAYS use Lucide React icons** instead of emojis for professional consistency
+- Import icons from `lucide-react`: `import { IconName } from 'lucide-react'`
+- Standard icon size: `h-4 w-4` (16px) for inline icons, `h-5 w-5` (20px) for headers
+- Apply semantic colors: `text-blue-600` for email, `text-green-600` for SMS, `text-purple-600` for notifications
+- Use consistent icon patterns across similar features
+
+```jsx
+// ✅ CORRECT - Lucide React icons
+import { Mail, MessageSquare, Bell, Users } from 'lucide-react';
+
+<Mail className="h-4 w-4 text-blue-600" />
+<MessageSquare className="h-4 w-4 text-green-600" />
+<Bell className="h-4 w-4 text-purple-600" />
+
+// ❌ WRONG - Don't use emojis in UI
+<span>📧</span>
+<span>💬</span>
+<span>🔔</span>
+```
 
 ## Code Quality Standards
 
@@ -80,6 +131,43 @@ import { ComponentDependencies } from "@/app/components/ui/...";
 
 // Follow existing component patterns
 ```
+
+## Next.js Specific Guidelines
+
+### IMPORTANT: Always use `await` with params in Next.js 15+
+In Next.js 15 and later, route parameters are now asynchronous. Always await params before using them:
+
+```javascript
+// ❌ WRONG - Don't access params directly
+export default function Page({ params }) {
+  const id = params.id; // This will cause errors in Next.js 15+
+}
+
+// ✅ CORRECT - Always await params
+export default async function Page({ params }) {
+  const { id } = await params; // Proper async handling
+  // Now you can use id safely
+}
+
+// ✅ For API routes
+export async function GET(request, { params }) {
+  const { id } = await params; // Always await params in API routes too
+  // Your API logic here
+}
+
+// ✅ For generateMetadata
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  return {
+    title: `Page for ${slug}`
+  };
+}
+```
+
+### Why This Matters
+- Next.js 15+ made params asynchronous for performance optimization
+- Direct access without await will result in runtime errors
+- This applies to all route handlers, pages, and metadata functions
 
 ## File Organization
 ```

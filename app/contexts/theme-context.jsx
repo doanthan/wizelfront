@@ -16,17 +16,21 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState("light");
+  // Initialize theme state with the actual current theme to prevent mismatch
+  const [theme, setTheme] = useState(() => {
+    // This will run on the client side only
+    if (typeof window !== 'undefined') {
+      const storedTheme = localStorage.getItem("theme");
+      const systemPreference = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      return storedTheme || systemPreference;
+    }
+    return "light";
+  });
 
   useEffect(() => {
-    // Check localStorage and system preference on mount
-    const storedTheme = localStorage.getItem("theme");
-    const systemPreference = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    const initialTheme = storedTheme || systemPreference;
-    
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle("dark", initialTheme === "dark");
-  }, []);
+    // Ensure the theme class is applied (in case of any mismatch)
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";

@@ -1,0 +1,1581 @@
+{
+  "_id": {
+    "$oid": "68b7bbe6e16bd30dd0c347e5"
+  },
+  "brandName": "Www",
+  "domain": "www.balmainbody.com.au",
+  "products": [],
+  "collections": [],
+  "cssData": {
+    "brandVariables": {
+      "colors": {
+        "primary": "#000000",
+        "secondary": "#ffffff"
+      },
+      "typography": {
+        "fontFamily": "Helvetica, Arial, sans-serif"
+      }
+    },
+    "externalStylesheets": [],
+    "emailOptimized": {}
+  },
+  "platform": {
+    "platform": "shopify",
+    "confidence": "very_high",
+    "indicators": [
+      "shopify-digital-wallet meta tag",
+      "cdn.shopify.com assets",
+      "shopify-section classes"
+    ],
+    "js_confirmed": true
+  },
+  "brandAnalysis": {
+    "name": "Balmain Body",
+    "brandName": "Balmain Body",
+    "slug": "balmain-body",
+    "industryCategories": [
+      "Men's Fragrances",
+      "Personal Care",
+      "Beauty & Grooming",
+      "Direct-to-Consumer"
+    ],
+    "websiteUrl": "https://www.balmainbody.com.au",
+    "brandTagline": "Locally crafted, honestly priced.",
+    "brandVoice": [
+      "casual",
+      "friendly",
+      "authentic",
+      "playful"
+    ],
+    "brandPersonality": [
+      "authentic",
+      "bold",
+      "innovative",
+      "budget-friendly"
+    ],
+    "coreValues": [
+      "affordability",
+      "quality",
+      "craftsmanship",
+      "community"
+    ],
+    "originStory": "Founded by Gavin in Sydney, Balmain Body was born from frustration with overpriced men's fragrances. Starting in a small lab, Gavin began hand-mixing colognes with premium ingredients, cutting out middlemen to deliver quality scents at honest prices.",
+    "missionStatement": "To democratize luxury fragrances for Australian men by crafting premium scents locally at prices that make sense.",
+    "uniqueValueProposition": "Premium Eau de Parfum fragrances inspired by luxury brands, crafted in Australia with high-quality ingredients, at just $30-35 per bottle when bundled.",
+    "brandJourney": "From a small Sydney lab to selling out fast, Balmain Body has disrupted the men's fragrance market by proving that quality doesn't require luxury pricing.",
+    "customerPromise": "Smell expensive without the expensive price tag - backed by our 30-day no-questions-asked return policy.",
+    "primaryColor": [
+      {
+        "hex": "#4e4451",
+        "name": "Balmain Purple"
+      }
+    ],
+    "secondaryColors": [
+      {
+        "hex": "#fffaf4",
+        "name": "Cream"
+      },
+      {
+        "hex": "#969b7c",
+        "name": "Sage Green"
+      },
+      {
+        "hex": "#085b92",
+        "name": "Ocean Blue"
+      }
+    ],
+    "brandFontColor": "#4e4451",
+    "scrapedLogoUrl": "//balmainbody.com.au/cdn/shop/files/balmain_body_1.png?v=1694773836",
+    "brandFontUrl": "",
+    "customFontFamily": "Nunito, Roboto",
+    "emailFallbackFont": "Arial",
+    "logo": {
+      "primary_logo_url": "//balmainbody.com.au/cdn/shop/files/balmain_body_1.png?v=1694773836",
+      "logo_alt_text": "Balmain Body",
+      "logo_type": "image",
+      "brand_name": "Balmain Body"
+    },
+    "logoAlignment": "center",
+    "logoBackgroundColor": "#fffaf4",
+    "headerStyle": "Center-aligned",
+    "headerBackgroundColor": "#f9f7f4",
+    "headerLinks": [
+      {
+        "text": "The Range",
+        "url": "/collections/frontpage"
+      },
+      {
+        "text": "Bundle Builder",
+        "url": "/pages/fragrance-bundle-builder"
+      },
+      {
+        "text": "Scent Quiz",
+        "url": "/pages/quiz"
+      },
+      {
+        "text": "Our Story",
+        "url": "/pages/our-story-1"
+      }
+    ],
+    "footerTagline": "Locally crafted, honestly priced.",
+    "footerAddress": "Sydney, Australia",
+    "socialLinks": [
+      {
+        "platform": "Instagram",
+        "name": "Instagram",
+        "icon": "Instagram",
+        "handle": "@balmainbody",
+        "url": "https://instagram.com/balmainbody"
+      },
+      {
+        "platform": "Facebook",
+        "name": "Facebook",
+        "icon": "Facebook",
+        "handle": "balmainbody",
+        "url": "https://facebook.com/balmainbody"
+      },
+      {
+        "platform": "TikTok",
+        "name": "TikTok",
+        "icon": "Music",
+        "handle": "@balmainbody",
+        "url": "https://tiktok.com/@balmainbody"
+      }
+    ],
+    "socialFacebook": "https://facebook.com/balmainbody",
+    "socialInstagram": "https://instagram.com/balmainbody",
+    "socialTwitterX": "https://twitter.com/balmainbody",
+    "socialLinkedIn": "https://linkedin.com/company/balmainbody",
+    "socialYouTube": "https://youtube.com/c/balmainbody",
+    "socialTikTok": "https://tiktok.com/@balmainbody",
+    "socialIconStyle": "flat",
+    "targetAudienceAge": [
+      "25-34",
+      "35-44",
+      "18-24"
+    ],
+    "targetAudienceGender": [
+      "male"
+    ],
+    "customerPainPoints": [
+      "Overpriced luxury fragrances",
+      "Poor quality budget alternatives",
+      "Limited variety in affordable range",
+      "Risk of buying fragrances online",
+      "Short-lasting cheap colognes"
+    ],
+    "customerAspirations": [
+      "Smell sophisticated and expensive",
+      "Get compliments on their scent",
+      "Find their signature fragrance",
+      "Support local Australian brands",
+      "Build a versatile fragrance collection"
+    ],
+    "geographicFocus": [
+      "Australia",
+      "New Zealand"
+    ],
+    "mainProductCategories": [
+      "Men's Eau de Parfum",
+      "Fragrance Bundles",
+      "Signature Scents"
+    ],
+    "bestsellingProducts": [
+      "Summit (Creed Aventus inspired)",
+      "Riviera (Acqua Di Gio inspired)",
+      "Heritage (Tom Ford Tuscan Leather inspired)",
+      "3-Fragrance Bundle Pack"
+    ],
+    "uniqueSellingPoints": "Australian-made premium fragrances at 70% less than luxury brands, with 30-day free returns and personalized scent matching quiz",
+    "featuredCollection": "The Complete Range - 12 Signature Scents",
+    "currentPromotion": "3 for $105 Bundle Deal (50% off)",
+    "upcomingProductLaunch": "Limited Edition Summer Collection",
+    "seasonalFocus": "Year-round essentials with seasonal limited editions",
+    "discountStrategy": "volume-based",
+    "loyaltyProgramDetails": "Bundle rewards - save more when buying 3 or 5 fragrances",
+    "emailFrequency": "3/week",
+    "ctaButtonStyle": "bold-direct",
+    "contentPriority": [
+      "product-focused",
+      "promotional",
+      "educational"
+    ],
+    "emailSignature": "Cheers,\nGavin & The Balmain Body Team",
+    "primaryCampaignObjective": "increase-sales",
+    "secondaryObjectives": [
+      "new-product",
+      "brand-awareness",
+      "re-engage"
+    ],
+    "trustBadges": [
+      {
+        "text": "Free Shipping Over $70",
+        "icon": "Truck",
+        "description": "Free shipping on all orders over $70"
+      },
+      {
+        "text": "30-Day Free Returns",
+        "icon": "RefreshCw",
+        "description": "No questions asked returns within 30 days"
+      },
+      {
+        "text": "Made in Australia",
+        "icon": "MapPin",
+        "description": "Locally crafted in Sydney with premium ingredients"
+      }
+    ],
+    "trustBadgeStyle": "multicolor",
+    "selectedBenefits": [
+      {
+        "id": "free-shipping",
+        "name": "Free Shipping",
+        "icon": "Truck",
+        "description": "Free shipping on orders over $70"
+      },
+      {
+        "id": "free-returns",
+        "name": "30-Day Returns",
+        "icon": "RefreshCw",
+        "description": "Risk-free 30-day return policy"
+      },
+      {
+        "id": "australian-made",
+        "name": "Australian Made",
+        "icon": "Award",
+        "description": "Crafted locally in Sydney"
+      },
+      {
+        "id": "bundle-savings",
+        "name": "Bundle & Save",
+        "icon": "Package",
+        "description": "Save 50% with 3-pack bundles"
+      }
+    ],
+    "competitors": [
+      {
+        "name": "Chemist Warehouse Fragrances",
+        "url": "https://chemistwarehouse.com.au",
+        "strengths": [
+          "Wide distribution",
+          "Established brand trust",
+          "Physical store presence"
+        ],
+        "weaknesses": [
+          "Generic mass-market products",
+          "No personalization",
+          "Lower quality formulations"
+        ],
+        "differentiators": [
+          "Balmain Body offers premium quality at similar prices",
+          "Personalized scent matching",
+          "Direct-to-consumer model"
+        ]
+      },
+      {
+        "name": "Luxury Department Stores",
+        "url": "https://davidjones.com",
+        "strengths": [
+          "Premium brand selection",
+          "In-store experience",
+          "Established luxury positioning"
+        ],
+        "weaknesses": [
+          "High prices ($150-300+)",
+          "Limited accessibility",
+          "No risk-free trials"
+        ],
+        "differentiators": [
+          "Balmain Body offers similar quality at 70% less",
+          "30-day return policy",
+          "Australian-made authenticity"
+        ]
+      }
+    ],
+    "competitivePricing": "below-market",
+    "marketPosition": "challenger",
+    "uniqueFeatures": [
+      "60-second personalized scent quiz",
+      "Hand-mixed in small batches",
+      "Inspired by $200+ luxury fragrances",
+      "Free return shipping",
+      "Eau de Parfum strength (not diluted)"
+    ],
+    "customerLifecycleStage": [
+      "awareness",
+      "consideration",
+      "purchase",
+      "retention"
+    ],
+    "buyingMotivations": [
+      "rational",
+      "social",
+      "emotional"
+    ],
+    "purchaseBarriers": [
+      "trust",
+      "complexity"
+    ],
+    "customerFears": [
+      "Choosing wrong scent online",
+      "Quality not matching price",
+      "Scent not lasting long",
+      "Wasting money on unused fragrances"
+    ],
+    "socialProof": {
+      "reviewCount": 1000,
+      "averageRating": 4.8,
+      "testimonials": [
+        "Perfect for work and play - Dermot C.",
+        "I'm actually surprised they smell so good. Took the chance and it paid off - Andrew K.",
+        "Very happy with them all... the wife has commented on all 3 - Scott L.",
+        "It gets noticed. As a teacher of nurses 90% of my classes are women - Rob T.",
+        "Smells premium and lasts long. Will buy again - Sanju",
+        "Actually getting compliments with this one - Ethan S."
+      ],
+      "celebrityEndorsements": [],
+      "mediaFeatures": []
+    },
+    "customerPersonas": [
+      {
+        "name": "The Professional Millennial",
+        "description": "Young professional who wants to smell good without breaking the bank",
+        "demographics": {
+          "age": "25-34",
+          "income": "$60k-90k",
+          "education": "University",
+          "occupation": "White collar professional",
+          "location": "Urban/Suburban Australia"
+        },
+        "psychographics": {
+          "interests": [
+            "Career advancement",
+            "Social life",
+            "Value shopping",
+            "Australian brands"
+          ],
+          "values": [
+            "Authenticity",
+            "Smart spending",
+            "Quality",
+            "Local support"
+          ],
+          "lifestyle": "active",
+          "personality": [
+            "Ambitious",
+            "Social",
+            "Practical",
+            "Tech-savvy"
+          ]
+        },
+        "shoppingBehavior": {
+          "frequency": "quarterly",
+          "averageOrderValue": "$105",
+          "preferredChannels": [
+            "online",
+            "mobile"
+          ],
+          "decisionFactors": [
+            "value",
+            "quality",
+            "reviews",
+            "return policy"
+          ]
+        }
+      },
+      {
+        "name": "The Savvy Explorer",
+        "description": "Fragrance enthusiast looking to build a collection without luxury prices",
+        "demographics": {
+          "age": "30-45",
+          "income": "$75k-120k",
+          "education": "University",
+          "occupation": "Manager/Business owner",
+          "location": "Major Australian cities"
+        },
+        "psychographics": {
+          "interests": [
+            "Trying new scents",
+            "Supporting local business",
+            "Smart luxury",
+            "Personal grooming"
+          ],
+          "values": [
+            "Quality over quantity",
+            "Supporting Australian made",
+            "Value for money",
+            "Authenticity"
+          ],
+          "lifestyle": "sophisticated",
+          "personality": [
+            "Confident",
+            "Discerning",
+            "Adventurous",
+            "Value-conscious"
+          ]
+        },
+        "shoppingBehavior": {
+          "frequency": "bi-monthly",
+          "averageOrderValue": "$150",
+          "preferredChannels": [
+            "online",
+            "direct"
+          ],
+          "decisionFactors": [
+            "variety",
+            "quality",
+            "Australian made",
+            "bundle deals"
+          ]
+        }
+      }
+    ],
+    "emotionalTriggers": [
+      "fear-of-missing-out",
+      "belonging",
+      "achievement",
+      "security"
+    ],
+    "customerLanguage": {
+      "keywords": [
+        "honestly priced",
+        "smell expensive",
+        "get compliments",
+        "signature scent",
+        "Australian made"
+      ],
+      "phrases": [
+        "smells so good",
+        "worth the price",
+        "lasts all day",
+        "wife approved",
+        "actually surprised"
+      ],
+      "tone": "conversational",
+      "avoidWords": [
+        "cheap",
+        "discount",
+        "knockoff",
+        "imitation"
+      ]
+    },
+    "buttonEffect": "solid",
+    "buttonBackgroundColor": "#4e4451",
+    "buttonTextColor": "#ffffff",
+    "buttonBorderRadius": 10,
+    "buttonPadding": 14,
+    "buttonShadowIntensity": 0,
+    "buttonSize": "medium",
+    "buttonStyle": "solid",
+    "categories": [
+      {
+        "name": "The Range",
+        "link": "/collections/frontpage"
+      },
+      {
+        "name": "Bundle Builder",
+        "link": "/pages/fragrance-bundle-builder"
+      },
+      {
+        "name": "Scent Quiz",
+        "link": "/pages/quiz"
+      }
+    ],
+    "categoryStyle": "outline",
+    "emailStrategy": {
+      "contentMix": {
+        "educational": 20,
+        "promotional": 45,
+        "community": 15,
+        "product": 20
+      },
+      "visualContentType": {
+        "infographics": 5,
+        "productShots": 40,
+        "lifestylePhotos": 35,
+        "modelPhotos": 10,
+        "diagrams": 0,
+        "beforeAfter": 0,
+        "userGenerated": 10
+      },
+      "visualToTextRatio": "visual-heavy",
+      "layoutPreference": "single-column",
+      "mobileStrategy": "single-focus",
+      "heroProductCount": 3,
+      "storyDepth": "moderate",
+      "contentBlocks": {
+        "preferredTypes": [
+          "product-grid",
+          "testimonial-cards",
+          "benefit-icons"
+        ],
+        "maxBlocksPerEmail": 5
+      }
+    },
+    "brandArchetype": {
+      "primary": "value-driven",
+      "secondary": [
+        "problem-solver",
+        "community-driven"
+      ],
+      "confidence": 90,
+      "lastDetected": "2025-01-10T00:00:00Z",
+      "detectionMethod": "auto"
+    },
+    "brandMetrics": {
+      "averageOrderValue": 105,
+      "medianOrderValue": 105,
+      "priceRange": {
+        "min": 70,
+        "max": 150,
+        "currency": "AUD"
+      },
+      "purchaseFrequency": {
+        "average": 90,
+        "mode": "occasional"
+      },
+      "productCount": 12,
+      "categoryDiversity": 0.3,
+      "imageToTextRatio": 2,
+      "repeatCustomerRate": 45,
+      "reviewSentiment": {
+        "keywords": [
+          "smell so good",
+          "lasts long",
+          "great value",
+          "compliments",
+          "surprised"
+        ],
+        "themes": [
+          "exceeds expectations",
+          "social validation",
+          "repeat purchase intent"
+        ],
+        "averageLength": 75
+      }
+    },
+    "analysisDate": "2025-09-03T03:54:14.567637",
+    "analysisVersion": "2.0",
+    "dataSource": "web_scrape_enhanced",
+    "cssStyles": {
+      "buttons": [
+        {
+          "type": "primary",
+          "selector": "button",
+          "styles": {
+            "background-color": "rgb(78, 68, 81)",
+            "color": "rgb(255, 255, 255)",
+            "border-radius": "10px",
+            "padding": "14px 46px",
+            "font-size": "16px",
+            "font-weight": "400",
+            "font-family": "Nunito, sans-serif",
+            "border": "1px solid rgb(78, 68, 81)",
+            "line-height": "20px"
+          },
+          "hoverStyles": null,
+          "example": "Shop Now."
+        },
+        {
+          "type": "secondary",
+          "selector": "button[type=\"submit\"]",
+          "styles": {
+            "background-color": "rgb(8, 91, 146)",
+            "color": "rgb(255, 255, 255)",
+            "border-radius": "8px",
+            "padding": "16px",
+            "font-size": "14px",
+            "font-weight": "300",
+            "font-family": "Nunito, sans-serif",
+            "border": "0px none rgb(255, 255, 255)",
+            "line-height": "14px"
+          },
+          "hoverStyles": null,
+          "example": "Add bundle to cart."
+        }
+      ],
+      "typography": {
+        "h2": {
+          "font-family": "Roboto, sans-serif",
+          "font-size": "36px",
+          "font-weight": "300",
+          "line-height": "36px",
+          "color": "rgb(249, 247, 244)",
+          "text-align": "left"
+        },
+        "h3": {
+          "font-family": "Roboto, sans-serif",
+          "font-size": "16px",
+          "font-weight": "300",
+          "line-height": "24px",
+          "color": "rgb(0, 0, 0)",
+          "text-align": "left"
+        },
+        "p": {
+          "font-family": "Nunito, sans-serif",
+          "font-size": "30px",
+          "font-weight": "300",
+          "line-height": "39px",
+          "color": "rgb(78, 68, 81)",
+          "text-align": "start"
+        },
+        "body": {
+          "font-family": "Nunito, sans-serif",
+          "font-size": "16px",
+          "font-weight": "300",
+          "line-height": "22.4px",
+          "color": "rgb(78, 68, 81)",
+          "text-align": "start"
+        }
+      },
+      "cards": [
+        {
+          "selector": ".card",
+          "styles": {
+            "background-color": "rgb(255, 250, 244)",
+            "border": "0px none rgb(249, 247, 244)",
+            "border-radius": "0px",
+            "padding": "0px",
+            "margin": "0px",
+            "display": "block"
+          },
+          "hasImage": true,
+          "hasButton": true
+        },
+        {
+          "selector": "[class*=\"card\"]",
+          "styles": {
+            "background-color": "rgb(255, 250, 244)",
+            "border": "0px none rgb(249, 247, 244)",
+            "border-radius": "0px",
+            "padding": "0px",
+            "margin": "0px",
+            "display": "block"
+          },
+          "hasImage": true,
+          "hasButton": true
+        }
+      ],
+      "headers": {
+        "styles": {
+          "background-color": "rgb(255, 250, 244)",
+          "color": "rgb(78, 68, 81)",
+          "padding": "0px",
+          "height": "8083.58px",
+          "border-bottom": "0px none rgb(78, 68, 81)",
+          "box-shadow": "none",
+          "position": "static"
+        },
+        "hasLogo": true,
+        "hasNav": true
+      },
+      "forms": {},
+      "colors": {
+        "primary": [],
+        "text": [
+          "#000000",
+          "#4e4451",
+          "#ffffff",
+          "#f9f7f4",
+          "#085b92"
+        ],
+        "background": [
+          "#fffaf4",
+          "#969b7c",
+          "#4e4451",
+          "#085b92",
+          "#ffffff"
+        ]
+      },
+      "spacing": {
+        "commonPaddings": [
+          "0px"
+        ],
+        "commonMargins": [
+          "0px"
+        ]
+      },
+      "testimonials": [
+        {
+          "selector": "[class*=\"testimonial\"]",
+          "styles": {
+            "background-color": "rgb(249, 247, 244)",
+            "border-radius": "0px",
+            "padding": "0px",
+            "margin": "0px",
+            "color": "rgb(78, 68, 81)",
+            "font-size": "16px"
+          },
+          "hasRating": true,
+          "hasAvatar": false,
+          "structure": {
+            "hasQuote": true,
+            "hasAuthor": true,
+            "hasTitle": false
+          }
+        },
+        {
+          "selector": "[class*=\"testimonial\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "border": "0px none rgb(78, 68, 81)",
+            "border-radius": "0px",
+            "padding": "60px 80px",
+            "margin": "0px",
+            "color": "rgb(78, 68, 81)",
+            "font-size": "16px"
+          },
+          "hasRating": true,
+          "hasAvatar": false,
+          "structure": {
+            "hasQuote": true,
+            "hasAuthor": true,
+            "hasTitle": false
+          }
+        },
+        {
+          "selector": "[class*=\"testimonial\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "border": "0px none rgb(78, 68, 81)",
+            "border-radius": "0px",
+            "padding": "0px",
+            "margin": "12px 0px 0px",
+            "color": "rgb(78, 68, 81)",
+            "font-size": "16px"
+          },
+          "hasRating": true,
+          "hasAvatar": false,
+          "structure": {
+            "hasQuote": true,
+            "hasAuthor": false,
+            "hasTitle": false
+          }
+        }
+      ],
+      "segments": [
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "start"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": false,
+          "hasHeading": false
+        },
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "start"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": true,
+          "hasHeading": false
+        },
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "start"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": true,
+          "hasHeading": true
+        },
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "start"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": false,
+          "hasHeading": false
+        },
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgb(255, 250, 244)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "start"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": false,
+          "hasHeading": false
+        }
+      ],
+      "heroes": [],
+      "email_blocks": [],
+      "emailOptimized": {
+        "button": {
+          "primary": "background-color: rgb(78, 68, 81); color: rgb(255, 255, 255); font-size: 16px; font-weight: 400; font-family: Nunito; padding: 14px 46px; border-radius: 10px; border: 1px solid rgb(78, 68, 81); display: inline-block; text-align: center; cursor: pointer; line-height: 1.5",
+          "primaryHover": "",
+          "secondary": "background-color: rgb(8, 91, 146); color: rgb(255, 255, 255); font-size: 14px; font-weight: 300; font-family: Nunito; padding: 16px; border-radius: 8px; border: 0px none rgb(255, 255, 255); display: inline-block; text-align: center; cursor: pointer; line-height: 1.5"
+        },
+        "heading": {
+          "h2": "color: rgb(249, 247, 244); font-family: Roboto; font-size: 36px; font-weight: 300; line-height: 36px; text-align: left",
+          "h3": "color: rgb(0, 0, 0); font-family: Roboto; font-size: 16px; font-weight: 300; line-height: 24px; text-align: left"
+        },
+        "paragraph": {
+          "p": "color: rgb(78, 68, 81); font-family: Nunito; font-size: 30px; font-weight: 300; line-height: 39px; text-align: start"
+        },
+        "card": "background-color: rgb(255, 250, 244); border: 0px none rgb(249, 247, 244); border-radius: 0px; padding: 0px; margin: 0px",
+        "link": {},
+        "testimonial": "background-color: rgb(249, 247, 244); border-radius: 0px; padding: 0px; margin: 0px; color: rgb(78, 68, 81)",
+        "segment": "background-color: rgba(0, 0, 0, 0); padding: 0px; margin: 0px; text-align: start",
+        "hero": {}
+      },
+      "cssRules": {
+        "buttons": [
+          {
+            "selector": ".no-touchevents .card .button.button--solid:hover, .no-touchevents .card .button.button--outline-hover-solid:hover",
+            "styles": "background-color: var(--color-text-cards); border-color: var(--color-text-cards); color: var(--color-foreground-cards);",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents .card .button.button--solid:hover span, .no-touchevents .card .button.button--outline-hover-solid:hover span",
+            "styles": "color: var(--color-foreground-cards);",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents .card .button.button--solid:hover path, .no-touchevents .card .button.button--outline-hover-solid:hover path",
+            "styles": "fill: var(--color-foreground-cards);",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents .card .button.button--outline:not(.button--outline-hover-solid):hover",
+            "styles": "border-color: var(--color-text-cards); color: var(--color-text-cards);",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents .card .button.button--outline:not(.button--outline-hover-solid):hover span",
+            "styles": "color: var(--color-text-cards);",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents .card .button.button--outline:not(.button--outline-hover-solid):hover path",
+            "styles": "fill: var(--color-text-cards);",
+            "important": false
+          },
+          {
+            "selector": ".text-font--primary",
+            "styles": "font-family: var(--font-stack-body-primary); font-weight: var(--font-weight-body-primary); font-style: var(--font-style-body-primary); line-height: var(--base-body-line);",
+            "important": true
+          },
+          {
+            "selector": ".text-font--secondary",
+            "styles": "font-family: var(--font-stack-body-secondary); font-weight: var(--font-weight-body-secondary); font-style: var(--font-stack-body-secondary); line-height: 1.1;",
+            "important": true
+          },
+          {
+            "selector": ".no-touchevents a:hover .text-animation--underline, .no-touchevents button:hover .text-animation--underline",
+            "styles": "background-size: 100% 2px;",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents a:hover .text-animation--underline-thin, .no-touchevents button:hover .text-animation--underline-thin",
+            "styles": "background-size: 100% 1px;",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents a:hover .text-animation--underline-large, .no-touchevents button:hover .text-animation--underline-large",
+            "styles": "background-size: 100% 3px;",
+            "important": false
+          },
+          {
+            "selector": ".no-touchevents a:hover .text-animation--underline-in-header, .no-touchevents button:hover .text-animation--underline-in-header",
+            "styles": "background-size: 100% 1px;",
+            "important": false
+          },
+          {
+            "selector": "#main .shopify-section:first-of-type .container--vertical-space:not(.container--fullwidth)",
+            "styles": "margin-top: clamp(24px,var(--container-vertical-space) / 2,50px);",
+            "important": true
+          },
+          {
+            "selector": "#html #main .shopify-section:first-of-type .container--fullwidth",
+            "styles": "margin-top: 0px !important;",
+            "important": true
+          },
+          {
+            "selector": ".section--remove-bottom-margin-after + .shopify-section > .container--vertical-space:first-of-type",
+            "styles": "margin-top: 0px;",
+            "important": true
+          },
+          {
+            "selector": ".shopify-section",
+            "styles": "position: relative;",
+            "important": true
+          },
+          {
+            "selector": ".shopify-policy__container",
+            "styles": "width: 100%; max-width: var(--theme-max-width) !important; padding-left: var(--gutter-container) !important; padding-right: var(--gutter-container) !important; margin-top: clamp(2.5rem,var(--container-vertical-space),4.375rem) !important;",
+            "important": true
+          },
+          {
+            "selector": ".shopify-policy__title",
+            "styles": "text-align: left !important;",
+            "important": true
+          },
+          {
+            "selector": "html[dir=\"rtl\"] .no-touchevents .button--fullwidth.button--icon:hover .button__text",
+            "styles": "width: fit-content;",
+            "important": false
+          },
+          {
+            "selector": "html[dir=\"ltr\"] .no-touchevents .button--fullwidth.button--icon:hover .button__text",
+            "styles": "width: 0px;",
+            "important": false
+          }
+        ],
+        "links": [
+          {
+            "selector": "html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video, button",
+            "styles": "margin: 0px; padding: 0px; border: 0px; font: inherit; vertical-align: baseline;"
+          },
+          {
+            "selector": "article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section",
+            "styles": "display: block;"
+          },
+          {
+            "selector": ".panel, .card",
+            "styles": "border: solid 1px var(--color-borders-cards); border-radius: var(--border-radius-cards); overflow: hidden; background-color: var(--color-background-cards); position: relative; color: var(--color-text-cards);"
+          },
+          {
+            "selector": ".card .button",
+            "styles": "color: var(--color-text-cards);"
+          },
+          {
+            "selector": ".card .button--outline",
+            "styles": "border-color: var(--color-text-cards);"
+          },
+          {
+            "selector": ".card .button--outline .button__icon svg path",
+            "styles": "fill: var(--color-text-cards);"
+          },
+          {
+            "selector": ".card .button--solid",
+            "styles": "background-color: var(--color-text-cards); border-color: var(--color-text-cards); color: var(--color-foreground-cards);"
+          },
+          {
+            "selector": ".card .button--solid .button__icon svg path",
+            "styles": "fill: var(--color-foreground-cards);"
+          },
+          {
+            "selector": ".no-touchevents .card .button.button--solid:hover, .no-touchevents .card .button.button--outline-hover-solid:hover",
+            "styles": "background-color: var(--color-text-cards); border-color: var(--color-text-cards); color: var(--color-foreground-cards);"
+          },
+          {
+            "selector": ".no-touchevents .card .button.button--solid:hover span, .no-touchevents .card .button.button--outline-hover-solid:hover span",
+            "styles": "color: var(--color-foreground-cards);"
+          }
+        ],
+        "variables": {
+          "--font-stack-headings-primary": "Roboto, sans-serif",
+          "--font-weight-headings-primary": "300",
+          "--font-style-headings-primary": "normal",
+          "--font-stack-body-primary": "Nunito, sans-serif",
+          "--font-weight-body-primary": "300",
+          "--font-weight-body-primary-bold": "500",
+          "--font-weight-body-primary-medium": "400",
+          "--font-style-body-primary": "normal",
+          "--font-stack-body-secondary": "Roboto, sans-serif",
+          "--font-weight-body-secondary": "300",
+          "--font-weight-body-secondary-bold": "400",
+          "--font-style-body-secondary": "normal",
+          "--font-weight-menu": "var(--font-weight-body-primary-medium)",
+          "--font-weight-buttons": "var(--font-weight-body-primary-medium)",
+          "--base-headings-primary-size": "60",
+          "--base-headings-secondary-size": "",
+          "--base-headings-line": "1",
+          "--base-headings-spacing": "0.0em",
+          "--base-body-primary-size": "16",
+          "--base-body-secondary-size": "18",
+          "--base-body-line": "1.4",
+          "--color-background-header": "#f9f7f4",
+          "--color-text-header": "#4e4451",
+          "--color-foreground-header": "#fff",
+          "--color-borders-header": "rgba(78, 68, 81, 0.15)",
+          "--color-background-main": "#fffaf4",
+          "--color-secondary-background-main": "rgba(78, 68, 81, 0.08)",
+          "--color-third-background-main": "rgba(78, 68, 81, 0.04)",
+          "--color-fourth-background-main": "rgba(78, 68, 81, 0.02)",
+          "--color-opacity-background-main": "rgba(255, 250, 244, 0)",
+          "--color-text-main": "#4e4451",
+          "--color-foreground-main": "#fff",
+          "--color-secondary-text-main": "rgba(78, 68, 81, 0.6)",
+          "--color-borders-main": "rgba(78, 68, 81, 0.1)",
+          "--color-background-main-alternate": "#ffffff",
+          "--color-background-product-card": "rgba(0,0,0,0)",
+          "--color-background-cart-card": "rgba(0,0,0,0)",
+          "--color-background-footer": "#969b7c",
+          "--color-text-footer": "#f2efec",
+          "--color-borders-footer": "rgba(242, 239, 236, 0.15)",
+          "--color-borders-forms-primary": "rgba(78, 68, 81, 0.3)",
+          "--color-borders-forms-secondary": "rgba(78, 68, 81, 0.6)",
+          "--border-width-cards": "px",
+          "--border-radius-cards": "0px",
+          "--border-width-buttons": "1px",
+          "--border-radius-buttons": "10px",
+          "--border-width-forms": "1px",
+          "--border-radius-forms": "6px",
+          "--border-radius-widgets": "10px",
+          "--border-radius-product-card": "0px",
+          "--theme-max-width": "1360px",
+          "--grid-gap-original-base": "32px",
+          "--container-vertical-space-base": "140px",
+          "--image-fit-padding": "10%",
+          "--window-height": "720px",
+          "--window-width": "1280px",
+          "--gutter-small": "15px",
+          "--gutter-regular": "25px",
+          "--gutter-large": "50px",
+          "--gutter-xlarge": "80px",
+          "--gutter-container": "40px",
+          "--gutter-breadcrumbs": "-35px",
+          "--sidebar-width": "420px",
+          "--sidebar-gutter": "30px",
+          "--full-height": "100vh",
+          "--button-padding": ".875rem .9375rem",
+          "--input-padding": ".75rem",
+          "--header-vertical-space": "30px",
+          "--container-vertical-space": "var(--container-vertical-space-base)",
+          "--grid-gap": "var(--grid-gap-original-base)",
+          "--color-background-cards": "var(--color-background-main)",
+          "--color-text-cards": "var(--color-text-main)",
+          "--color-foreground-cards": "var(--color-foreground-main)",
+          "--color-secondary-text-cards": "var(--color-secondary-text-main)",
+          "--color-accent-cards": "var(--color-text-main)",
+          "--color-foreground-accent-cards": "var(--color-foreground-main)",
+          "--color-borders-cards": "var(--color-borders-main)"
+        },
+        "importantSelectors": []
+      }
+    }
+  },
+  "extractedContent": {},
+  "cssStyles": {
+    "buttons": [
+      {
+        "type": "primary",
+        "selector": "button",
+        "styles": {
+          "background-color": "rgb(78, 68, 81)",
+          "color": "rgb(255, 255, 255)",
+          "border-radius": "10px",
+          "padding": "14px 46px",
+          "font-size": "16px",
+          "font-weight": "400",
+          "font-family": "Nunito, sans-serif",
+          "border": "1px solid rgb(78, 68, 81)",
+          "line-height": "20px"
+        },
+        "hoverStyles": null,
+        "example": "Shop Now."
+      },
+      {
+        "type": "secondary",
+        "selector": "button[type=\"submit\"]",
+        "styles": {
+          "background-color": "rgb(8, 91, 146)",
+          "color": "rgb(255, 255, 255)",
+          "border-radius": "8px",
+          "padding": "16px",
+          "font-size": "14px",
+          "font-weight": "300",
+          "font-family": "Nunito, sans-serif",
+          "border": "0px none rgb(255, 255, 255)",
+          "line-height": "14px"
+        },
+        "hoverStyles": null,
+        "example": "Add bundle to cart."
+      }
+    ],
+    "typography": {
+      "h2": {
+        "font-family": "Roboto, sans-serif",
+        "font-size": "36px",
+        "font-weight": "300",
+        "line-height": "36px",
+        "color": "rgb(249, 247, 244)",
+        "text-align": "left"
+      },
+      "h3": {
+        "font-family": "Roboto, sans-serif",
+        "font-size": "16px",
+        "font-weight": "300",
+        "line-height": "24px",
+        "color": "rgb(0, 0, 0)",
+        "text-align": "left"
+      },
+      "p": {
+        "font-family": "Nunito, sans-serif",
+        "font-size": "30px",
+        "font-weight": "300",
+        "line-height": "39px",
+        "color": "rgb(78, 68, 81)",
+        "text-align": "start"
+      },
+      "body": {
+        "font-family": "Nunito, sans-serif",
+        "font-size": "16px",
+        "font-weight": "300",
+        "line-height": "22.4px",
+        "color": "rgb(78, 68, 81)",
+        "text-align": "start"
+      }
+    },
+    "cards": [
+      {
+        "selector": ".card",
+        "styles": {
+          "background-color": "rgb(255, 250, 244)",
+          "border": "0px none rgb(249, 247, 244)",
+          "border-radius": "0px",
+          "padding": "0px",
+          "margin": "0px",
+          "display": "block"
+        },
+        "hasImage": true,
+        "hasButton": true
+      },
+      {
+        "selector": "[class*=\"card\"]",
+        "styles": {
+          "background-color": "rgb(255, 250, 244)",
+          "border": "0px none rgb(249, 247, 244)",
+          "border-radius": "0px",
+          "padding": "0px",
+          "margin": "0px",
+          "display": "block"
+        },
+        "hasImage": true,
+        "hasButton": true
+      }
+    ],
+    "headers": {
+      "styles": {
+        "background-color": "rgb(255, 250, 244)",
+        "color": "rgb(78, 68, 81)",
+        "padding": "0px",
+        "height": "8083.58px",
+        "border-bottom": "0px none rgb(78, 68, 81)",
+        "box-shadow": "none",
+        "position": "static"
+      },
+      "hasLogo": true,
+      "hasNav": true
+    },
+    "forms": {},
+    "colors": {
+      "primary": [],
+      "text": [
+        "#000000",
+        "#4e4451",
+        "#ffffff",
+        "#f9f7f4",
+        "#085b92"
+      ],
+      "background": [
+        "#fffaf4",
+        "#969b7c",
+        "#4e4451",
+        "#085b92",
+        "#ffffff"
+      ]
+    },
+    "spacing": {
+      "commonPaddings": [
+        "0px"
+      ],
+      "commonMargins": [
+        "0px"
+      ]
+    },
+    "testimonials": [
+      {
+        "selector": "[class*=\"testimonial\"]",
+        "styles": {
+          "background-color": "rgb(249, 247, 244)",
+          "border-radius": "0px",
+          "padding": "0px",
+          "margin": "0px",
+          "color": "rgb(78, 68, 81)",
+          "font-size": "16px"
+        },
+        "hasRating": true,
+        "hasAvatar": false,
+        "structure": {
+          "hasQuote": true,
+          "hasAuthor": true,
+          "hasTitle": false
+        }
+      },
+      {
+        "selector": "[class*=\"testimonial\"]",
+        "styles": {
+          "background-color": "rgba(0, 0, 0, 0)",
+          "border": "0px none rgb(78, 68, 81)",
+          "border-radius": "0px",
+          "padding": "60px 80px",
+          "margin": "0px",
+          "color": "rgb(78, 68, 81)",
+          "font-size": "16px"
+        },
+        "hasRating": true,
+        "hasAvatar": false,
+        "structure": {
+          "hasQuote": true,
+          "hasAuthor": true,
+          "hasTitle": false
+        }
+      },
+      {
+        "selector": "[class*=\"testimonial\"]",
+        "styles": {
+          "background-color": "rgba(0, 0, 0, 0)",
+          "border": "0px none rgb(78, 68, 81)",
+          "border-radius": "0px",
+          "padding": "0px",
+          "margin": "12px 0px 0px",
+          "color": "rgb(78, 68, 81)",
+          "font-size": "16px"
+        },
+        "hasRating": true,
+        "hasAvatar": false,
+        "structure": {
+          "hasQuote": true,
+          "hasAuthor": false,
+          "hasTitle": false
+        }
+      }
+    ],
+    "segments": [
+      {
+        "selector": "[class*=\"section\"]",
+        "styles": {
+          "background-color": "rgba(0, 0, 0, 0)",
+          "padding": "0px",
+          "margin": "0px",
+          "text-align": "start"
+        },
+        "hasBackgroundImage": false,
+        "hasButtons": false,
+        "hasHeading": false
+      },
+      {
+        "selector": "[class*=\"section\"]",
+        "styles": {
+          "background-color": "rgba(0, 0, 0, 0)",
+          "padding": "0px",
+          "margin": "0px",
+          "text-align": "start"
+        },
+        "hasBackgroundImage": false,
+        "hasButtons": true,
+        "hasHeading": false
+      },
+      {
+        "selector": "[class*=\"section\"]",
+        "styles": {
+          "background-color": "rgba(0, 0, 0, 0)",
+          "padding": "0px",
+          "margin": "0px",
+          "text-align": "start"
+        },
+        "hasBackgroundImage": false,
+        "hasButtons": true,
+        "hasHeading": true
+      },
+      {
+        "selector": "[class*=\"section\"]",
+        "styles": {
+          "background-color": "rgba(0, 0, 0, 0)",
+          "padding": "0px",
+          "margin": "0px",
+          "text-align": "start"
+        },
+        "hasBackgroundImage": false,
+        "hasButtons": false,
+        "hasHeading": false
+      },
+      {
+        "selector": "[class*=\"section\"]",
+        "styles": {
+          "background-color": "rgb(255, 250, 244)",
+          "padding": "0px",
+          "margin": "0px",
+          "text-align": "start"
+        },
+        "hasBackgroundImage": false,
+        "hasButtons": false,
+        "hasHeading": false
+      }
+    ],
+    "heroes": [],
+    "email_blocks": [],
+    "emailOptimized": {
+      "button": {
+        "primary": "background-color: rgb(78, 68, 81); color: rgb(255, 255, 255); font-size: 16px; font-weight: 400; font-family: Nunito; padding: 14px 46px; border-radius: 10px; border: 1px solid rgb(78, 68, 81); display: inline-block; text-align: center; cursor: pointer; line-height: 1.5",
+        "primaryHover": "",
+        "secondary": "background-color: rgb(8, 91, 146); color: rgb(255, 255, 255); font-size: 14px; font-weight: 300; font-family: Nunito; padding: 16px; border-radius: 8px; border: 0px none rgb(255, 255, 255); display: inline-block; text-align: center; cursor: pointer; line-height: 1.5"
+      },
+      "heading": {
+        "h2": "color: rgb(249, 247, 244); font-family: Roboto; font-size: 36px; font-weight: 300; line-height: 36px; text-align: left",
+        "h3": "color: rgb(0, 0, 0); font-family: Roboto; font-size: 16px; font-weight: 300; line-height: 24px; text-align: left"
+      },
+      "paragraph": {
+        "p": "color: rgb(78, 68, 81); font-family: Nunito; font-size: 30px; font-weight: 300; line-height: 39px; text-align: start"
+      },
+      "card": "background-color: rgb(255, 250, 244); border: 0px none rgb(249, 247, 244); border-radius: 0px; padding: 0px; margin: 0px",
+      "link": {},
+      "testimonial": "background-color: rgb(249, 247, 244); border-radius: 0px; padding: 0px; margin: 0px; color: rgb(78, 68, 81)",
+      "segment": "background-color: rgba(0, 0, 0, 0); padding: 0px; margin: 0px; text-align: start",
+      "hero": {}
+    },
+    "cssRules": {
+      "buttons": [
+        {
+          "selector": ".no-touchevents .card .button.button--solid:hover, .no-touchevents .card .button.button--outline-hover-solid:hover",
+          "styles": "background-color: var(--color-text-cards); border-color: var(--color-text-cards); color: var(--color-foreground-cards);",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents .card .button.button--solid:hover span, .no-touchevents .card .button.button--outline-hover-solid:hover span",
+          "styles": "color: var(--color-foreground-cards);",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents .card .button.button--solid:hover path, .no-touchevents .card .button.button--outline-hover-solid:hover path",
+          "styles": "fill: var(--color-foreground-cards);",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents .card .button.button--outline:not(.button--outline-hover-solid):hover",
+          "styles": "border-color: var(--color-text-cards); color: var(--color-text-cards);",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents .card .button.button--outline:not(.button--outline-hover-solid):hover span",
+          "styles": "color: var(--color-text-cards);",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents .card .button.button--outline:not(.button--outline-hover-solid):hover path",
+          "styles": "fill: var(--color-text-cards);",
+          "important": false
+        },
+        {
+          "selector": ".text-font--primary",
+          "styles": "font-family: var(--font-stack-body-primary); font-weight: var(--font-weight-body-primary); font-style: var(--font-style-body-primary); line-height: var(--base-body-line);",
+          "important": true
+        },
+        {
+          "selector": ".text-font--secondary",
+          "styles": "font-family: var(--font-stack-body-secondary); font-weight: var(--font-weight-body-secondary); font-style: var(--font-stack-body-secondary); line-height: 1.1;",
+          "important": true
+        },
+        {
+          "selector": ".no-touchevents a:hover .text-animation--underline, .no-touchevents button:hover .text-animation--underline",
+          "styles": "background-size: 100% 2px;",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents a:hover .text-animation--underline-thin, .no-touchevents button:hover .text-animation--underline-thin",
+          "styles": "background-size: 100% 1px;",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents a:hover .text-animation--underline-large, .no-touchevents button:hover .text-animation--underline-large",
+          "styles": "background-size: 100% 3px;",
+          "important": false
+        },
+        {
+          "selector": ".no-touchevents a:hover .text-animation--underline-in-header, .no-touchevents button:hover .text-animation--underline-in-header",
+          "styles": "background-size: 100% 1px;",
+          "important": false
+        },
+        {
+          "selector": "#main .shopify-section:first-of-type .container--vertical-space:not(.container--fullwidth)",
+          "styles": "margin-top: clamp(24px,var(--container-vertical-space) / 2,50px);",
+          "important": true
+        },
+        {
+          "selector": "#html #main .shopify-section:first-of-type .container--fullwidth",
+          "styles": "margin-top: 0px !important;",
+          "important": true
+        },
+        {
+          "selector": ".section--remove-bottom-margin-after + .shopify-section > .container--vertical-space:first-of-type",
+          "styles": "margin-top: 0px;",
+          "important": true
+        },
+        {
+          "selector": ".shopify-section",
+          "styles": "position: relative;",
+          "important": true
+        },
+        {
+          "selector": ".shopify-policy__container",
+          "styles": "width: 100%; max-width: var(--theme-max-width) !important; padding-left: var(--gutter-container) !important; padding-right: var(--gutter-container) !important; margin-top: clamp(2.5rem,var(--container-vertical-space),4.375rem) !important;",
+          "important": true
+        },
+        {
+          "selector": ".shopify-policy__title",
+          "styles": "text-align: left !important;",
+          "important": true
+        },
+        {
+          "selector": "html[dir=\"rtl\"] .no-touchevents .button--fullwidth.button--icon:hover .button__text",
+          "styles": "width: fit-content;",
+          "important": false
+        },
+        {
+          "selector": "html[dir=\"ltr\"] .no-touchevents .button--fullwidth.button--icon:hover .button__text",
+          "styles": "width: 0px;",
+          "important": false
+        }
+      ],
+      "links": [
+        {
+          "selector": "html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video, button",
+          "styles": "margin: 0px; padding: 0px; border: 0px; font: inherit; vertical-align: baseline;"
+        },
+        {
+          "selector": "article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section",
+          "styles": "display: block;"
+        },
+        {
+          "selector": ".panel, .card",
+          "styles": "border: solid 1px var(--color-borders-cards); border-radius: var(--border-radius-cards); overflow: hidden; background-color: var(--color-background-cards); position: relative; color: var(--color-text-cards);"
+        },
+        {
+          "selector": ".card .button",
+          "styles": "color: var(--color-text-cards);"
+        },
+        {
+          "selector": ".card .button--outline",
+          "styles": "border-color: var(--color-text-cards);"
+        },
+        {
+          "selector": ".card .button--outline .button__icon svg path",
+          "styles": "fill: var(--color-text-cards);"
+        },
+        {
+          "selector": ".card .button--solid",
+          "styles": "background-color: var(--color-text-cards); border-color: var(--color-text-cards); color: var(--color-foreground-cards);"
+        },
+        {
+          "selector": ".card .button--solid .button__icon svg path",
+          "styles": "fill: var(--color-foreground-cards);"
+        },
+        {
+          "selector": ".no-touchevents .card .button.button--solid:hover, .no-touchevents .card .button.button--outline-hover-solid:hover",
+          "styles": "background-color: var(--color-text-cards); border-color: var(--color-text-cards); color: var(--color-foreground-cards);"
+        },
+        {
+          "selector": ".no-touchevents .card .button.button--solid:hover span, .no-touchevents .card .button.button--outline-hover-solid:hover span",
+          "styles": "color: var(--color-foreground-cards);"
+        }
+      ],
+      "variables": {
+        "--font-stack-headings-primary": "Roboto, sans-serif",
+        "--font-weight-headings-primary": "300",
+        "--font-style-headings-primary": "normal",
+        "--font-stack-body-primary": "Nunito, sans-serif",
+        "--font-weight-body-primary": "300",
+        "--font-weight-body-primary-bold": "500",
+        "--font-weight-body-primary-medium": "400",
+        "--font-style-body-primary": "normal",
+        "--font-stack-body-secondary": "Roboto, sans-serif",
+        "--font-weight-body-secondary": "300",
+        "--font-weight-body-secondary-bold": "400",
+        "--font-style-body-secondary": "normal",
+        "--font-weight-menu": "var(--font-weight-body-primary-medium)",
+        "--font-weight-buttons": "var(--font-weight-body-primary-medium)",
+        "--base-headings-primary-size": "60",
+        "--base-headings-secondary-size": "",
+        "--base-headings-line": "1",
+        "--base-headings-spacing": "0.0em",
+        "--base-body-primary-size": "16",
+        "--base-body-secondary-size": "18",
+        "--base-body-line": "1.4",
+        "--color-background-header": "#f9f7f4",
+        "--color-text-header": "#4e4451",
+        "--color-foreground-header": "#fff",
+        "--color-borders-header": "rgba(78, 68, 81, 0.15)",
+        "--color-background-main": "#fffaf4",
+        "--color-secondary-background-main": "rgba(78, 68, 81, 0.08)",
+        "--color-third-background-main": "rgba(78, 68, 81, 0.04)",
+        "--color-fourth-background-main": "rgba(78, 68, 81, 0.02)",
+        "--color-opacity-background-main": "rgba(255, 250, 244, 0)",
+        "--color-text-main": "#4e4451",
+        "--color-foreground-main": "#fff",
+        "--color-secondary-text-main": "rgba(78, 68, 81, 0.6)",
+        "--color-borders-main": "rgba(78, 68, 81, 0.1)",
+        "--color-background-main-alternate": "#ffffff",
+        "--color-background-product-card": "rgba(0,0,0,0)",
+        "--color-background-cart-card": "rgba(0,0,0,0)",
+        "--color-background-footer": "#969b7c",
+        "--color-text-footer": "#f2efec",
+        "--color-borders-footer": "rgba(242, 239, 236, 0.15)",
+        "--color-borders-forms-primary": "rgba(78, 68, 81, 0.3)",
+        "--color-borders-forms-secondary": "rgba(78, 68, 81, 0.6)",
+        "--border-width-cards": "px",
+        "--border-radius-cards": "0px",
+        "--border-width-buttons": "1px",
+        "--border-radius-buttons": "10px",
+        "--border-width-forms": "1px",
+        "--border-radius-forms": "6px",
+        "--border-radius-widgets": "10px",
+        "--border-radius-product-card": "0px",
+        "--theme-max-width": "1360px",
+        "--grid-gap-original-base": "32px",
+        "--container-vertical-space-base": "140px",
+        "--image-fit-padding": "10%",
+        "--window-height": "720px",
+        "--window-width": "1280px",
+        "--gutter-small": "15px",
+        "--gutter-regular": "25px",
+        "--gutter-large": "50px",
+        "--gutter-xlarge": "80px",
+        "--gutter-container": "40px",
+        "--gutter-breadcrumbs": "-35px",
+        "--sidebar-width": "420px",
+        "--sidebar-gutter": "30px",
+        "--full-height": "100vh",
+        "--button-padding": ".875rem .9375rem",
+        "--input-padding": ".75rem",
+        "--header-vertical-space": "30px",
+        "--container-vertical-space": "var(--container-vertical-space-base)",
+        "--grid-gap": "var(--grid-gap-original-base)",
+        "--color-background-cards": "var(--color-background-main)",
+        "--color-text-cards": "var(--color-text-main)",
+        "--color-foreground-cards": "var(--color-foreground-main)",
+        "--color-secondary-text-cards": "var(--color-secondary-text-main)",
+        "--color-accent-cards": "var(--color-text-main)",
+        "--color-foreground-accent-cards": "var(--color-foreground-main)",
+        "--color-borders-cards": "var(--color-borders-main)"
+      },
+      "importantSelectors": []
+    }
+  },
+  "store_public_id": "b28YsS3",
+  "brand_settings_id": "68b7bb96e0cd456f3fc0bbb0",
+  "created_at": {
+    "$date": "2025-09-03T03:54:14.586Z"
+  },
+  "updated_at": {
+    "$date": "2025-09-03T03:54:14.586Z"
+  }
+}

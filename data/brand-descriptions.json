@@ -1,0 +1,208 @@
+{
+  "brandVoice": {
+    "professional": {
+      "description": "Formal, business-like communication that builds credibility and trust. Perfect for B2B brands, luxury retailers, or professional services.",
+      "examples": ["consulting firms", "financial services", "enterprise software"]
+    },
+    "casual": {
+      "description": "Relaxed, everyday language that feels approachable and friendly. Great for lifestyle brands and younger demographics.",
+      "examples": ["streetwear brands", "casual dining", "lifestyle apps"]
+    },
+    "friendly": {
+      "description": "Warm, welcoming tone that makes customers feel comfortable and valued. Ideal for customer service-focused brands.",
+      "examples": ["family restaurants", "pet stores", "community-focused brands"]
+    },
+    "authoritative": {
+      "description": "Expert, knowledgeable voice that positions your brand as the go-to authority in your industry.",
+      "examples": ["medical brands", "educational platforms", "industry leaders"]
+    },
+    "conversational": {
+      "description": "Natural, two-way dialogue that feels like talking to a friend. Perfect for social media and community building.",
+      "examples": ["social brands", "lifestyle coaches", "community platforms"]
+    },
+    "warm": {
+      "description": "Caring, nurturing tone that creates emotional connection and comfort with customers.",
+      "examples": ["family brands", "wellness products", "comfort foods"]
+    },
+    "confident": {
+      "description": "Strong, assured voice that inspires trust and demonstrates expertise without arrogance.",
+      "examples": ["fitness brands", "premium products", "performance gear"]
+    },
+    "empowering": {
+      "description": "Motivating tone that inspires customers to achieve their goals and feel capable of success.",
+      "examples": ["fitness brands", "self-improvement", "career development"]
+    },
+    "inspiring": {
+      "description": "Uplifting voice that motivates customers to dream big and take action toward their aspirations.",
+      "examples": ["lifestyle brands", "travel companies", "personal development"]
+    },
+    "encouraging": {
+      "description": "Supportive tone that cheers customers on and helps them feel confident in their choices.",
+      "examples": ["fitness apps", "learning platforms", "hobby supplies"]
+    },
+    "trustworthy": {
+      "description": "Reliable, honest voice that builds long-term customer relationships through transparency.",
+      "examples": ["financial services", "healthcare", "insurance"]
+    },
+    "authentic": {
+      "description": "Genuine, real voice that shows the human side of your brand without pretense.",
+      "examples": ["artisan brands", "local businesses", "sustainable products"]
+    },
+    "playful": {
+      "description": "Fun, lighthearted tone that brings joy and entertainment to customer interactions.",
+      "examples": ["toy brands", "entertainment", "children's products"]
+    },
+    "witty": {
+      "description": "Clever, humorous voice that entertains customers while building brand personality.",
+      "examples": ["creative agencies", "trendy brands", "social media tools"]
+    },
+    "sophisticated": {
+      "description": "Refined, cultured tone that appeals to discerning customers who appreciate quality.",
+      "examples": ["luxury brands", "fine wines", "high-end fashion"]
+    },
+    "direct": {
+      "description": "Clear, no-nonsense communication that gets straight to the point efficiently.",
+      "examples": ["tech tools", "productivity apps", "business solutions"]
+    },
+    "educational": {
+      "description": "Informative tone that teaches customers and helps them make informed decisions.",
+      "examples": ["health brands", "learning platforms", "technical products"]
+    },
+    "caring": {
+      "description": "Compassionate voice that shows genuine concern for customer wellbeing and success.",
+      "examples": ["healthcare", "childcare", "elderly care"]
+    },
+    "energetic": {
+      "description": "High-energy, enthusiastic tone that gets customers excited about your products.",
+      "examples": ["sports brands", "energy drinks", "fitness equipment"]
+    },
+    "calm": {
+      "description": "Peaceful, soothing voice that helps customers feel relaxed and at ease.",
+      "examples": ["spa brands", "meditation apps", "wellness products"]
+    }
+  },
+  "brandPersonality": {
+    "authentic": {
+      "description": "Genuine and real, without pretense. Customers trust you because you're honest about who you are.",
+      "examples": ["local artisans", "family businesses", "handmade products"]
+    },
+    "innovative": {
+      "description": "Forward-thinking and creative, always pushing boundaries to create something new and better.",
+      "examples": ["tech startups", "design studios", "cutting-edge products"]
+    },
+    "traditional": {
+      "description": "Time-tested and classic, honoring heritage and proven methods that customers can rely on.",
+      "examples": ["heritage brands", "family recipes", "traditional crafts"]
+    },
+    "luxurious": {
+      "description": "High-end and exclusive, offering premium experiences that make customers feel special.",
+      "examples": ["luxury fashion", "high-end hotels", "premium automobiles"]
+    },
+    "approachable": {
+      "description": "Friendly and accessible, making customers feel welcome regardless of their background.",
+      "examples": ["community stores", "family restaurants", "local services"]
+    },
+    "eco-conscious": {
+      "description": "Environmentally aware and responsible, caring about the planet's future and sustainable practices.",
+      "examples": ["sustainable fashion", "organic foods", "eco-friendly products"]
+    },
+    "empowering": {
+      "description": "Helps customers feel capable and confident, supporting them in achieving their goals.",
+      "examples": ["fitness brands", "educational tools", "career development"]
+    },
+    "premium": {
+      "description": "High-quality and refined, offering superior products that justify a higher price point.",
+      "examples": ["premium skincare", "craft spirits", "luxury accessories"]
+    },
+    "community-focused": {
+      "description": "Builds connections and brings people together, creating a sense of belonging.",
+      "examples": ["local businesses", "hobby communities", "social platforms"]
+    },
+    "performance-driven": {
+      "description": "Results-oriented and goal-focused, helping customers achieve measurable outcomes.",
+      "examples": ["athletic gear", "productivity tools", "professional services"]
+    },
+    "caring": {
+      "description": "Genuinely concerned about customer wellbeing, going beyond profit to truly help people.",
+      "examples": ["healthcare brands", "pet care", "family services"]
+    },
+    "bold": {
+      "description": "Fearless and confident, willing to take risks and stand out from the competition.",
+      "examples": ["disruptive brands", "extreme sports", "revolutionary products"]
+    },
+    "reliable": {
+      "description": "Consistent and dependable, customers know they can count on you every time.",
+      "examples": ["utility services", "automotive", "financial institutions"]
+    },
+    "creative": {
+      "description": "Artistic and imaginative, bringing unique perspectives and original solutions.",
+      "examples": ["design agencies", "craft supplies", "artistic tools"]
+    },
+    "sophisticated": {
+      "description": "Refined and cultured, appealing to customers with discerning taste and high standards.",
+      "examples": ["fine dining", "luxury goods", "cultural institutions"]
+    }
+  },
+  "coreValues": {
+    "quality": {
+      "description": "Commitment to excellence in every product and service, never compromising on standards.",
+      "examples": ["craft products", "luxury goods", "professional tools"]
+    },
+    "innovation": {
+      "description": "Constantly improving and creating new solutions to better serve customers.",
+      "examples": ["tech companies", "research firms", "cutting-edge brands"]
+    },
+    "sustainability": {
+      "description": "Protecting the environment and ensuring business practices benefit future generations.",
+      "examples": ["eco-brands", "renewable energy", "sustainable fashion"]
+    },
+    "integrity": {
+      "description": "Honest, transparent, and ethical in all business dealings and customer relationships.",
+      "examples": ["financial services", "healthcare", "professional services"]
+    },
+    "customer satisfaction": {
+      "description": "Putting customer needs first and ensuring every interaction exceeds expectations.",
+      "examples": ["service businesses", "hospitality", "retail brands"]
+    },
+    "community": {
+      "description": "Building connections and supporting the local or global community beyond just business.",
+      "examples": ["local businesses", "social enterprises", "community banks"]
+    },
+    "craftsmanship": {
+      "description": "Dedication to skilled workmanship and attention to detail in every product created.",
+      "examples": ["artisan goods", "handmade products", "luxury items"]
+    },
+    "empowerment": {
+      "description": "Helping customers achieve their goals and unlock their full potential.",
+      "examples": ["fitness brands", "education", "personal development"]
+    },
+    "accessibility": {
+      "description": "Making products and services available to everyone, regardless of ability or background.",
+      "examples": ["inclusive brands", "affordable products", "assistive technology"]
+    },
+    "tradition": {
+      "description": "Honoring time-tested methods and maintaining heritage while serving modern customers.",
+      "examples": ["family businesses", "cultural products", "heritage brands"]
+    },
+    "performance": {
+      "description": "Delivering measurable results and helping customers achieve their objectives.",
+      "examples": ["athletic brands", "business tools", "performance products"]
+    },
+    "simplicity": {
+      "description": "Making complex things easy to understand and use, removing unnecessary complications.",
+      "examples": ["minimalist brands", "user-friendly tech", "streamlined services"]
+    },
+    "safety": {
+      "description": "Protecting customers and ensuring products meet the highest safety standards.",
+      "examples": ["automotive", "children's products", "healthcare"]
+    },
+    "affordability": {
+      "description": "Providing value and keeping products accessible to customers at various income levels.",
+      "examples": ["discount retailers", "budget brands", "accessible services"]
+    },
+    "personalization": {
+      "description": "Tailoring products and experiences to each customer's individual needs and preferences.",
+      "examples": ["custom products", "personal services", "bespoke solutions"]
+    }
+  }
+}

@@ -7,7 +7,7 @@ const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:shadow-none",
+      "rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-900 dark:shadow-md",
       className
     )}
     {...props}
@@ -63,11 +63,11 @@ const GradientCard = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "relative rounded-xl bg-gradient-to-br from-sky-blue/10 via-vivid-violet/10 to-deep-purple/10 p-[1px]",
+      "relative rounded-lg border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-sky-blue/10 via-sky-blue/5 to-royal-blue/10 p-[1px]",
       className
     )}
   >
-    <div className="rounded-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm h-full w-full" {...props} />
+    <div className="rounded-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm h-full w-full" {...props} />
   </div>
 ));
 GradientCard.displayName = "GradientCard";
