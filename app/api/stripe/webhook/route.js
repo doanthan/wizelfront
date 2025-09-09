@@ -14,7 +14,9 @@ export async function POST(request) {
   // Temporarily disabled for testing without Stripe
   return NextResponse.json({ received: true });
   
-  /* Commented out for testing
+  /* Commented out for testing - webhook functionality
+  
+  // Uncomment this section when Stripe webhooks are needed
   try {
     const body = await request.text();
     const signature = headers().get('stripe-signature');
@@ -208,3 +210,5 @@ async function handleCheckoutCompleted(session) {
     console.error('Error handling checkout completion:', error);
   }
 }
+
+// End of commented out webhook functionality */

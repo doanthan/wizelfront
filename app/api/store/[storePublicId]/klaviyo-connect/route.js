@@ -102,7 +102,7 @@ export async function POST(request, { params }) {
     
     const { storePublicId } = await params;
     const body = await request.json();
-    const { apiKey } = body;
+    const { apiKey, action, conversionMetricId } = body;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
@@ -126,29 +126,112 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: permissionCheck.error }, { status: 403 });
     }
 
-    let conversion_metric_id;  // Declare here so it's accessible later
+    // If action is "test", just test the API and return metrics
+    if (action === 'test') {
+      try {
+        console.log("Testing Klaviyo API and fetching metrics...");
+        
+        // Fetch account and standard metrics (required)
+        const [account, standardMetrics] = await Promise.all([
+          klaviyoGetAll("accounts", { apiKey }),
+          klaviyoGetAll("metrics", { apiKey })
+        ]);
+        
+        // Try to fetch custom metrics, but don't fail if it errors
+        let customMetrics = { data: [] };
+        try {
+          customMetrics = await klaviyoGetAll("custom-metrics", { apiKey });
+          console.log(`Found ${customMetrics.data?.length || 0} custom metrics`);
+        } catch (customError) {
+          console.warn("Failed to fetch custom metrics:", customError.message);
+          // Continue without custom metrics
+        }
+        
+        // Combine and format metrics for frontend
+        const allMetrics = [];
+        
+        // Add standard metrics
+        standardMetrics.data.forEach(metric => {
+          allMetrics.push({
+            id: metric.id,
+            name: metric.attributes.name,
+            integration: metric.attributes.integration?.name || 'Standard',
+            category: metric.attributes.integration?.category || 'STANDARD',
+            isShopifyPlacedOrder: metric.attributes.name === "Placed Order" && 
+                                 metric.attributes.integration?.key === "shopify"
+          });
+        });
+        
+        // Add custom metrics (custom-metrics endpoint returns different structure)
+        const existingIds = new Set(allMetrics.map(m => m.id));
+        if (customMetrics.data && Array.isArray(customMetrics.data)) {
+          customMetrics.data.forEach(metric => {
+            // Custom metrics have a different structure - they don't have integration field
+            if (!existingIds.has(metric.id)) {
+              allMetrics.push({
+                id: metric.id,
+                name: metric.attributes.name || metric.attributes.display_name,
+                integration: 'Custom',
+                category: 'CUSTOM',
+                isShopifyPlacedOrder: false
+              });
+            }
+          });
+        }
+        
+        // Sort metrics: Shopify Placed Order first, then alphabetically
+        allMetrics.sort((a, b) => {
+          if (a.isShopifyPlacedOrder) return -1;
+          if (b.isShopifyPlacedOrder) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        
+        return NextResponse.json({
+          success: true,
+          action: 'test',
+          account: {
+            id: account.data[0].id,
+            name: account.data[0].attributes.contact_information?.organization_name || 
+                  account.data[0].attributes.contact_information?.contact_email || 
+                  'Unknown Account'
+          },
+          metrics: allMetrics
+        });
+        
+      } catch (error) {
+        console.error("Error testing Klaviyo API:", error);
+        return NextResponse.json({
+          success: false,
+          message: "Failed to validate API key or fetch metrics. Please check your connection and try again.",
+          error: error.message
+        }, { status: 500 });
+      }
+    }
+
+    // Otherwise, complete the connection with the selected metric
+    if (!conversionMetricId) {
+      return NextResponse.json({ error: 'Conversion metric ID is required' }, { status: 400 });
+    }
+
+    let conversion_metric_id = conversionMetricId;
+    let isShopifyPlacedOrder = false; // Define in outer scope
     
     try {
       console.time("klaviyo fetches");
       
-      // Use klaviyoGetAll to fetch account and metrics like in old code
+      // Fetch account info and metrics to verify the selected metric
       const [account, metrics] = await Promise.all([
         klaviyoGetAll("accounts", { apiKey }),
-        klaviyoGetAll("metrics", { apiKey }),
+        klaviyoGetAll("metrics", { apiKey })
       ]);
       
-      // Find conversion metric (Placed Order)
-      conversion_metric_id = metrics.data.find(metric =>
-        metric.attributes.name === "Placed Order" &&
-        metric.attributes.integration?.key === "shopify"
-      )?.id;
+      // Check if the selected metric is Shopify Placed Order
+      const selectedMetric = metrics.data.find(m => m.id === conversion_metric_id);
+      isShopifyPlacedOrder = selectedMetric && 
+                             selectedMetric.attributes.name === "Placed Order" && 
+                             selectedMetric.attributes.integration?.key === "shopify";
       
-      // Fallback to just "Placed Order" if Shopify integration not found
-      if (!conversion_metric_id) {
-        conversion_metric_id = metrics.data.find(metric =>
-          metric.attributes.name === "Placed Order"
-        )?.id;
-      }
+      console.log(`Selected metric: ${selectedMetric?.attributes?.name}, Is Shopify Placed Order: ${isShopifyPlacedOrder}`);
       
       // Update store with Klaviyo integration in the correct format (matching old code structure)
       store.klaviyo_integration = {
@@ -193,10 +276,16 @@ export async function POST(request, { params }) {
         // Fire and forget - don't await the response
         (async () => {
           try {
+            // Build payload with do_not_order_sync flag if not using Shopify Placed Order
+            const syncPayload = {
+              klaviyo_public_id: store.klaviyo_integration.public_id,
+              store_public_id: store.public_id,
+              do_not_order_sync: !isShopifyPlacedOrder  // true if NOT Shopify Placed Order
+            };
+            
             console.log("Sending sync request to report server:", {
               url: `${reportServerUrl}/api/v1/reports/full_sync`,
-              klaviyo_public_id: store.klaviyo_integration.public_id,
-              store_public_id: store.public_id
+              ...syncPayload
             });
             
             const response = await fetch(`${reportServerUrl}/api/v1/reports/full_sync`, {
@@ -205,10 +294,7 @@ export async function POST(request, { params }) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${reportServerKey}`
               },
-              body: JSON.stringify({
-                klaviyo_public_id: store.klaviyo_integration.public_id,
-                store_public_id: store.public_id
-              })
+              body: JSON.stringify(syncPayload)
             });
             
             if (!response.ok) {

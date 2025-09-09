@@ -371,6 +371,8 @@ export const StoreProvider = ({ children }) => {
             account_type: store.parent_store_id ? 'sub_account' : 'root_account',
             parent_store_id: store.parent_store_id || null,
             organization_id: store.organization_id || 'ORG-001',
+            klaviyo_integration: store.klaviyo_integration || {}, // Include klaviyo_integration
+            shopify_integration: store.shopify_integration || {}, // Include shopify_integration
             revenue: store.revenue || 0,
             orders: store.orders || 0,
             tags: store.tags || [],

@@ -199,7 +199,7 @@ export default function StoresPage() {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                     {store.name}
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
                     {store.url || `www.${store.name.toLowerCase().replace(/\s/g, '')}.com`}
                   </p>
                 </div>
@@ -229,24 +229,24 @@ export default function StoresPage() {
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <Package className="h-4 w-4 text-gray-400" />
+                  <Package className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 </div>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">0</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Products</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Products</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <Palette className="h-4 w-4 text-gray-400" />
+                  <Palette className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 </div>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">0</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Brands</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Brands</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center mb-1">
-                  <Mail className="h-4 w-4 text-gray-400" />
+                  <Mail className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 </div>
                 <p className="text-lg font-semibold text-vivid-violet">0</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Campaigns</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Campaigns</p>
               </div>
             </div>
 
@@ -298,7 +298,7 @@ export default function StoresPage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">{store.name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           {store.url || `www.${store.name.toLowerCase().replace(/\s/g, '')}.com`}
                         </p>
                       </div>

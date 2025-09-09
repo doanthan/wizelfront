@@ -15,7 +15,7 @@ https://a.klaviyo.com/api/
 ### Authentication Headers
 - **API Key**: `Authorization: Klaviyo-API-Key {contract-specific-api-key}`
 - **OAuth Bearer Token**: `Authorization: Bearer {access-token}`
-- **API Revision Header**: `revision: 2025-07-15`
+- **API Revision Header**: `revision: process.env.KLAVIYO_REVISION`
 - **Internal Headers**: 
   - `X-Contract-ID: {contract_id}` - For internal tracking
   - `X-Seat-ID: {seat_id}` - For billing attribution

@@ -108,7 +108,7 @@ export default function PermissionsDialog({ onClose }) {
               <div>
                 <Label>Select User</Label>
                 <div className="relative mt-2">
-                  <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600 dark:text-gray-400" />
                   <Input
                     type="text"
                     placeholder="Search users..."
@@ -140,11 +140,11 @@ export default function PermissionsDialog({ onClose }) {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-500 mb-1">{user.role}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{user.role}</p>
                         {getPermissionBadge(user.id)}
                       </div>
                     </div>
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
                       Access to {getAccessibleStoresCount(user.id)} of {stores.length} stores
                     </div>
                   </div>
@@ -209,7 +209,7 @@ export default function PermissionsDialog({ onClose }) {
                                 />
                                 <Badge variant="secondary">{tag.name}</Badge>
                               </div>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
                                 {stores.filter(s => s.tags.includes(tag.id)).length} stores
                               </span>
                             </label>
@@ -248,7 +248,7 @@ export default function PermissionsDialog({ onClose }) {
                 </>
               ) : (
                 <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
-                  <Shield className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <Shield className="h-12 w-12 text-gray-600 dark:text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-600 dark:text-gray-400">
                     Select a user to manage their permissions
                   </p>

@@ -104,7 +104,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   font-size: 14px;
   line-height: 1.25rem;
   transition: all 0.15s ease;
@@ -257,8 +257,8 @@
 
 /* Campaign/Event Items in Calendar */
 .campaign-item {
-  width: calc(100% + 2px);
-  margin: 0 -1px 2px -1px;
+  width: 100%;
+  margin: 0 0 2px 0;
   padding: 2px 5px;
   font-size: 12px;
   font-weight: 500;
@@ -464,4 +464,100 @@
 
 .campaign-item {
   animation: slideIn 0.2s ease-out;
+}
+
+/* Email Preview Panel Styles */
+.email-content {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.email-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.email-content table {
+  max-width: 100%;
+}
+
+.email-content * {
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+/* Ensure proper scrolling in modal tabs */
+.dialog-content-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dialog-content-tabs .tabs-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Fix Dialog Content scrolling */
+[role="dialog"] [data-radix-dialog-content] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure tab panels scroll properly */
+[role="tabpanel"] {
+  scrollbar-width: thin;
+  scrollbar-color: #60A5FA #f1f5f9;
+}
+
+[role="tabpanel"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+[role="tabpanel"]::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+[role="tabpanel"]::-webkit-scrollbar-thumb {
+  background: #60A5FA;
+  border-radius: 3px;
+}
+
+[role="tabpanel"]::-webkit-scrollbar-thumb:hover {
+  background: #2563EB;
+}
+
+/* Week and Day View Styles */
+.week-view .react-calendar__tile.hidden-tile,
+.day-view .react-calendar__tile.hidden-tile {
+  display: none;
+}
+
+/* Week view adjustments */
+.week-view .react-calendar__month-view__days {
+  grid-template-rows: 1fr;
+}
+
+.week-view .react-calendar__tile {
+  min-height: 120px;
+}
+
+/* Day view adjustments */
+.day-view .react-calendar__month-view__days {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.day-view .react-calendar__tile {
+  min-height: 300px;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.day-view .react-calendar__tile abbr {
+  font-size: 18px;
+  margin-bottom: 8px;
 }

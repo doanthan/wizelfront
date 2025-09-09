@@ -326,4 +326,4 @@ const results = await CampaignStat.find({}).lean();
 3. Verify model schema matches data structure
 4. Check user has required permissions for operation
 
-This guide should prevent the most common MongoDB/Mongoose integration issues and provide clear patterns for database operations.
+This guide should prevent the most common MongoDB/Mongoose integration issues and provide clear patterns for database operations.w

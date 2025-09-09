@@ -159,22 +159,22 @@ const StoreSchema = new mongoose.Schema({
     template_tags: [{
         type: String,
         trim: true,
-        lowercase: true
     }],
-    field_tags: [{
+        segment_tags: [{
         type: String,
         trim: true,
-        lowercase: true
+    }],
+        flow_tags: [{
+        type: String,
+        trim: true,
     }],
     campaign_tags: [{
         type: String,
         trim: true,
-        lowercase: true
     }],
     universal_content_tags: [{
         type: String,
         trim: true,
-        lowercase: true
     }],
     shopify_integration: {
         status: { type: String, enum: ["connected", "disconnected", "error"], default: "disconnected" },
@@ -190,29 +190,9 @@ const StoreSchema = new mongoose.Schema({
         public_id: { type: String, default: null },
         conversion_type: { type: String, default: "value" },
         conversion_metric_id: { type: String, default: null },
-        apiKey: { type: String, default: null }, // should be encrypted in production
+        apiKey: { type: String, default: null }, // should be encrypted in production, either starts with pk_ for private key or is a bearer OAuth token
         connected_at: { type: Date, default: null },
         account: { type: mongoose.Schema.Types.Mixed, default: {} },
-        is_updating_dashboard: {
-            type: Boolean,
-            default: false,
-        },
-        campaign_values_last_update: {
-            type: Date,
-            default: null,
-        },
-        segment_series_last_update: {
-            type: Date,
-            default: null,
-        },
-        flow_series_last_update: {
-            type: Date,
-            default: null,
-        },
-        form_series_last_update:{
-            type: Date,
-            default: null,
-        }
     },
     // Stripe Billing (per store)
     stripe_customer_id: {

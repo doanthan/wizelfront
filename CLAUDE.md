@@ -1,7 +1,109 @@
 # AI Assistant Instructions
 
+## MongoDB Connection Method
+
+### IMPORTANT: Correct MongoDB Connection
+**Always use the Mongoose connection from `/lib/mongoose.js`:**
+
+```javascript
+// ✅ CORRECT - Using Mongoose
+import connectToDatabase from '@/lib/mongoose';
+import mongoose from 'mongoose';
+
+export async function GET(request) {
+  await connectToDatabase();
+  const db = mongoose.connection.db;
+  
+  // Now you can use db.collection('collectionName')
+  const campaigns = await db.collection('campaignMessages').find({}).toArray();
+}
+```
+
+```javascript
+// ❌ WRONG - Don't use this
+import { connectToDatabase } from '@/lib/mongodb';
+const { db } = await connectToDatabase();
+```
+
+### Using Mongoose Models
+For existing models, use the Mongoose ORM:
+
+```javascript
+import connectToDatabase from '@/lib/mongoose';
+import CampaignStat from '@/models/CampaignStat';
+
+export async function GET(request) {
+  await connectToDatabase();
+  
+  // Use Mongoose models
+  const campaigns = await CampaignStat.find({ /* query */ });
+}
+```
+
+### Direct MongoDB Collection Access
+When you need direct collection access (for collections without models):
+
+```javascript
+import connectToDatabase from '@/lib/mongoose';
+import mongoose from 'mongoose';
+
+export async function GET(request) {
+  await connectToDatabase();
+  const db = mongoose.connection.db;
+  
+  // Access collections directly
+  const collection = db.collection('campaignMessages');
+  const results = await collection.find({ /* query */ }).toArray();
+}
+```
+
 ## Project Overview
 This is a modern web application built with Next.js, React, and Tailwind CSS. The project follows a specific design system and coding standards that must be maintained.
+
+## 🚨 CRITICAL: Store ID Usage Guidelines
+
+### When to Use Klaviyo's Public Key vs Store Public ID
+
+**IMPORTANT**: The application uses different ID types depending on the data being queried:
+
+#### Use `klaviyo_public_id` (Klaviyo's public key) for:
+- **Analytics Data Collections:**
+  - `orders` collection
+  - `campaignstats` collection  
+  - `flowstats` collection
+  - `segmentsstats` collection
+  - `formstats` collection
+  
+**Reason**: Multiple Store records can share the same Klaviyo integration for analytics. This allows different accounts/stores to view analytics from the same Klaviyo account.
+
+#### Use `store_public_id` (Store's public ID) for:
+- **All other operations:**
+  - User permissions
+  - Store settings
+  - Store management
+  - UI filtering/display
+  - Store selection
+  - Non-analytics collections
+  
+**Example:**
+```javascript
+// ✅ CORRECT - Querying analytics data
+const campaignStats = await CampaignStat.find({
+  klaviyo_public_id: store.klaviyo_integration.public_id
+});
+
+// ✅ CORRECT - Store management
+const userStores = await Store.find({
+  public_id: { $in: user.store_ids }
+});
+
+// ❌ WRONG - Don't use store_public_id for analytics
+const campaignStats = await CampaignStat.find({
+  store_public_id: store.public_id // This won't find the data!
+});
+```
+
+**Key Point**: Always check which ID type a MongoDB collection uses before querying! Analytics collections use `klaviyo_public_id`, everything else uses `store_public_id`.
 
 ## IMPORTANT: Design System Reference
 
@@ -30,6 +132,7 @@ The application uses a specific color scheme defined in `/context/design-princip
 
 ### Key Files to Reference
 - `/context/design-principles.md` - Complete design system documentation
+- `/context/analytics.md` - Analytics implementation guidelines and metrics calculations
 - `/app/globals.css` - Global styles and CSS variables
 - `/tailwind.config.js` - Tailwind configuration with custom colors
 - `/app/components/ui/` - Existing UI components to maintain consistency
@@ -113,14 +216,61 @@ import { Mail, MessageSquare, Bell, Users } from 'lucide-react';
 <span>🔔</span>
 ```
 
+### Popovers and Overlays
+- **ALWAYS ensure popovers have solid backgrounds** - Never allow transparency issues
+- **Use explicit background classes** for all popover content to prevent visual glitches
+- **Include proper borders and shadows** for better visual separation
+
+```jsx
+// ✅ CORRECT - Solid background with proper styling
+<PopoverContent className="w-80 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg">
+  {/* Content */}
+</PopoverContent>
+
+// ❌ WRONG - Missing background classes (can cause transparency)
+<PopoverContent className="w-80 p-4">
+  {/* Content */}
+</PopoverContent>
+```
+
+## Analytics Implementation Guidelines
+
+### 📊 ALWAYS CHECK ANALYTICS DOCUMENTATION
+**When implementing ANY analytics features, metrics, or calculations, you MUST:**
+1. **Read and follow `/context/analytics.md`** for proper metric calculations
+2. **Use weighted averages** for aggregate metrics (not simple averages)
+3. **Calculate rates correctly** using unique counts where appropriate
+4. **Follow established naming conventions** for metrics
+5. **Ensure consistent metric definitions** across the application
+
+### Key Analytics Concepts
+- **Open Rate**: Unique opens / Recipients delivered
+- **Click Rate**: Unique clicks / Recipients delivered  
+- **CTOR (Click-to-Open Rate)**: Unique clicks / Unique opens
+- **Conversion Rate**: Conversions / Recipients delivered
+- **AOV (Average Order Value)**: Total revenue / Number of orders
+- **Revenue per Recipient**: Total revenue / Recipients delivered
+
+### Calculating Aggregate Metrics
+```javascript
+// ✅ CORRECT - Weighted average for open rate
+const totalRecipients = campaigns.reduce((sum, c) => sum + c.recipients, 0);
+const totalOpens = campaigns.reduce((sum, c) => sum + c.opensUnique, 0);
+const avgOpenRate = (totalOpens / totalRecipients) * 100;
+
+// ❌ WRONG - Simple average of percentages
+const avgOpenRate = campaigns.reduce((sum, c) => sum + c.openRate, 0) / campaigns.length;
+```
+
 ## Code Quality Standards
 
 ### Before Making Changes
 1. **Read relevant documentation** in `/context/` folder
-2. **Check existing patterns** in similar components
-3. **Maintain consistency** with the established codebase
-4. **Test responsiveness** across different screen sizes
-5. **Verify dark mode** compatibility
+2. **For analytics: ALWAYS check `/context/analytics.md`** first
+3. **Check existing patterns** in similar components
+4. **Maintain consistency** with the established codebase
+5. **Test responsiveness** across different screen sizes
+6. **Verify dark mode** compatibility
 
 ### Component Structure
 ```jsx

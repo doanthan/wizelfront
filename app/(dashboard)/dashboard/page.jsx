@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -20,6 +20,9 @@ import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { useTheme } from "@/app/contexts/theme-context";
 import { useStores } from "@/app/contexts/store-context";
+import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
+import { FilterDropdown } from "@/app/components/ui/filter-dropdown";
+import { format } from "date-fns";
 
 // Mock data for the chart
 const revenueData = [
@@ -62,7 +65,7 @@ const MetricCard = ({ title, value, change, changeType, icon: Icon, prefix = "" 
               <span className={`text-sm font-medium ${isPositive ? "text-green-500" : "text-red-500"}`}>
                 {isPositive ? "+" : ""}{change}%
               </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">vs. last period</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">vs. last period</span>
             </div>
           </div>
           <div className="p-3 bg-blue-50 dark:bg-sky-blue/20 rounded-lg">
@@ -75,10 +78,69 @@ const MetricCard = ({ title, value, change, changeType, icon: Icon, prefix = "" 
 };
 
 export default function DashboardPage() {
-  const [dateRange, setDateRange] = useState("Last 30 Days");
-  const [comparisonMode, setComparisonMode] = useState("vs Previous Period");
+  const [selectedDateRange, setSelectedDateRange] = useState(null);
+  const [dateRangeText, setDateRangeText] = useState("Past 30 days");
+  const [comparisonText, setComparisonText] = useState("vs previous period");
+  const [activeFilters, setActiveFilters] = useState(null);
+  const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { getUserAccessibleStores } = useStores();
+
+  // Ensure component is mounted before rendering theme-dependent content
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleDateChange = (dateInfo) => {
+    setSelectedDateRange(dateInfo);
+    
+    // Update display text to show the period name
+    if (dateInfo.period) {
+      switch(dateInfo.period) {
+        case "last-30-days":
+          setDateRangeText("Past 30 days");
+          break;
+        case "last-7-days":
+          setDateRangeText("Past 7 days");
+          break;
+        case "today":
+          setDateRangeText("Today");
+          break;
+        case "week-to-date":
+          setDateRangeText("Week-to-date");
+          break;
+        case "month-to-date":
+          setDateRangeText("Month-to-date");
+          break;
+        case "custom":
+          // For custom, show the date range
+          if (dateInfo.primary) {
+            const { from, to } = dateInfo.primary;
+            if (from && to) {
+              setDateRangeText(`${format(from, "MMM d")} - ${format(to, "MMM d, yyyy")}`);
+            }
+          }
+          break;
+        default:
+          setDateRangeText("Past 30 days");
+      }
+    }
+    
+    // Update comparison text
+    if (dateInfo.comparisonType === "previous-period") {
+      setComparisonText("vs previous period");
+    } else if (dateInfo.comparisonType === "previous-year") {
+      setComparisonText("vs previous year");
+    } else {
+      setComparisonText("");
+    }
+  };
+
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+    console.log('Active filters:', filters);
+    // Here you would typically filter your data based on the selected filters
+  };
 
   // Get only stores the current user can access
   const accessibleStores = getUserAccessibleStores();
@@ -103,40 +165,44 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Performance Summary
           </h1>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-gray-600 dark:text-gray-400">{dateRange}</p>
-            <span className="text-gray-600 dark:text-gray-400">•</span>
-            <p className="text-gray-600 dark:text-gray-400">{comparisonMode}</p>
+          <div className="mt-1 space-y-0.5">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {dateRangeText}
+            </p>
+            {comparisonText && (
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                {comparisonText}
+              </p>
+            )}
           </div>
         </div>
         
         <div className="flex items-center gap-3">
+          <FilterDropdown 
+            onFilterChange={handleFilterChange}
+          />
+          <DateRangeSelector 
+            onDateChange={handleDateChange}
+            showComparison={true}
+          />
           <Button
             variant="outline"
             size="sm"
             onClick={toggleTheme}
-            className="gap-2"
+            className="gap-2 border-neutral-gray/30 hover:border-sky-blue hover:bg-sky-tint/50 transition-all"
           >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4" />
+            {mounted ? (
+              theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )
             ) : (
-              <Moon className="h-4 w-4" />
+              <div className="h-4 w-4" />
             )}
             <span className="hidden sm:inline">
-              {theme === "dark" ? "Light" : "Dark"} Mode
+              {mounted && theme === "dark" ? "Light" : "Dark"} Mode
             </span>
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            {dateRange}
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
-          <Button size="sm" className="gap-2 bg-sky-600 hover:bg-sky-700 text-white border-black">
-            <Download className="h-4 w-4" />
-            Export
           </Button>
         </div>
       </div>

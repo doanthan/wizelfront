@@ -264,7 +264,7 @@ export default function StoreDialog({ store, onClose }) {
             <div>
               <Label htmlFor="url">Store URL *</Label>
               <div className="relative mt-1">
-                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600 dark:text-gray-400" />
                 <Input
                   id="url"
                   type="text"

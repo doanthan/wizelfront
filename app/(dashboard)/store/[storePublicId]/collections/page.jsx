@@ -257,7 +257,79 @@ export default function CollectionsPage() {
         </div>
 
         {/* Content */}
-        {collections.length === 0 ? (
+        {isLoading ? (
+          // Show skeleton loader while loading
+          <div className="space-y-6">
+            {/* Search and Filters Skeleton */}
+            <Card>
+              <CardContent className="py-4">
+                <div className="flex gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search collections..."
+                      disabled
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="gap-2" disabled>
+                      <Filter className="h-4 w-4" />
+                      Filters
+                    </Button>
+                    <div className="flex bg-white dark:bg-gray-800 border rounded-lg dark:border-gray-700">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Collections Skeleton */}
+            {viewType === "card" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Name</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Handle</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Products</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Status</TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300">Last Synced</TableHead>
+                        <TableHead className="text-right text-gray-700 dark:text-gray-300">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[...Array(5)].map((_, i) => (
+                        <SkeletonTableRow key={i} />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : collections.length === 0 ? (
           <Card>
             <CardContent className="py-16">
               <div className="text-center">
@@ -324,38 +396,7 @@ export default function CollectionsPage() {
             </Card>
 
             {/* Collections View */}
-            {isLoading ? (
-              // Show skeleton loader
-              viewType === "card" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, i) => (
-                    <SkeletonCard key={i} />
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Handle</TableHead>
-                          <TableHead>Products</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Last Synced</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {[...Array(5)].map((_, i) => (
-                          <SkeletonTableRow key={i} />
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )
-            ) : viewType === "card" ? (
+            {viewType === "card" ? (
               // Card View
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredCollections.map((collection) => (

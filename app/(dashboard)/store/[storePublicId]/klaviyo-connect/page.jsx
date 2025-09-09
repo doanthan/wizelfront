@@ -7,8 +7,10 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Badge } from "@/app/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { ArrowLeft, ExternalLink, CheckCircle, AlertCircle, Loader2, Key, Shield, Info } from "lucide-react";
 import { useToast } from "@/app/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export default function KlaviyoConnectPage() {
     const params = useParams();
@@ -21,6 +23,11 @@ export default function KlaviyoConnectPage() {
     const [loading, setLoading] = useState(true);
     const [connecting, setConnecting] = useState(false);
     const [klaviyoApiKey, setKlaviyoApiKey] = useState("");
+    const [step, setStep] = useState('api'); // 'api' or 'metric'
+    const [accountInfo, setAccountInfo] = useState(null);
+    const [metrics, setMetrics] = useState([]);
+    const [selectedMetricId, setSelectedMetricId] = useState("");
+    const [testingApi, setTestingApi] = useState(false);
 
     // Validate API key format
     const isValidApiKey = klaviyoApiKey.trim().startsWith("pk_");
@@ -64,11 +71,66 @@ export default function KlaviyoConnectPage() {
         }
     }, [storePublicId, router, toast]);
 
-    const handleConnectKlaviyo = async () => {
+    const handleTestApi = async () => {
         if (!klaviyoApiKey.trim() || !isValidApiKey) {
             toast({
                 title: "Invalid API Key",
                 description: "Please enter a valid Klaviyo API key that starts with 'pk_'",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setTestingApi(true);
+        try {
+            const response = await fetch(`/api/store/${storePublicId}/klaviyo-connect`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    apiKey: klaviyoApiKey.trim(),
+                    action: 'test'
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                setAccountInfo(data.account);
+                setMetrics(data.metrics);
+                
+                // Auto-select Shopify Placed Order if found
+                const shopifyMetric = data.metrics.find(m => m.isShopifyPlacedOrder);
+                if (shopifyMetric) {
+                    setSelectedMetricId(shopifyMetric.id);
+                }
+                
+                setStep('metric');
+                toast({
+                    title: "API Key Validated",
+                    description: `Connected to ${data.account.name}. Please select a conversion metric.`,
+                });
+            } else {
+                throw new Error(data.error || data.message || "Failed to validate API key");
+            }
+        } catch (error) {
+            console.error("Error testing Klaviyo API:", error);
+            toast({
+                title: "Validation Failed",
+                description: error.message || "Failed to validate API key. Please check your credentials and try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setTestingApi(false);
+        }
+    };
+
+    const handleConnectKlaviyo = async () => {
+        if (!selectedMetricId) {
+            toast({
+                title: "Metric Required",
+                description: "Please select a conversion metric to track",
                 variant: "destructive",
             });
             return;
@@ -83,6 +145,7 @@ export default function KlaviyoConnectPage() {
                 },
                 body: JSON.stringify({
                     apiKey: klaviyoApiKey.trim(),
+                    conversionMetricId: selectedMetricId,
                 }),
             });
 
@@ -351,12 +414,19 @@ export default function KlaviyoConnectPage() {
                                                     placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                                                     value={klaviyoApiKey}
                                                     onChange={(e) => setKlaviyoApiKey(e.target.value)}
-                                                    className="mt-1 focus:border-sky-blue focus:ring-sky-blue/20"
+                                                    disabled={step === 'metric'}  // Disable when on metric selection step
+                                                    className={cn(
+                                                        "mt-1 focus:border-sky-blue focus:ring-sky-blue/20",
+                                                        step === 'metric' && "bg-gray-50 cursor-not-allowed opacity-75"
+                                                    )}
                                                 />
                                                 <p className="text-xs text-neutral-gray mt-2">
-                                                    Find this in your Klaviyo account under Settings → API Keys
+                                                    {step === 'api' 
+                                                        ? "Find this in your Klaviyo account under Settings → API Keys"
+                                                        : "API key validated. Click Back to change it."
+                                                    }
                                                 </p>
-                                                {klaviyoApiKey && !isValidApiKey && (
+                                                {klaviyoApiKey && !isValidApiKey && step === 'api' && (
                                                     <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                                                         <AlertCircle className="h-3 w-3" />
                                                         API key must start with "pk_"
@@ -364,24 +434,103 @@ export default function KlaviyoConnectPage() {
                                                 )}
                                             </div>
                                         </div>
-                                        <Button
-                                            onClick={handleConnectKlaviyo}
-                                            disabled={connecting || !klaviyoApiKey.trim() || !isValidApiKey}
-                                            variant="outline"
-                                            className="w-full border-neutral-gray/30 hover:bg-gray-50"
-                                        >
-                                            {connecting ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                    Connecting...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Key className="h-4 w-4 mr-2" />
-                                                    Connect with API Key
-                                                </>
-                                            )}
-                                        </Button>
+                                        {step === 'api' ? (
+                                            <Button
+                                                onClick={handleTestApi}
+                                                disabled={testingApi || !klaviyoApiKey.trim() || !isValidApiKey}
+                                                variant="outline"
+                                                className="w-full border-neutral-gray/30 hover:bg-gray-50"
+                                            >
+                                                {testingApi ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        Validating API Key...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Key className="h-4 w-4 mr-2" />
+                                                        Validate API Key
+                                                    </>
+                                                )}
+                                            </Button>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                                        <p className="text-sm text-green-700">
+                                                            API Key validated for <span className="font-medium">{accountInfo?.name}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="metric" className="text-slate-gray font-medium">
+                                                        Select Conversion Metric
+                                                    </Label>
+                                                    <Select
+                                                        value={selectedMetricId}
+                                                        onValueChange={setSelectedMetricId}
+                                                    >
+                                                        <SelectTrigger className="mt-1">
+                                                            <SelectValue placeholder="Choose a metric to track conversions" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {metrics.map((metric) => (
+                                                                <SelectItem key={metric.id} value={metric.id}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span>{metric.name}</span>
+                                                                        {metric.isShopifyPlacedOrder && (
+                                                                            <Badge className="ml-2 bg-green-100 text-green-700 border-green-200 text-xs">
+                                                                                Recommended
+                                                                            </Badge>
+                                                                        )}
+                                                                        {metric.category === 'CUSTOM' && (
+                                                                            <Badge variant="outline" className="ml-2 text-xs">
+                                                                                Custom
+                                                                            </Badge>
+                                                                        )}
+                                                                        <span className="text-xs text-neutral-gray ml-1">
+                                                                            ({metric.integration})
+                                                                        </span>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <p className="text-xs text-neutral-gray mt-2">
+                                                        This metric will be used to track conversions and calculate ROI
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        onClick={() => {
+                                                            setStep('api');
+                                                            setSelectedMetricId('');
+                                                            setAccountInfo(null);
+                                                            setMetrics([]);
+                                                        }}
+                                                        variant="outline"
+                                                        className="flex-1"
+                                                    >
+                                                        Back
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleConnectKlaviyo}
+                                                        disabled={connecting || !selectedMetricId}
+                                                        className="flex-1 bg-gradient-to-r from-sky-blue to-royal-blue hover:from-royal-blue hover:to-sky-blue text-white"
+                                                    >
+                                                        {connecting ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                Connecting...
+                                                            </>
+                                                        ) : (
+                                                            'Complete Connection'
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>

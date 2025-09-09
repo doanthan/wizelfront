@@ -216,29 +216,16 @@ const Calendar = React.forwardRef(({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-1">
-          <Button
-            onClick={() => navigateYear(-1)}
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 opacity-50 hover:opacity-100"
-            type="button"
-            aria-label="Previous year"
-          >
-            <ChevronLeft className="h-3 w-3" />
-            <ChevronLeft className="h-3 w-3 -ml-2" />
-          </Button>
-          <Button
-            onClick={() => navigateMonth(-1)}
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 opacity-50 hover:opacity-100"
-            type="button"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          onClick={() => navigateMonth(-1)}
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 opacity-50 hover:opacity-100"
+          type="button"
+          aria-label="Previous month"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
 
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -256,29 +243,16 @@ const Calendar = React.forwardRef(({
           </Button>
         </div>
 
-        <div className="flex items-center gap-1">
-          <Button
-            onClick={() => navigateMonth(1)}
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 opacity-50 hover:opacity-100"
-            type="button"
-            aria-label="Next month"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => navigateYear(1)}
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 opacity-50 hover:opacity-100"
-            type="button"
-            aria-label="Next year"
-          >
-            <ChevronRight className="h-3 w-3 -mr-2" />
-            <ChevronRight className="h-3 w-3" />
-          </Button>
-        </div>
+        <Button
+          onClick={() => navigateMonth(1)}
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 opacity-50 hover:opacity-100"
+          type="button"
+          aria-label="Next month"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Day headers */}

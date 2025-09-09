@@ -166,8 +166,8 @@ export default function TagManager({ onClose }) {
             </h3>
             <div className="space-y-2">
               {tags.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <TagIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                  <TagIcon className="h-12 w-12 mx-auto mb-3 text-gray-600 dark:text-gray-400" />
                   <p>No tags created yet</p>
                 </div>
               ) : (
