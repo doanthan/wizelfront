@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/app/contexts/theme-context";
 import { StoreProvider } from "@/app/contexts/store-context";
 import { PermissionsProvider } from "@/app/contexts/permissions-context";
 import { SidebarProvider, useSidebar } from "@/app/contexts/sidebar-context";
+import { CampaignDataProvider } from "@/app/contexts/campaign-data-context";
 
 function DashboardContent({ children }) {
   const { isCollapsed } = useSidebar();
@@ -24,9 +25,11 @@ export default function DashboardLayout({ children }) {
     <ThemeProvider>
       <PermissionsProvider>
         <StoreProvider>
-          <SidebarProvider>
-            <DashboardContent>{children}</DashboardContent>
-          </SidebarProvider>
+          <CampaignDataProvider>
+            <SidebarProvider>
+              <DashboardContent>{children}</DashboardContent>
+            </SidebarProvider>
+          </CampaignDataProvider>
         </StoreProvider>
       </PermissionsProvider>
     </ThemeProvider>

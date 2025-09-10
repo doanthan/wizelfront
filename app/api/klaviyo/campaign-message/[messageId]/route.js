@@ -109,6 +109,9 @@ export async function GET(request, { params }) {
     console.log('Campaign from DB:', campaign);
     
     if (channel === 'sms') {
+      console.log('🔍 Processing SMS campaign message');
+      console.log('Message attributes:', JSON.stringify(messageData?.attributes, null, 2));
+      
       // SMS-Specific Processing - extract fields following the specified format
       const body = messageData?.attributes?.definition?.content?.body ||
                    messageData?.attributes?.content?.body ||
@@ -121,25 +124,34 @@ export async function GET(request, { params }) {
                        campaign?.content?.media_url || // Check campaign from DB
                        null;
 
-      console.log('SMS Body extracted:', body);
-      console.log('SMS Media URL:', mediaUrl);
-      console.log('Full campaign message data:', JSON.stringify(campaignMessage.data, null, 2));
+      console.log('📱 SMS Body extracted:', body);
+      console.log('🖼️ SMS Media URL:', mediaUrl);
+      
+      // If no body found in message data, try to get it from template
+      let finalBody = body;
+      if (!finalBody && template) {
+        console.log('Checking template for SMS content...');
+        finalBody = template?.attributes?.body || template?.attributes?.text || '';
+        console.log('Body from template:', finalBody);
+      }
 
       const responseData = {
         success: true,
         data: {
           type: 'sms',
-          body: body,
+          channel: 'sms',
+          body: finalBody,
           mediaUrl: mediaUrl,
-          rawBody: body,
+          rawBody: finalBody,
+          text: finalBody, // Add text field as fallback
           messageId: messageId,
           campaignName: campaign?.campaign_name || messageData?.attributes?.name || '',
-          fromPhone: messageData?.attributes?.definition?.content?.from_number || '',
-          channel: 'sms'
+          fromPhone: messageData?.attributes?.definition?.content?.from_number || 
+                     messageData?.attributes?.from_number || '',
         }
       };
       
-      console.log('Returning SMS response:', responseData);
+      console.log('✅ Returning SMS response:', JSON.stringify(responseData, null, 2));
       return NextResponse.json(responseData);
     }
     

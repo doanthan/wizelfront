@@ -262,6 +262,103 @@ const avgOpenRate = (totalOpens / totalRecipients) * 100;
 const avgOpenRate = campaigns.reduce((sum, c) => sum + c.openRate, 0) / campaigns.length;
 ```
 
+## 📊 CRITICAL: Number Formatting Standards
+
+### **ALWAYS use centralized formatting functions from `/lib/utils.js`**
+
+**For all analytics and reporting components, use the standardized number formatting functions to ensure consistency and readability across large datasets.**
+
+### Available Formatting Functions
+
+#### `formatNumber(value)`
+Formats numbers with appropriate suffixes for better readability:
+- `856` → `856`
+- `1,200` → `1.2K`
+- `1,034,567` → `1.03M`
+- `2,450,000,000` → `2.45B`
+
+#### `formatCurrency(value)`
+Formats currency values with appropriate suffixes:
+- `12.34` → `$12.34`
+- `1,200` → `$1.2K`
+- `1,034,567` → `$1.03M`
+- `2,450,000,000` → `$2.45B`
+
+#### `formatPercentage(value)`
+Formats percentage values:
+- `12.345` → `12.3%`
+
+#### `formatPercentageChange(change)`
+Formats percentage changes with proper signs:
+- `12.5` → `+12.5%`
+- `-8.2` → `-8.2%`
+- `0` → `0%`
+
+### Usage Guidelines
+
+```javascript
+// ✅ CORRECT - Import and use centralized formatting
+import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils';
+
+// In your component
+const revenue = 1034567;
+const recipients = 45300;
+const openRate = 23.456;
+
+return (
+  <div>
+    <span>Revenue: {formatCurrency(revenue)}</span> {/* Shows: $1.03M */}
+    <span>Recipients: {formatNumber(recipients)}</span> {/* Shows: 45.3K */}
+    <span>Open Rate: {formatPercentage(openRate)}</span> {/* Shows: 23.5% */}
+  </div>
+);
+```
+
+```javascript
+// ❌ WRONG - Don't create custom formatting
+const revenue = 1034567;
+const formatted = value >= 1000000 ? `$${(value/1000000).toFixed(1)}M` : `$${value}`; // Inconsistent!
+```
+
+### Chart Formatting
+For Recharts components, use the centralized functions in tickFormatter and tooltip formatters:
+
+```javascript
+// ✅ CORRECT - Chart axis formatting
+<YAxis 
+  tickFormatter={(value) => {
+    if (metricType === 'currency') {
+      return formatCurrency(value).replace('$', ''); // Remove $ for axis
+    }
+    if (metricType === 'percentage') {
+      return formatPercentage(value);
+    }
+    return formatNumber(value);
+  }}
+/>
+
+// ✅ CORRECT - Tooltip formatting
+<Tooltip 
+  formatter={(value, name) => {
+    if (name.includes('revenue')) return formatCurrency(value);
+    if (name.includes('Rate')) return formatPercentage(value);
+    return formatNumber(value);
+  }}
+/>
+```
+
+### Why This Matters
+1. **Consistency**: All numbers across the application display uniformly
+2. **Readability**: Large numbers (1M+) are much easier to read than 7+ digit numbers
+3. **Maintainability**: Changes to formatting logic happen in one place
+4. **Performance**: Centralized functions are optimized and cached
+
+### Migration Notes
+- **Replace all inline number formatting** with centralized functions
+- **Update chart tickFormatter functions** to use the new formatters
+- **Test all analytics displays** to ensure numbers show correctly
+- **Verify tooltip and axis formatting** in all charts
+
 ## Code Quality Standards
 
 ### Before Making Changes
@@ -353,6 +450,7 @@ npm run lint    # Run linting
 3. **REFERENCE `/context/design-principles.md`** for any design decisions
 4. **USE the component library** in `/app/components/ui/` as the source of truth
 5. **FOLLOW the established patterns** rather than creating new ones
+6. **ALWAYS use centralized number formatting** from `/lib/utils.js` for all analytics displays
 
 ## Design Principles Priority
 When in doubt about any UI decision:

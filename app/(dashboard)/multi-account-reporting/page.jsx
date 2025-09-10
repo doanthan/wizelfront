@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { AccountSelector } from "@/app/components/ui/account-selector"
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector"
 import { Loading } from "@/app/components/ui/loading"
 import { useStores } from "@/app/contexts/store-context"
+import { useCampaignData } from "@/app/contexts/campaign-data-context"
 
 // Import tab components
 import RevenueTab from "./components/RevenueTab"
@@ -18,6 +19,13 @@ export default function AnalyticsPage() {
     const searchParams = useSearchParams()
     const { stores } = useStores()
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'revenue')
+    
+    // Use shared campaign data context
+    const { getCampaignData, loading: contextLoading, errors: contextErrors } = useCampaignData()
+    const [campaignsData, setCampaignsData] = useState(null)
+    const [campaignsLoading, setCampaignsLoading] = useState(false)
+    const [campaignsError, setCampaignsError] = useState(null)
+    
     const [dateRangeSelection, setDateRangeSelection] = useState({
         period: "last90",
         comparisonType: "previous-period",
@@ -176,6 +184,76 @@ export default function AnalyticsPage() {
         }
     }, [stores, isAccountsInitialized, availableAccounts])
     
+    // Function to fetch campaign data using shared context
+    const fetchCampaignData = useCallback(async (forceRefresh = false) => {
+        // Only show loading if we don't have data yet or forcing refresh
+        if (!campaignsData || forceRefresh) {
+            setCampaignsLoading(true)
+        }
+        setCampaignsError(null)
+        
+        try {
+            // Get account IDs
+            let accountIds = []
+            if (selectedAccounts && selectedAccounts.length > 0) {
+                if (selectedAccounts[0].value === 'all') {
+                    // Get all account IDs from stores
+                    accountIds = stores
+                        .filter(store => store.klaviyo_integration?.public_id)
+                        .map(store => store.klaviyo_integration.public_id)
+                } else {
+                    // Use selected account IDs
+                    accountIds = selectedAccounts.map(acc => acc.value).filter(Boolean)
+                }
+            }
+            
+            if (accountIds.length === 0) {
+                setCampaignsData({ campaigns: [], aggregateStats: null })
+                setCampaignsLoading(false)
+                return
+            }
+            
+            // Use date range from dateRangeSelection
+            const endDate = dateRangeSelection.ranges?.main?.end || new Date()
+            const startDate = dateRangeSelection.ranges?.main?.start || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+            
+            // Use shared context to get campaign data with intelligent caching
+            const data = await getCampaignData(
+                startDate.toISOString(),
+                endDate.toISOString(),
+                accountIds,
+                { forceRefresh, prefetch: true, subscribe: true }
+            )
+            
+            console.log('📊 Using cached/fetched campaign data:', data)
+            setCampaignsData(data)
+        } catch (error) {
+            console.error('Error fetching campaign data:', error)
+            setCampaignsError(error.message)
+        } finally {
+            setCampaignsLoading(false)
+        }
+    }, [selectedAccounts, stores, dateRangeSelection, getCampaignData, campaignsData])
+    
+    // Fetch campaign data when needed
+    useEffect(() => {
+        // Only fetch if we're on a tab that needs campaign data
+        if ((activeTab === 'campaigns' || activeTab === 'deliverability') && stores.length > 0) {
+            // Check if we need to fetch (data not loaded yet)
+            if (!campaignsData) {
+                fetchCampaignData()
+            }
+        }
+    }, [activeTab, stores, campaignsData, fetchCampaignData])
+    
+    // Refetch when dependencies change (force refresh)
+    useEffect(() => {
+        // Only refetch if we're on a tab that uses campaign data and have stores
+        if ((activeTab === 'campaigns' || activeTab === 'deliverability') && stores.length > 0) {
+            fetchCampaignData(true)
+        }
+    }, [selectedAccounts, dateRangeSelection])
+    
     // Handle URL tab parameter changes
     useEffect(() => {
         const tab = searchParams.get('tab')
@@ -220,8 +298,8 @@ export default function AnalyticsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Ecommerce Analytics</h2>
-                    <p className="text-gray-600 dark:text-gray-400">Revenue metrics and customer insights</p>
+                    <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Multi-Account Reporting</h2>
+                    <p className="text-gray-600 dark:text-gray-400">Cross-account analytics and performance insights</p>
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -274,6 +352,9 @@ export default function AnalyticsPage() {
                 <TabsContent value="campaigns" className="space-y-4">
                     <CampaignsTab 
                         selectedAccounts={selectedAccounts}
+                        campaignsData={campaignsData}
+                        campaignsLoading={campaignsLoading}
+                        campaignsError={campaignsError}
                         onAccountsChange={(newValue) => {
                             console.log('Campaign tab account selection changed:', newValue)
                             let updatedSelection = []
@@ -345,6 +426,9 @@ export default function AnalyticsPage() {
                         selectedAccounts={selectedAccounts}
                         dateRangeSelection={dateRangeSelection}
                         stores={stores}
+                        campaignsData={campaignsData}
+                        campaignsLoading={campaignsLoading}
+                        campaignsError={campaignsError}
                     />
                 </TabsContent>
             </Tabs>

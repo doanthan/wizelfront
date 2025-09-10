@@ -67,9 +67,11 @@ export async function GET(request) {
     const transformedCampaigns = campaigns.map(campaign => ({
       id: campaign.groupings?.campaign_message_id || campaign._id.toString(),
       campaignId: campaign.groupings?.campaign_id,
+      messageId: campaign.groupings?.campaign_message_id || null, // Add messageId field for preview
       name: campaign.campaign_name || 'Untitled Campaign',
       subject: campaign.subject_line || '',
       type: campaign.groupings?.send_channel || 'email',
+      channel: campaign.groupings?.send_channel || 'email', // Add channel field
       status: campaign.send_time ? 'sent' : 'draft',
       
       // Core metrics from statistics

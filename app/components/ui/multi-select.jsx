@@ -98,12 +98,20 @@ export function MultiSelect({
                     className="h-5 px-2 py-0 text-xs bg-sky-tint text-sky-blue border-sky-blue/20"
                   >
                     {item.label}
-                    <button
+                    <span
                       onClick={(e) => handleRemove(item, e)}
-                      className="ml-1 hover:text-royal-blue"
+                      className="ml-1 hover:text-royal-blue cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleRemove(item, e)
+                        }
+                      }}
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </span>
                   </Badge>
                 ))}
                 {value.length > 2 && (
@@ -118,12 +126,20 @@ export function MultiSelect({
           </div>
           <div className="flex items-center gap-1 ml-2">
             {value?.length > 0 && (
-              <button
+              <span
                 onClick={handleClear}
-                className="hover:text-gray-700 dark:hover:text-gray-300"
+                className="hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleClear(e)
+                  }
+                }}
               >
                 <X className="h-4 w-4" />
-              </button>
+              </span>
             )}
             <ChevronDown className="h-4 w-4 opacity-50" />
           </div>

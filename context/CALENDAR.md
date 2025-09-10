@@ -91,28 +91,102 @@ if (!store || !selectedStores.includes(store.public_id || store.id || store._id)
 }
 ```
 
-## Past vs Future Campaigns (CRITICAL DISTINCTION)
+## Shared Campaign Data Context Integration (NEW)
 
-### Why Two Different Sources?
+### Calendar Now Uses Intelligent Caching
+The calendar page has been updated to use the shared `CampaignDataContext` for past campaigns:
 
-1. **Past Campaigns (MongoDB)** - Historical campaign performance data
-   - Source: `campaignstats` collection in MongoDB
+#### Benefits:
+- **Instant loading** when navigating from Dashboard or Multi-Account Reporting
+- **Shared cache** across all pages - no duplicate API calls
+- **Automatic prefetching** of adjacent date ranges
+- **Background refresh** keeps data fresh
+
+#### Implementation:
+```javascript
+// Old approach (direct API call)
+fetch('/api/calendar/campaigns/past')
+
+// New approach (shared context with caching)
+const { getCampaignData } = useCampaignData();
+const data = await getCampaignData(startDate, endDate, klaviyoIds, {
+  forceRefresh: false,
+  prefetch: true,
+  subscribe: true
+});
+```
+
+#### Data Flow:
+1. Calendar checks if stores are loaded
+2. Gets Klaviyo IDs from stores
+3. Requests data from shared context
+4. Context returns cached data if available (5ms)
+5. Or fetches only missing date ranges (delta loading)
+6. Transforms data to calendar format
+7. Future campaigns still fetched from Klaviyo API (real-time data needed)
+
+## Dual-Source Campaign Strategy (CRITICAL ARCHITECTURE)
+
+### Why Two Different Sources with Smart Merging?
+
+1. **Past/Existing Campaigns (CampaignDataContext)** - Historical performance data with intelligent caching
+   - Source: `campaignstats` collection in MongoDB through CampaignDataContext
    - Contains: Sent campaigns with full performance metrics (opens, clicks, revenue)
+   - **Smart Delta Loading**: Only fetches new date ranges not in cache
+   - **Intelligent Overlap Detection**: Merges overlapping date ranges automatically
    - Updated: Via separate sync process (not real-time)
    - Date range: From beginning of time up to current moment
 
-2. **Future Campaigns (Klaviyo API)** - Scheduled but not yet sent
-   - Source: Live Klaviyo API calls
-   - Contains: Draft/scheduled campaigns without performance data
-   - Updated: Real-time from Klaviyo
+2. **Future Campaigns (Fresh Klaviyo API + Smart Merge)** - Always fresh scheduling data
+   - Source: **Always** fresh Klaviyo API calls on every calendar load
+   - Strategy: **Smart merge** with existing campaign cache
+   - **Preserves existing data**: Keeps performance stats, only updates scheduling info
+   - **Handles new campaigns**: Adds newly scheduled campaigns
+   - **Removes cancelled campaigns**: Cleans up deleted/cancelled campaigns
+   - Updated: Real-time from Klaviyo on every page visit
    - Date range: From current moment onwards
 
 ### Data Sync Flow
 ```
-Klaviyo → Sync Job → MongoDB (past campaigns with stats)
-         ↓
-    Direct API (future scheduled campaigns)
+Past Campaigns:
+Klaviyo → Sync Job → MongoDB → CampaignDataContext (intelligent caching)
+
+Future Campaigns:
+Klaviyo API (fresh) → Smart Merge → In-Memory Cache (preserves existing data)
 ```
+
+### Smart Merge Strategy for Future Campaigns
+
+#### On Every Calendar Load:
+1. **Fetch Fresh**: Always call Klaviyo API for latest scheduled/draft campaigns
+2. **Smart Merge**: Intelligently merge with existing cached campaigns
+3. **Preserve Data**: Keep existing performance stats and enriched data
+4. **Update Scheduling**: Update status, dates, and scheduling info from fresh data
+5. **Handle New**: Add newly scheduled campaigns to cache
+6. **Clean Up**: Remove campaigns that no longer exist in Klaviyo
+
+#### Merge Logic:
+```javascript
+// For each fresh campaign from Klaviyo API:
+if (existingCampaign) {
+  mergedCampaign = {
+    ...existingCampaign,           // Keep existing data (stats, enrichments)
+    status: freshCampaign.status,  // Update scheduling status
+    date: freshCampaign.date,      // Update scheduled date
+    isScheduled: freshCampaign.isScheduled
+  }
+} else {
+  // New campaign, add to cache
+  cache.set(campaignId, freshCampaign)
+}
+```
+
+#### Benefits of This Approach:
+- **Always Fresh**: Latest scheduling changes reflected immediately
+- **Preserves Enrichments**: Custom data, performance history, user annotations
+- **Efficient**: Only updates what changed, preserves existing data
+- **Resilient**: Handles cancelled/deleted campaigns gracefully
+- **Consistent**: Same campaign ID always maps to same enriched data
 
 ### Why Not Use Klaviyo API for Everything?
 1. **Performance** - MongoDB queries are much faster than API calls

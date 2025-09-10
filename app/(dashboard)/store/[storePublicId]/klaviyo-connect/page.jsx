@@ -246,9 +246,9 @@ export default function KlaviyoConnectPage() {
     const isConnected = store.klaviyo_integration?.status === "connected";
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200">
+            <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-5xl mx-auto px-6 py-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -262,10 +262,10 @@ export default function KlaviyoConnectPage() {
                                 Back
                             </Button>
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-gray">
+                                <h1 className="text-2xl font-bold text-slate-gray dark:text-white">
                                     {isConnected ? "Manage Klaviyo Connection" : "Connect Klaviyo"}
                                 </h1>
-                                <p className="text-neutral-gray">
+                                <p className="text-neutral-gray dark:text-gray-400">
                                     {isConnected 
                                         ? `Klaviyo is connected to ${store.name}`
                                         : `Connect your Klaviyo account to ${store.name}`
@@ -291,8 +291,8 @@ export default function KlaviyoConnectPage() {
                             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                                 <img src="/klaviyo-icon.png" alt="Klaviyo" className="h-12 w-12" />
                             </div>
-                            <h2 className="text-lg font-medium text-slate-gray mb-2">Connect Your Klaviyo Account</h2>
-                            <p className="text-neutral-gray">Choose your preferred connection method</p>
+                            <h2 className="text-lg font-medium text-slate-gray dark:text-white mb-2">Connect Your Klaviyo Account</h2>
+                            <p className="text-neutral-gray dark:text-gray-400">Choose your preferred connection method</p>
                         </div>
                         
                         {/* Connection Methods Grid */}
@@ -305,7 +305,7 @@ export default function KlaviyoConnectPage() {
                                             <img src="/klaviyo-icon.png" alt="Klaviyo" className="h-8 w-8" />
                                             <Badge className="bg-sky-blue/10 text-sky-blue border-sky-blue/20">Recommended</Badge>
                                         </div>
-                                        <CardTitle className="text-slate-gray">OAuth Connection</CardTitle>
+                                        <CardTitle className="text-slate-gray dark:text-white">OAuth Connection</CardTitle>
                                         <CardDescription>Secure connection through Klaviyo</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
@@ -313,14 +313,14 @@ export default function KlaviyoConnectPage() {
                                             <div className="p-4 bg-sky-tint/20 rounded-lg border border-sky-blue/20">
                                                 <div className="flex items-start gap-2">
                                                     <CheckCircle className="h-5 w-5 text-sky-blue mt-0.5 flex-shrink-0" />
-                                                    <div className="text-sm text-neutral-gray">
-                                                        <span className="font-medium text-slate-gray">No rate limit restrictions</span> - OAuth connections are guaranteed to work without hitting API limits
+                                                    <div className="text-sm text-neutral-gray dark:text-gray-400">
+                                                        <span className="font-medium text-slate-gray dark:text-white">No rate limit restrictions</span> - OAuth connections are guaranteed to work without hitting API limits
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <h4 className="font-medium text-slate-gray">What you'll get access to:</h4>
-                                                <ul className="text-sm text-neutral-gray space-y-1">
+                                                <h4 className="font-medium text-slate-gray dark:text-white">What you'll get access to:</h4>
+                                                <ul className="text-sm text-neutral-gray dark:text-gray-400 dark:text-gray-400 space-y-1">
                                                     <li className="flex items-center gap-2">
                                                         <div className="w-1.5 h-1.5 bg-vivid-violet rounded-full"></div>
                                                         Campaign performance data
@@ -355,19 +355,19 @@ export default function KlaviyoConnectPage() {
                             <div className="lg:col-span-2 flex justify-center items-center">
                                 {/* Desktop vertical OR */}
                                 <div className="hidden lg:flex flex-col items-center justify-center h-full">
-                                    <div className="w-px flex-1 bg-gray-200"></div>
-                                    <div className="my-4 bg-white px-4 py-2 rounded-full border border-gray-200 shadow-sm">
-                                        <span className="text-sm font-medium text-neutral-gray">OR</span>
+                                    <div className="w-px flex-1 bg-gray-200 dark:bg-gray-600"></div>
+                                    <div className="my-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm">
+                                        <span className="text-sm font-medium text-neutral-gray dark:text-gray-400">OR</span>
                                     </div>
-                                    <div className="w-px flex-1 bg-gray-200"></div>
+                                    <div className="w-px flex-1 bg-gray-200 dark:bg-gray-600"></div>
                                 </div>
                                 {/* Mobile horizontal OR */}
                                 <div className="lg:hidden w-full flex items-center justify-center my-8">
-                                    <div className="flex-1 h-px bg-gray-200"></div>
-                                    <div className="px-4 py-2 bg-white rounded-full border border-gray-200 shadow-sm mx-4">
-                                        <span className="text-sm font-medium text-neutral-gray">OR</span>
+                                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"></div>
+                                    <div className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm mx-4">
+                                        <span className="text-sm font-medium text-neutral-gray dark:text-gray-400">OR</span>
                                     </div>
-                                    <div className="flex-1 h-px bg-gray-200"></div>
+                                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"></div>
                                 </div>
                             </div>
 
@@ -378,14 +378,14 @@ export default function KlaviyoConnectPage() {
                                         <div className="flex items-center justify-between mb-2">
                                             <img src="/klaviyo-icon.png" alt="Klaviyo" className="h-8 w-8" />
                                         </div>
-                                        <CardTitle className="text-slate-gray">API Key Connection</CardTitle>
+                                        <CardTitle className="text-slate-gray dark:text-white">API Key Connection</CardTitle>
                                         <CardDescription>Connect using your Klaviyo API key</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
                                         <div className="space-y-4">
                                             <div className="space-y-2">
-                                                <h4 className="font-medium text-slate-gray">What you'll get access to:</h4>
-                                                <ul className="text-sm text-neutral-gray space-y-1">
+                                                <h4 className="font-medium text-slate-gray dark:text-white">What you'll get access to:</h4>
+                                                <ul className="text-sm text-neutral-gray dark:text-gray-400 dark:text-gray-400 space-y-1">
                                                     <li className="flex items-center gap-2">
                                                         <div className="w-1.5 h-1.5 bg-vivid-violet rounded-full"></div>
                                                         Campaign performance data
@@ -405,7 +405,7 @@ export default function KlaviyoConnectPage() {
                                                 </ul>
                                             </div>
                                             <div>
-                                                <Label htmlFor="apiKey" className="text-slate-gray font-medium">
+                                                <Label htmlFor="apiKey" className="text-slate-gray dark:text-white font-medium">
                                                     Klaviyo API Key
                                                 </Label>
                                                 <Input
@@ -420,7 +420,7 @@ export default function KlaviyoConnectPage() {
                                                         step === 'metric' && "bg-gray-50 cursor-not-allowed opacity-75"
                                                     )}
                                                 />
-                                                <p className="text-xs text-neutral-gray mt-2">
+                                                <p className="text-xs text-neutral-gray dark:text-gray-400 mt-2">
                                                     {step === 'api' 
                                                         ? "Find this in your Klaviyo account under Settings → API Keys"
                                                         : "API key validated. Click Back to change it."
@@ -464,7 +464,7 @@ export default function KlaviyoConnectPage() {
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <Label htmlFor="metric" className="text-slate-gray font-medium">
+                                                    <Label htmlFor="metric" className="text-slate-gray dark:text-white font-medium">
                                                         Select Conversion Metric
                                                     </Label>
                                                     <Select
@@ -497,7 +497,7 @@ export default function KlaviyoConnectPage() {
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
-                                                    <p className="text-xs text-neutral-gray mt-2">
+                                                    <p className="text-xs text-neutral-gray dark:text-gray-400 mt-2">
                                                         This metric will be used to track conversions and calculate ROI
                                                     </p>
                                                 </div>
@@ -540,27 +540,27 @@ export default function KlaviyoConnectPage() {
                     // Connected State
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-slate-gray">Klaviyo Integration Status</CardTitle>
+                            <CardTitle className="text-slate-gray dark:text-white">Klaviyo Integration Status</CardTitle>
                             <CardDescription>Your Klaviyo account is successfully connected</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-4">
                                     <div>
-                                        <Label className="text-neutral-gray">Connection Status</Label>
+                                        <Label className="text-neutral-gray dark:text-gray-400">Connection Status</Label>
                                         <div className="flex items-center gap-2 mt-1">
                                             <Badge className="bg-green-100 text-green-700 border-green-200">
                                                 <CheckCircle className="h-3 w-3 mr-1" />
                                                 Active
                                             </Badge>
-                                            <span className="text-sm text-neutral-gray">
+                                            <span className="text-sm text-neutral-gray dark:text-gray-400">
                                                 Connected on {new Date(store.klaviyo_integration?.connected_at || Date.now()).toLocaleDateString()}
                                             </span>
                                         </div>
                                     </div>
                                     
                                     <div>
-                                        <Label className="text-neutral-gray">Account ID</Label>
+                                        <Label className="text-neutral-gray dark:text-gray-400">Account ID</Label>
                                         <p className="text-sm font-mono text-slate-gray mt-1">
                                             {store.klaviyo_integration?.public_id || "N/A"}
                                         </p>
@@ -569,8 +569,8 @@ export default function KlaviyoConnectPage() {
                                 
                                 <div className="space-y-4">
                                     <div>
-                                        <Label className="text-neutral-gray">Last Sync</Label>
-                                        <p className="text-sm text-slate-gray mt-1">
+                                        <Label className="text-neutral-gray dark:text-gray-400">Last Sync</Label>
+                                        <p className="text-sm text-slate-gray dark:text-white mt-1">
                                             {store.klaviyo_integration?.last_sync 
                                                 ? new Date(store.klaviyo_integration.last_sync).toLocaleString()
                                                 : "Never synced"
@@ -579,8 +579,8 @@ export default function KlaviyoConnectPage() {
                                     </div>
                                     
                                     <div>
-                                        <Label className="text-neutral-gray">Sync Status</Label>
-                                        <p className="text-sm text-slate-gray mt-1">
+                                        <Label className="text-neutral-gray dark:text-gray-400">Sync Status</Label>
+                                        <p className="text-sm text-slate-gray dark:text-white mt-1">
                                             {store.klaviyo_integration?.sync_status || "Ready"}
                                         </p>
                                     </div>
@@ -610,7 +610,7 @@ export default function KlaviyoConnectPage() {
                 {/* Help Section */}
                 <Card className="mt-8">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-slate-gray">
+                        <CardTitle className="flex items-center gap-2 text-slate-gray dark:text-white">
                             <Info className="h-5 w-5 text-sky-blue" />
                             Need Help?
                         </CardTitle>
@@ -618,8 +618,8 @@ export default function KlaviyoConnectPage() {
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <h4 className="font-medium text-slate-gray mb-2">Finding Your API Key</h4>
-                                <ol className="text-sm text-neutral-gray space-y-1">
+                                <h4 className="font-medium text-slate-gray dark:text-white mb-2">Finding Your API Key</h4>
+                                <ol className="text-sm text-neutral-gray dark:text-gray-400 space-y-1">
                                     <li>1. Log in to your Klaviyo account</li>
                                     <li>2. Go to Settings → API Keys</li>
                                     <li>3. Copy your Public API Key (starts with "pk_")</li>
@@ -627,8 +627,8 @@ export default function KlaviyoConnectPage() {
                                 </ol>
                             </div>
                             <div>
-                                <h4 className="font-medium text-slate-gray mb-2">OAuth Connection</h4>
-                                <p className="text-sm text-neutral-gray">
+                                <h4 className="font-medium text-slate-gray dark:text-white mb-2">OAuth Connection</h4>
+                                <p className="text-sm text-neutral-gray dark:text-gray-400">
                                     The OAuth method will redirect you to Klaviyo to authorize the connection.
                                     This is the recommended approach as it's more secure and doesn't require you to handle API keys manually.
                                 </p>

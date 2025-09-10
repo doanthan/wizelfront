@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
-import { Loading } from "@/app/components/ui/loading"
+import LoadingSpinner from "@/app/components/ui/loading-spinner"
 import Select from "react-select"
 import { selectStyles } from "@/app/components/selectStyles"
 import {
@@ -475,7 +475,7 @@ export default function RevenueTab({
     if (isLoading || isLoadingData) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <Loading />
+                <LoadingSpinner />
             </div>
         )
     }

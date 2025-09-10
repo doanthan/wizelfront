@@ -5,12 +5,17 @@ import { format, startOfWeek, startOfMonth, endOfWeek, endOfMonth } from 'date-f
 import { 
   X, TrendingUp, TrendingDown, ChevronDown, Check,
   Mail, MessageSquare, Bell, Send, Calendar, Users, 
-  DollarSign, Eye, MousePointer, Target, Info, Search
+  DollarSign, Eye, MousePointer, Target, Info, Search,
+  ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, ArrowDown,
+  FileText, CheckCircle, XCircle
 } from 'lucide-react';
+import { Checkbox } from '@/app/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
+import LoadingSpinner, { InlineLoading } from '@/app/components/ui/loading-spinner';
 import {
   Select,
   SelectContent,
@@ -25,7 +30,7 @@ import {
 } from '@/app/components/ui/popover';
 import { AccountSelector } from '@/app/components/ui/account-selector';
 import { DateRangeSelector } from '@/app/components/ui/date-range-selector';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber, formatCurrency, formatPercentage, calculatePercentageChange, formatPercentageChange } from '@/lib/utils';
 import {
   LineChart,
   Line,
@@ -44,6 +49,164 @@ import {
 
 // Cache for campaign data to avoid refetching
 const campaignDataCache = new Map();
+
+// Email Preview Panel Component
+const EmailPreviewPanel = ({ messageId, storeId }) => {
+  const [content, setContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!messageId || !storeId) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchContent = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch campaign content');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setContent(data.data);
+        } else {
+          throw new Error(data.error || 'Failed to load content');
+        }
+      } catch (err) {
+        console.error('Error fetching campaign content:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, [messageId, storeId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <InlineLoading text="Loading preview..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-sm text-red-600 dark:text-red-400">Failed to load preview</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!content) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-sm text-gray-600 dark:text-gray-400">No preview available</p>
+      </div>
+    );
+  }
+
+  // Render SMS Preview
+  if (content.type === 'sms' || content.channel === 'sms') {
+    return (
+      <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+        <div className="max-w-sm">
+          {/* Phone Frame */}
+          <div className="bg-black rounded-[2.5rem] p-4 shadow-2xl">
+            <div className="bg-white rounded-[2rem] p-4 h-[600px] overflow-hidden">
+              {/* Phone Header */}
+              <div className="flex items-center justify-between mb-4 pb-2 border-b">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-blue to-vivid-violet"></div>
+                  <div>
+                    <p className="text-sm font-semibold">Your Brand</p>
+                    <p className="text-xs text-gray-500">{content.fromPhone || 'SMS'}</p>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-400">now</div>
+              </div>
+              
+              {/* Message Content */}
+              <div className="space-y-3">
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{content.body || content.rawBody}</p>
+                    {content.mediaUrl && (
+                      <img 
+                        src={content.mediaUrl} 
+                        alt="SMS Media" 
+                        className="mt-2 rounded-lg w-full"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Email Preview
+  return (
+    <div className="flex flex-col h-full">
+      {/* Email Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex-shrink-0">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500 dark:text-gray-400">From:</span>
+            <span className="text-gray-900 dark:text-white">
+              {content.fromLabel && content.fromEmail ? 
+                `${content.fromLabel} <${content.fromEmail}>` : 
+                content.fromEmail || 'No sender'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Subject:</span>
+            <span className="text-gray-900 dark:text-white font-medium">
+              {content.subject || 'No subject'}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Email Content */}
+      <div className="flex-1 bg-white overflow-hidden">
+        {content.html ? (
+          <iframe
+            srcDoc={content.html}
+            className="w-full h-full border-0"
+            title="Email Preview"
+            sandbox="allow-same-origin"
+          />
+        ) : content.text ? (
+          <div className="p-4">
+            <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans">
+              {content.text}
+            </pre>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-gray-500 dark:text-gray-400">No content available</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const CampaignsTab = ({ 
   accountIds,
@@ -111,6 +274,25 @@ const CampaignsTab = ({
   const [chartViewMode, setChartViewMode] = useState('combined'); // 'combined' or 'separate'
   const [selectedChannel, setSelectedChannel] = useState('all'); // 'all', 'email', 'sms', 'push'
   
+  // Campaign selection state for comparison
+  const [selectedCampaigns, setSelectedCampaigns] = useState(new Set());
+  
+  // Top Performing Campaigns state
+  const [minRecipients, setMinRecipients] = useState(10000);
+  const [showBottomPerformers, setShowBottomPerformers] = useState(false);
+  const [topCampaignsCarouselIndex, setTopCampaignsCarouselIndex] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoSliding, setIsAutoSliding] = useState(true);
+  
+  // Individual carousel indices for each metric
+  const [metricSlides, setMetricSlides] = useState({
+    openRate: 0,
+    clickRate: 0,
+    conversionRate: 0,
+    revenuePerRecipient: 0,
+    engagement: 0
+  });
+  
   // Campaign list section (now uses main page selections automatically)
   
   const [comparisonChartType, setComparisonChartType] = useState('bar');
@@ -119,11 +301,174 @@ const CampaignsTab = ({
   
   // Detailed account view state
   const [selectedAccountForDetails, setSelectedAccountForDetails] = useState(null);
+  
+  // Campaign details modal state
+  const [showCampaignDetails, setShowCampaignDetails] = useState(false);
+  const [selectedCampaignDetails, setSelectedCampaignDetails] = useState(null);
+  const [emailPreviewContent, setEmailPreviewContent] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   // Campaign Details filtering state
   const [campaignChannelFilter, setCampaignChannelFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState('sentAt');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+  
+  // Email/SMS Preview Panel Component
+  const EmailPreviewPanel = ({ messageId, storeId }) => {
+    const [content, setContent] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchContent = async () => {
+        if (!messageId) {
+          setLoading(false);
+          return;
+        }
+        
+        try {
+          setLoading(true);
+          // StoreId is required for the API
+          if (!storeId) {
+            console.error('StoreId is required to fetch campaign content');
+            setContent(null);
+            setLoading(false);
+            return;
+          }
+          
+          const url = `/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const result = await response.json();
+            setContent(result.data || result);
+          } else {
+            console.error('Failed to fetch campaign content:', response.status);
+          }
+        } catch (error) {
+          console.error('Error fetching content:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchContent();
+    }, [messageId, storeId]);
+
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-full p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-blue"></div>
+        </div>
+      );
+    }
+
+    if (!content) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500">
+          <FileText className="h-12 w-12 mb-3 text-gray-400" />
+          <p>No preview available</p>
+        </div>
+      );
+    }
+
+    // Handle SMS content
+    if (content.channel === 'sms' || content.type === 'sms') {
+      return (
+        <div className="h-full w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="max-w-md w-full mx-auto p-8">
+            {/* Phone mockup */}
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-4 border-8 border-gray-900 dark:border-gray-700">
+              <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">SMS Message</span>
+                </div>
+                <div className="space-y-3">
+                  {content.from_number && (
+                    <p className="text-xs text-gray-500">From: {content.from_number}</p>
+                  )}
+                  <div className="bg-green-500 text-white rounded-2xl rounded-bl-none p-3 max-w-[80%]">
+                    <p className="text-sm">
+                      {content.content || content.body || 'No content available'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Handle Email content
+    const htmlContent = content.html || content.html_content || content.content;
+    const subject = content.subject || 'No subject';
+    const previewText = content.preview_text || content.previewText || '';
+
+    return (
+      <div className="h-full w-full flex flex-col bg-white">
+        {/* Email Header Info */}
+        <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-sky-blue" />
+              <span className="text-xs text-gray-600 dark:text-gray-400">Email Preview</span>
+            </div>
+            <p className="font-medium text-gray-900 dark:text-white text-sm">{subject}</p>
+            {previewText && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                Preview: {previewText}
+              </p>
+            )}
+          </div>
+        </div>
+        {/* Email Content */}
+        <div className="flex-1 overflow-hidden bg-white">
+          {htmlContent ? (
+            <iframe
+              srcDoc={htmlContent}
+              className="w-full h-full border-0"
+              title="Email Preview"
+              sandbox="allow-same-origin allow-popups"
+              style={{ minHeight: '600px', backgroundColor: 'white' }}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full p-8 text-gray-500 bg-gray-50">
+              <div className="text-center">
+                <Mail className="h-12 w-12 mb-3 text-gray-400 mx-auto" />
+                <p className="text-gray-600">No email content available</p>
+                <p className="text-xs text-gray-500 mt-2">The email preview could not be loaded</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  // Handler for campaign click
+  const handleCampaignClick = (campaign) => {
+    setSelectedCampaignDetails(campaign);
+    setShowCampaignDetails(true);
+    setEmailPreviewContent(null);
+    setLoadingPreview(false);
+  };
+  
+  // Helper function to get store name from account ID
+  const getStoreNameFromAccountId = useCallback((accountId) => {
+    if (!stores || !accountId) return 'Unknown Account';
+    
+    // Find the store that has this Klaviyo account ID
+    const store = stores.find(store => {
+      const storeAccountId = store.klaviyo_integration?.public_id || store.klaviyo_integration?.public_key;
+      return storeAccountId === accountId;
+    });
+    
+    return store?.name || 'Unknown Account';
+  }, [stores]);
 
   // Available tags computation
   const availableTags = useMemo(() => {
@@ -136,9 +481,9 @@ const CampaignsTab = ({
     return Array.from(tagSet).sort();
   }, [campaigns]);
 
-  // Filtered campaigns computation
+  // Filtered and sorted campaigns computation
   const filteredCampaigns = useMemo(() => {
-    return campaigns.filter(campaign => {
+    let filtered = campaigns.filter(campaign => {
       // Channel filter
       if (campaignChannelFilter !== 'all' && campaign.type !== campaignChannelFilter) {
         return false;
@@ -156,9 +501,8 @@ const CampaignsTab = ({
         const query = searchQuery.toLowerCase();
         const matchesName = campaign.name?.toLowerCase().includes(query);
         const matchesSubject = campaign.subject?.toLowerCase().includes(query);
-        const matchesAccount = availableAccounts
-          ?.find(acc => acc.value === campaign.accountId)
-          ?.label?.toLowerCase().includes(query);
+        const storeName = getStoreNameFromAccountId(campaign.accountId);
+        const matchesAccount = storeName?.toLowerCase().includes(query);
         
         if (!matchesName && !matchesSubject && !matchesAccount) {
           return false;
@@ -167,7 +511,229 @@ const CampaignsTab = ({
 
       return true;
     });
-  }, [campaigns, campaignChannelFilter, tagFilter, searchQuery, availableAccounts]);
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(sortColumn) {
+        case 'account':
+          aVal = getStoreNameFromAccountId(a.accountId);
+          bVal = getStoreNameFromAccountId(b.accountId);
+          break;
+        case 'campaign':
+          aVal = a.name || '';
+          bVal = b.name || '';
+          break;
+        case 'sentAt':
+          aVal = new Date(a.sentAt).getTime();
+          bVal = new Date(b.sentAt).getTime();
+          break;
+        case 'recipients':
+          aVal = a.recipients || 0;
+          bVal = b.recipients || 0;
+          break;
+        case 'openRate':
+          aVal = a.openRate || 0;
+          bVal = b.openRate || 0;
+          break;
+        case 'clickRate':
+          aVal = a.clickRate || 0;
+          bVal = b.clickRate || 0;
+          break;
+        case 'ctor':
+          aVal = (a.opensUnique && a.opensUnique > 0) ? (a.clicksUnique / a.opensUnique) * 100 : 0;
+          bVal = (b.opensUnique && b.opensUnique > 0) ? (b.clicksUnique / b.opensUnique) * 100 : 0;
+          break;
+        case 'conversionRate':
+          aVal = a.conversionRate || 0;
+          bVal = b.conversionRate || 0;
+          break;
+        case 'revenue':
+          aVal = a.revenue || 0;
+          bVal = b.revenue || 0;
+          break;
+        default:
+          aVal = 0;
+          bVal = 0;
+      }
+      
+      // Handle string comparison
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+      
+      // Handle numeric comparison
+      if (sortDirection === 'asc') {
+        return aVal - bVal;
+      } else {
+        return bVal - aVal;
+      }
+    });
+    
+    return filtered;
+  }, [campaigns, campaignChannelFilter, tagFilter, searchQuery, getStoreNameFromAccountId, sortColumn, sortDirection]);
+  
+  // Handler for sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column with default desc direction
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+  
+  // Helper to render sort icon
+  const renderSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-3 w-3 text-gray-400" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 text-sky-blue" />
+      : <ArrowDown className="h-3 w-3 text-sky-blue" />;
+  };
+  
+  // Calculate top performing campaigns for different metrics
+  const topPerformingCampaigns = useMemo(() => {
+    if (!campaigns || campaigns.length === 0) return [];
+    
+    // Filter campaigns by minimum recipients
+    const eligibleCampaigns = campaigns.filter(campaign => 
+      (campaign.recipients || 0) >= minRecipients
+    );
+    
+    if (eligibleCampaigns.length === 0) return [];
+    
+    // Calculate top performers for each metric
+    const metrics = [
+      {
+        id: 'openRate',
+        name: 'Top Open Rate',
+        icon: <Eye className="h-4 w-4 text-blue-600" />,
+        getValue: (c) => c.openRate || 0,
+        getDisplayValue: (c) => formatPercentage(c.openRate || 0),
+        getSubValue: (c) => `${formatNumber(c.opensUnique || 0)} opens`,
+        color: 'blue',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        textColor: 'text-blue-600 dark:text-blue-400',
+        badgeColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+        borderColor: 'border-blue-200 dark:border-blue-700',
+        dotColor: 'bg-blue-600'
+      },
+      {
+        id: 'clickRate',
+        name: 'Top Click Rate',
+        icon: <MousePointer className="h-4 w-4 text-purple-600" />,
+        getValue: (c) => c.clickRate || 0,
+        getDisplayValue: (c) => formatPercentage(c.clickRate || 0),
+        getSubValue: (c) => `${formatNumber(c.clicksUnique || 0)} clicks`,
+        color: 'purple',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        textColor: 'text-purple-600 dark:text-purple-400',
+        badgeColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+        borderColor: 'border-purple-200 dark:border-purple-700',
+        dotColor: 'bg-purple-600'
+      },
+      {
+        id: 'conversionRate',
+        name: 'Top Conversion',
+        icon: <Target className="h-4 w-4 text-green-600" />,
+        getValue: (c) => c.conversionRate || 0,
+        getDisplayValue: (c) => formatPercentage(c.conversionRate || 0),
+        getSubValue: (c) => `${formatNumber(c.conversionUniques || 0)} conversions`,
+        color: 'green',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        textColor: 'text-green-600 dark:text-green-400',
+        badgeColor: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+        borderColor: 'border-green-200 dark:border-green-700',
+        dotColor: 'bg-green-600'
+      },
+      {
+        id: 'revenuePerRecipient',
+        name: 'Top Revenue',
+        icon: <DollarSign className="h-4 w-4 text-emerald-600" />,
+        getValue: (c) => (c.recipients && c.recipients > 0) ? (c.revenue || 0) / c.recipients : 0,
+        getDisplayValue: (c) => {
+          const value = (c.recipients && c.recipients > 0) ? (c.revenue || 0) / c.recipients : 0;
+          return formatCurrency(value);
+        },
+        getSubValue: (c) => '$/recipient',
+        color: 'emerald',
+        bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+        textColor: 'text-emerald-600 dark:text-emerald-400',
+        badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+        borderColor: 'border-emerald-200 dark:border-emerald-700',
+        dotColor: 'bg-emerald-600'
+      },
+      {
+        id: 'engagement',
+        name: 'Top Engagement',
+        icon: <TrendingUp className="h-4 w-4 text-orange-600" />,
+        getValue: (c) => {
+          // Calculate engagement score: (opens + clicks + conversions) / recipients
+          const opens = c.opensUnique || 0;
+          const clicks = c.clicksUnique || 0;
+          const conversions = c.conversionUniques || 0;
+          const recipients = c.recipients || 0;
+          return recipients > 0 ? ((opens + clicks + conversions) / recipients) * 100 : 0;
+        },
+        getDisplayValue: (c) => {
+          const opens = c.opensUnique || 0;
+          const clicks = c.clicksUnique || 0;
+          const conversions = c.conversionUniques || 0;
+          const recipients = c.recipients || 0;
+          const engagement = recipients > 0 ? ((opens + clicks + conversions) / recipients) * 100 : 0;
+          return formatPercentage(engagement);
+        },
+        getSubValue: (c) => `${formatNumber(c.recipients || 0)} sent`,
+        color: 'orange',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        textColor: 'text-orange-600 dark:text-orange-400',
+        badgeColor: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+        borderColor: 'border-orange-200 dark:border-orange-700',
+        dotColor: 'bg-orange-600'
+      }
+    ];
+    
+    // Create an object with top 5 campaigns for each metric
+    const result = {};
+    
+    metrics.forEach((metric) => {
+      // Sort campaigns by this metric
+      const sortedCampaigns = [...eligibleCampaigns].sort((a, b) => {
+        const aValue = metric.getValue(a);
+        const bValue = metric.getValue(b);
+        return showBottomPerformers ? aValue - bValue : bValue - aValue;
+      });
+      
+      // Get top 5 campaigns for this metric
+      const top5 = sortedCampaigns.slice(0, 5).map((campaign, idx) => {
+        if (!campaign || metric.getValue(campaign) === 0) return null;
+        
+        return {
+          ...metric,
+          campaign,
+          storeName: getStoreNameFromAccountId(campaign.accountId),
+          ranking: `${idx + 1}/5`,
+          position: idx + 1,
+          date: new Date(campaign.sentAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+          }),
+          value: metric.getValue(campaign)
+        };
+      }).filter(Boolean);
+      
+      result[metric.id] = top5;
+    });
+    
+    return result;
+  }, [campaigns, minRecipients, showBottomPerformers, getStoreNameFromAccountId]);
   
   // Available metrics for the chart
   const availableMetrics = [
@@ -822,40 +1388,7 @@ const CampaignsTab = ({
     }
   }, [campaigns, chartGranularity, chartViewMode, selectedChannel, availableAccounts, getDateGroupKey, formatDateDisplay, effectiveDateRange]);
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: 'USD',
-      minimumFractionDigits: value < 100 ? 2 : 0,
-      maximumFractionDigits: value < 100 ? 2 : 0
-    }).format(value);
-  };
-
-  const formatNumber = (value) => {
-    if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toLocaleString();
-  };
-
-  const formatPercentage = (value) => {
-    return `${value.toFixed(1)}%`;
-  };
-
-  const calculatePercentageChange = (current, previous) => {
-    if (previous === 0) {
-      return current > 0 ? 100 : 0;
-    }
-    return ((current - previous) / previous) * 100;
-  };
-
-  const formatPercentageChange = (change) => {
-    if (change === 0) return "0%";
-    const sign = change > 0 ? "+" : "";
-    return `${sign}${change.toFixed(1)}%`;
-  };
+  // Formatting functions are now imported from @/lib/utils
 
   // Helper component for percentage change badges
   const PercentageBadge = ({ current, previous, isMain = false }) => {
@@ -1158,7 +1691,7 @@ const CampaignsTab = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-none">
 
       {/* Metrics Overview - 5 cards in a row */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -2104,16 +2637,13 @@ const CampaignsTab = ({
                   orientation="left"
                   domain={comparisonMetric.primary?.includes('Rate') || comparisonMetric.primary?.includes('unsub') ? [0, 'auto'] : [0, 'dataMax']}
                   tickFormatter={(value) => {
-                    if (comparisonMetric.primary === 'revenue' || comparisonMetric.primary?.includes('revenue')) {
-                      return value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value.toFixed(0)}`
-                    }
-                    if (comparisonMetric.primary === 'averageOrderValue') {
-                      return `${value.toFixed(0)}`
+                    if (comparisonMetric.primary === 'revenue' || comparisonMetric.primary?.includes('revenue') || comparisonMetric.primary === 'averageOrderValue') {
+                      return formatCurrency(value).replace('$', '');
                     }
                     if (comparisonMetric.primary?.includes('Rate')) {
-                      return `${value.toFixed(1)}%`
+                      return formatPercentage(value);
                     }
-                    return value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toFixed(0)
+                    return formatNumber(value);
                   }}
                 />
                 {comparisonMetric.secondaryAxis && (
@@ -2121,7 +2651,7 @@ const CampaignsTab = ({
                     yAxisId="right"
                     orientation="right"
                     domain={[0, 'auto']}
-                    tickFormatter={(value) => `${value.toFixed(1)}%`}
+                    tickFormatter={(value) => formatPercentage(value)}
                   />
                 )}
                 <Tooltip 
@@ -2211,8 +2741,182 @@ const CampaignsTab = ({
       )}
 
 
+      {/* Top Performing Campaigns Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-gray-900 dark:text-white">Top Performing Campaigns</CardTitle>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <Select value={minRecipients.toString()} onValueChange={(value) => setMinRecipients(parseInt(value))}>
+                    <SelectTrigger className="w-[180px] h-8">
+                      <SelectValue placeholder="Min recipients" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1000">Min 1K recipients</SelectItem>
+                      <SelectItem value="5000">Min 5K recipients</SelectItem>
+                      <SelectItem value="10000">Min 10K recipients</SelectItem>
+                      <SelectItem value="25000">Min 25K recipients</SelectItem>
+                      <SelectItem value="50000">Min 50K recipients</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Show Bottom Performers</span>
+                  <button
+                    onClick={() => setShowBottomPerformers(!showBottomPerformers)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                      showBottomPerformers ? "bg-sky-blue" : "bg-gray-300 dark:bg-gray-600"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                        showBottomPerformers ? "translate-x-6" : "translate-x-1"
+                      )}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Showing campaigns in top 75% by send volume (filtered)
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {Object.keys(topPerformingCampaigns).length === 0 || Object.values(topPerformingCampaigns).every(arr => arr.length === 0) ? (
+            <div className="text-center py-8">
+              <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">No campaigns meet the minimum recipient threshold</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                Adjust the minimum recipients or date range to see top performers
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {/* Map through each metric type */}
+              {['openRate', 'clickRate', 'conversionRate', 'revenuePerRecipient', 'engagement'].map((metricId) => {
+                const campaigns = topPerformingCampaigns[metricId] || [];
+                if (campaigns.length === 0) return null;
+                
+                const currentIndex = metricSlides[metricId] || 0;
+                const currentCampaign = campaigns[currentIndex];
+                if (!currentCampaign) return null;
+                
+                return (
+                  <div key={metricId} className="relative group">
+                    <div
+                      className={cn(
+                        "relative p-4 rounded-lg border transition-all hover:shadow-md",
+                        currentCampaign.bgColor,
+                        currentCampaign.borderColor
+                      )}
+                    >
+                      {/* Navigation Arrows - Only visible on hover */}
+                      <button
+                        onClick={() => {
+                          setMetricSlides(prev => ({
+                            ...prev,
+                            [metricId]: (currentIndex - 1 + campaigns.length) % campaigns.length
+                          }));
+                        }}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 z-10 p-0.5 rounded-full bg-white/60 dark:bg-gray-800/60 opacity-0 group-hover:opacity-100 hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all"
+                      >
+                        <ChevronLeft className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setMetricSlides(prev => ({
+                            ...prev,
+                            [metricId]: (currentIndex + 1) % campaigns.length
+                          }));
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-0.5 rounded-full bg-white/60 dark:bg-gray-800/60 opacity-0 group-hover:opacity-100 hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all"
+                      >
+                        <ChevronRight className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                      </button>
+                      
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {currentCampaign.icon}
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {currentCampaign.name}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {currentCampaign.ranking}
+                        </span>
+                      </div>
+                      
+                      {/* Store Name */}
+                      <div className="mb-2">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {currentCampaign.storeName}
+                        </p>
+                      </div>
+                      
+                      {/* Main Metric */}
+                      <div className="mb-2">
+                        <p className={cn(
+                          "text-2xl font-bold",
+                          currentCampaign.textColor
+                        )}>
+                          {currentCampaign.getDisplayValue(currentCampaign.campaign)}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {currentCampaign.getSubValue(currentCampaign.campaign)}
+                        </p>
+                      </div>
+                      
+                      {/* Bottom Info */}
+                      <div className="flex items-center justify-between mt-4">
+                        <div className={cn(
+                          "inline-flex items-center px-2 py-1 rounded text-xs font-medium",
+                          currentCampaign.badgeColor
+                        )}>
+                          #{currentCampaign.position}
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {currentCampaign.date}
+                        </span>
+                      </div>
+                      
+                      {/* Navigation Dots */}
+                      <div className="flex justify-center mt-3 gap-1">
+                        {campaigns.map((_, dotIndex) => (
+                          <div
+                            key={dotIndex}
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full cursor-pointer transition-all",
+                              dotIndex === currentIndex
+                                ? currentCampaign.dotColor
+                                : "bg-gray-300 dark:bg-gray-600"
+                            )}
+                            onClick={() => {
+                              setMetricSlides(prev => ({
+                                ...prev,
+                                [metricId]: dotIndex
+                              }));
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Campaign List Section */}
-      <Card>
+      <Card className="w-full max-w-none mx-auto">
         <CardHeader>
           <div className="space-y-4">
             <div>
@@ -2343,31 +3047,90 @@ const CampaignsTab = ({
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-hidden">
+              <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Account
+                    <th className="text-left py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300" style={{width: '40px'}}>
+                      <Checkbox
+                        checked={selectedCampaigns.size === filteredCampaigns.length && filteredCampaigns.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedCampaigns(new Set(filteredCampaigns.map(c => c.id)));
+                          } else {
+                            setSelectedCampaigns(new Set());
+                          }
+                        }}
+                        className="data-[state=checked]:bg-sky-blue data-[state=checked]:border-sky-blue"
+                      />
                     </th>
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Campaign
+                    <th 
+                      className="text-left py-2 px-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '110px'}}
+                      onClick={() => handleSort('account')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Account
+                        {renderSortIcon('account')}
+                      </div>
                     </th>
-                    <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Sent Date
+                    <th 
+                      className="text-left py-3 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('campaign')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Campaign
+                        {renderSortIcon('campaign')}
+                      </div>
                     </th>
-                    <th className="text-right py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Sent Count
+                    <th 
+                      className="text-center py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '90px'}}
+                      onClick={() => handleSort('sentAt')}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        Sent Date
+                        {renderSortIcon('sentAt')}
+                      </div>
                     </th>
-                    <th className="text-right py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Open Rate
+                    <th 
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '95px'}}
+                      onClick={() => handleSort('recipients')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Sent Count
+                        {renderSortIcon('recipients')}
+                      </div>
                     </th>
-                    <th className="text-right py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Click Rate
+                    <th 
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '85px'}}
+                      onClick={() => handleSort('openRate')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Open Rate
+                        {renderSortIcon('openRate')}
+                      </div>
                     </th>
-                    <th className="text-right py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <th 
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '85px'}}
+                      onClick={() => handleSort('clickRate')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Click Rate
+                        {renderSortIcon('clickRate')}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '75px'}}
+                      onClick={() => handleSort('ctor')}
+                    >
                       <div className="flex items-center justify-end gap-1">
                         CTOR
+                        {renderSortIcon('ctor')}
                         <Popover>
                           <PopoverTrigger asChild>
                             <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -2391,19 +3154,36 @@ const CampaignsTab = ({
                         </Popover>
                       </div>
                     </th>
-                    <th className="text-right py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Conv. Rate
+                    <th 
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '85px'}}
+                      onClick={() => handleSort('conversionRate')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Conv. Rate
+                        {renderSortIcon('conversionRate')}
+                      </div>
                     </th>
-                    <th className="text-right py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Revenue
+                    <th 
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                      style={{width: '110px'}}
+                      onClick={() => handleSort('revenue')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Revenue
+                        {renderSortIcon('revenue')}
+                      </div>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCampaigns.slice(0, 10).map((campaign) => {
-                    // Find account details for this campaign
-                    const accountInfo = availableAccounts?.find(acc => acc.value === campaign.accountId) || 
-                                      { label: 'Unknown Account', value: campaign.accountId };
+                  {filteredCampaigns.map((campaign) => {
+                    // Get store name for this campaign's account
+                    const storeName = getStoreNameFromAccountId(campaign.accountId);
+                    const accountInfo = { 
+                      label: storeName, 
+                      value: campaign.accountId 
+                    };
                     
                     // Calculate CTOR (Click-to-Open Rate)
                     const ctor = (campaign.opensUnique && campaign.opensUnique > 0) 
@@ -2423,34 +3203,47 @@ const CampaignsTab = ({
                     return (
                       <tr 
                         key={campaign.id} 
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        className={cn(
+                          "border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
+                          selectedCampaigns.has(campaign.id) && "bg-sky-tint/20 dark:bg-sky-blue/10"
+                        )}
+                        style={{height: '65px'}}
                       >
+                        {/* Checkbox Column */}
+                        <td className="py-2 px-1">
+                          <Checkbox
+                            checked={selectedCampaigns.has(campaign.id)}
+                            onCheckedChange={(checked) => {
+                              const newSelected = new Set(selectedCampaigns);
+                              if (checked) {
+                                newSelected.add(campaign.id);
+                              } else {
+                                newSelected.delete(campaign.id);
+                              }
+                              setSelectedCampaigns(newSelected);
+                            }}
+                            className="data-[state=checked]:bg-sky-blue data-[state=checked]:border-sky-blue"
+                          />
+                        </td>
+                        
                         {/* Account Column */}
-                        <td className="py-4 px-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-shrink-0">
-                              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-sky-blue to-vivid-violet flex items-center justify-center">
-                                <span className="text-white text-xs font-semibold">
-                                  {accountInfo.label?.charAt(0)?.toUpperCase() || 'A'}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-medium text-gray-900 dark:text-white truncate max-w-[80px]">
-                                {accountInfo.label || 'Unknown'}
-                              </p>
-                            </div>
-                          </div>
+                        <td className="py-2 px-2">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {accountInfo.label || 'Unknown'}
+                          </p>
                         </td>
 
                         {/* Campaign Column */}
-                        <td className="py-4 px-4">
+                        <td className="py-2 px-2">
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-0.5">
                               {getCampaignIcon(campaign.type)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium text-gray-900 dark:text-white text-sm leading-tight">
+                              <p 
+                                className="font-medium text-gray-900 dark:text-white text-sm leading-tight cursor-pointer hover:text-sky-blue transition-colors"
+                                onClick={() => handleCampaignClick(campaign)}
+                              >
                                 {campaign.name}
                               </p>
                               {campaign.subject && (
@@ -2458,15 +3251,12 @@ const CampaignsTab = ({
                                   {campaign.subject}
                                 </p>
                               )}
-                              <div className="mt-1">
-                                {getStatusBadge(campaign.status)}
-                              </div>
                             </div>
                           </div>
                         </td>
 
                         {/* Sent Date Column */}
-                        <td className="py-4 px-4 text-center">
+                        <td className="py-2 px-1 text-center">
                           <div className="text-sm text-gray-900 dark:text-white font-medium">
                             {new Date(campaign.sentAt).toLocaleDateString('en-US', {
                               month: 'short',
@@ -2481,8 +3271,8 @@ const CampaignsTab = ({
                         </td>
 
                         {/* Sent Count Column */}
-                        <td className="py-4 px-4 text-right">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="py-2 px-1 text-right">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatNumber(campaign.recipients || 0)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -2491,8 +3281,8 @@ const CampaignsTab = ({
                         </td>
 
                         {/* Open Rate Column */}
-                        <td className="py-4 px-4 text-right">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <td className="py-2 px-1 text-right">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(campaign.openRate || 0)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -2501,8 +3291,8 @@ const CampaignsTab = ({
                         </td>
 
                         {/* Click Rate Column */}
-                        <td className="py-4 px-4 text-right">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <td className="py-2 px-1 text-right">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(campaign.clickRate || 0)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -2511,18 +3301,18 @@ const CampaignsTab = ({
                         </td>
 
                         {/* CTOR Column */}
-                        <td className="py-4 px-4 text-right">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <td className="py-2 px-1 text-right">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(ctor)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                            click-to-open
+                            engagement
                           </div>
                         </td>
 
                         {/* Conversion Rate Column */}
-                        <td className="py-4 px-4 text-right">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <td className="py-2 px-1 text-right">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(campaign.conversionRate || 0)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -2531,13 +3321,12 @@ const CampaignsTab = ({
                         </td>
 
                         {/* Revenue Column */}
-                        <td className="py-4 px-4 text-right">
-                          <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        <td className="py-2 px-1 text-right">
+                          <div className="text-sm font-semibold text-green-600 dark:text-green-400 font-mono">
                             {formatCurrency(campaign.revenue || 0)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-                            <div>AOV: {formatCurrency(aov)}</div>
-                            <div>Per recipient: {formatCurrency(revenuePerRecipient)}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            AOV: {formatCurrency(aov)}
                           </div>
                         </td>
                       </tr>
@@ -2546,17 +3335,368 @@ const CampaignsTab = ({
                 </tbody>
               </table>
               
-              {filteredCampaigns.length > 10 && (
-                <div className="mt-4 text-center">
-                  <Button variant="outline" size="sm">
-                    Load More Campaigns
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
       </Card>
+      
+      {/* Campaign Details Modal */}
+      <Dialog 
+        open={showCampaignDetails} 
+        onOpenChange={setShowCampaignDetails}
+        onEscapeKeyDown={() => setShowCampaignDetails(false)}
+      >
+        <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-gray-50 dark:bg-gray-900 flex flex-col">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Campaign Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedCampaignDetails && (
+            <div className="flex flex-1 min-h-0">
+              {/* Email Preview Panel - Left Side */}
+              <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+                  <div className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {selectedCampaignDetails?.type === 'email' && <Mail className="h-4 w-4 text-sky-blue" />}
+                        {selectedCampaignDetails?.type === 'sms' && <MessageSquare className="h-4 w-4 text-green-600" />}
+                        {selectedCampaignDetails?.type === 'push' && <Bell className="h-4 w-4 text-vivid-violet" />}
+                        <h3 className="text-sm font-semibold text-slate-gray dark:text-white">
+                          {selectedCampaignDetails?.name}
+                        </h3>
+                        <Badge className="text-xs bg-gradient-to-r from-sky-blue to-vivid-violet text-white border-0">
+                          {selectedCampaignDetails?.type?.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <button
+                        onClick={() => setShowCampaignDetails(false)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-neutral-gray">
+                        {selectedCampaignDetails.subject || 'No subject'}
+                      </p>
+                      <span className="text-xs text-neutral-gray dark:text-gray-400">
+                        Sent: {new Date(selectedCampaignDetails.sentAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-hidden bg-gray-100 dark:bg-gray-950">
+                    <EmailPreviewPanel 
+                      messageId={selectedCampaignDetails.messageId} 
+                      storeId={selectedCampaignDetails.klaviyo_public_id || selectedCampaignDetails.accountId}
+                    />
+                  </div>
+                </div>
+                
+                {/* Stats Panel - Right Side */}
+                <div className="w-1/2 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
+                  <div className="flex-1 overflow-y-auto px-6 py-4">
+                    <div className="space-y-6">
+                {/* Campaign Info Section */}
+                <div className="bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 rounded-lg p-4 border border-sky-blue/30">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Campaign Information</h4>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Details</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Account</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {getStoreNameFromAccountId(selectedCampaignDetails.accountId)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Type</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                              {selectedCampaignDetails.type}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Sent Date</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {new Date(selectedCampaignDetails.sentAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          {selectedCampaignDetails.tagNames && selectedCampaignDetails.tagNames.length > 0 && (
+                            <div className="flex justify-between items-start">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Tags</span>
+                              <div className="flex flex-wrap gap-1 justify-end">
+                                {selectedCampaignDetails.tagNames.map((tag, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Audience</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Recipients</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {formatNumber(selectedCampaignDetails.recipients || 0)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Delivered</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {formatNumber(selectedCampaignDetails.delivered || 0)}
+                              <span className="text-xs text-gray-500 ml-1">
+                                ({formatPercentage((selectedCampaignDetails.delivered / selectedCampaignDetails.recipients) * 100 || 0)})
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Bounced</span>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {formatNumber(selectedCampaignDetails.bounced || 0)}
+                              <span className="text-xs text-gray-500 ml-1">
+                                ({formatPercentage((selectedCampaignDetails.bounced / selectedCampaignDetails.recipients) * 100 || 0)})
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Audience Segments */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4 text-sky-blue" />
+                      Campaign Audience
+                    </h4>
+                    
+                    {/* Included Audiences */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Included Segments</span>
+                      </div>
+                      <div className="space-y-2">
+                        {selectedCampaignDetails?.audiences?.included?.length > 0 ? (
+                          selectedCampaignDetails.audiences.included.map((audience, idx) => (
+                            <div key={idx} className="flex items-center gap-2 pl-6">
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {audience.name || audience.id || 'Segment'}
+                              </span>
+                              {audience.count && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {formatNumber(audience.count)} contacts
+                                </Badge>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="pl-6 text-sm text-gray-500 dark:text-gray-400">
+                            All subscribers
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Excluded Audiences */}
+                    {selectedCampaignDetails?.audiences?.excluded?.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <XCircle className="h-4 w-4 text-red-600" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Excluded Segments</span>
+                        </div>
+                        <div className="space-y-2">
+                          {selectedCampaignDetails.audiences.excluded.map((audience, idx) => (
+                            <div key={idx} className="flex items-center gap-2 pl-6">
+                              <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {audience.name || audience.id || 'Segment'}
+                              </span>
+                              {audience.count && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {formatNumber(audience.count)} contacts
+                                </Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Estimated Recipients */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Estimated Recipients</span>
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {formatNumber(selectedCampaignDetails?.recipients || 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Performance Metrics */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Performance Metrics</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* Open Rate */}
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Eye className="h-4 w-4 text-blue-600" />
+                          <span className="text-xs text-gray-500">Open Rate</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatPercentage(selectedCampaignDetails.openRate || 0)}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {formatNumber(selectedCampaignDetails.opensUnique || 0)} unique opens
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Click Rate */}
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <MousePointer className="h-4 w-4 text-purple-600" />
+                          <span className="text-xs text-gray-500">Click Rate</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatPercentage(selectedCampaignDetails.clickRate || 0)}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {formatNumber(selectedCampaignDetails.clicksUnique || 0)} unique clicks
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* CTOR */}
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Target className="h-4 w-4 text-orange-600" />
+                          <span className="text-xs text-gray-500">CTOR</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatPercentage(
+                            selectedCampaignDetails.opensUnique && selectedCampaignDetails.opensUnique > 0
+                              ? (selectedCampaignDetails.clicksUnique / selectedCampaignDetails.opensUnique) * 100
+                              : 0
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Click-to-open rate
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Conversion Rate */}
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Target className="h-4 w-4 text-green-600" />
+                          <span className="text-xs text-gray-500">Conversion</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatPercentage(selectedCampaignDetails.conversionRate || 0)}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {formatNumber(selectedCampaignDetails.conversionUniques || 0)} orders
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+                
+                {/* Revenue Metrics */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Revenue Metrics</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                          <span className="text-xs text-gray-500">Total Revenue</span>
+                        </div>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {formatCurrency(selectedCampaignDetails.revenue || 0)}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          From {formatNumber(selectedCampaignDetails.conversionUniques || 0)} orders
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <DollarSign className="h-4 w-4 text-purple-600" />
+                          <span className="text-xs text-gray-500">AOV</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatCurrency(
+                            selectedCampaignDetails.conversionUniques && selectedCampaignDetails.conversionUniques > 0
+                              ? selectedCampaignDetails.revenue / selectedCampaignDetails.conversionUniques
+                              : 0
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Average order value
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Users className="h-4 w-4 text-blue-600" />
+                          <span className="text-xs text-gray-500">$/Recipient</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatCurrency(
+                            selectedCampaignDetails.recipients && selectedCampaignDetails.recipients > 0
+                              ? selectedCampaignDetails.revenue / selectedCampaignDetails.recipients
+                              : 0
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Revenue per recipient
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

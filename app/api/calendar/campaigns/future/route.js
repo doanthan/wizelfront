@@ -106,9 +106,14 @@ export async function GET(request) {
                            campaign.attributes?.send_strategy?.datetime ||
                            campaign.attributes?.created_at;
         
-        // Determine status based on campaign attributes
+        // Determine status based on campaign attributes and date
         const status = campaign.attributes?.status;
-        const isScheduled = status === 'Draft' || status === 'Scheduled' || status === 'Sending' || status === 'Queued without Recipients';
+        const campaignDate = new Date(displayDate);
+        const isPastDate = campaignDate < now;
+        
+        // Only mark as scheduled if it's actually in the future or currently sending
+        // Past drafts should not be marked as scheduled
+        const isScheduled = !isPastDate && (status === 'Draft' || status === 'Scheduled' || status === 'Sending' || status === 'Queued without Recipients');
         
         // Extract store info from campaign object
         const storePublicId = campaign.storeInfo?.publicId;
@@ -154,7 +159,7 @@ export async function GET(request) {
           subject: campaign.attributes?.subject || '',
           date: displayDate,
           channel: channel,
-          status: isScheduled ? 'scheduled' : status,
+          status: isPastDate ? 'cancelled' : (isScheduled ? 'scheduled' : status),
           isScheduled: isScheduled,
           performance: {
             recipients: 0,

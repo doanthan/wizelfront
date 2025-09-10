@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
-import { Loading } from "@/app/components/ui/loading"
+import LoadingSpinner from "@/app/components/ui/loading-spinner"
 
 export default function FlowsTab({ 
     selectedAccounts,
