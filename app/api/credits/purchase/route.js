@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { ContractModel } from '@/lib/contract-model';
-import { UserModel } from '@/lib/user-model';
-import { AICreditsModel } from '@/lib/ai-credits-model';
+import { authOptions } from '@/lib/auth';
+import Contract from '@/models/Contract';
+import User from '@/models/User';
+import AICredits from '@/models/AICredits';
+import connectToDatabase from '@/lib/mongoose';
 // import Stripe from 'stripe';
 
 // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {

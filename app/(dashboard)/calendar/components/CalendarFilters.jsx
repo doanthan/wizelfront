@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Filter, ChevronDown, ChevronUp, X, Check, Store, Tag } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, X, Check, Store, Tag, Mail, MessageSquare, Bell } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Checkbox } from '@/app/components/ui/checkbox';
@@ -42,11 +42,11 @@ export const CalendarFilters = ({
 
   const handleStoreToggle = (storeId) => {
     setSelectedStores(prev => {
-      if (prev.includes(storeId)) {
-        return prev.filter(id => id !== storeId);
-      } else {
-        return [...prev, storeId];
-      }
+      const newStores = prev.includes(storeId) 
+        ? prev.filter(id => id !== storeId)
+        : [...prev, storeId];
+      console.log('Store toggle:', { prev, newStores, storeId });
+      return newStores;
     });
   };
 
@@ -92,89 +92,12 @@ export const CalendarFilters = ({
                           selectedTags.length > 0 || 
                           selectedStatuses.length > 0;
 
+  // Count total active filters
+  const totalActiveFilters = selectedStores.length + selectedChannels.length + selectedTags.length + selectedStatuses.length;
+
   return (
     <div className="flex items-center gap-2">
-      {/* Store Selector */}
-      <Popover open={showStoreDropdown} onOpenChange={setShowStoreDropdown}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              "gap-2 min-w-[150px] justify-between bg-white dark:bg-gray-800 hover:bg-sky-tint dark:hover:bg-gray-700 transition-all border-gray-200 dark:border-gray-600",
-              selectedStores.length > 0 && "border-sky-blue bg-gradient-to-r from-sky-tint to-lilac-mist/30 dark:from-gray-800 dark:to-gray-700 shadow-sm"
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <Store className="h-4 w-4" />
-              <span className="text-sm">
-                {loadingStores
-                  ? "Loading stores..."
-                  : selectedStores.length === 0 
-                    ? "All Stores" 
-                    : selectedStores.length === 1
-                      ? stores.find(s => s.public_id === selectedStores[0])?.name || "1 Store"
-                      : `${selectedStores.length} Stores`
-                }
-              </span>
-            </div>
-            <ChevronDown className="h-4 w-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg" align="start">
-          {loadingStores ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-sky-blue"></div>
-              <span className="ml-2 text-sm text-gray-500">Loading stores...</span>
-            </div>
-          ) : (
-          <div className="space-y-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start hover:bg-sky-tint dark:hover:bg-gray-700"
-              onClick={() => setSelectedStores([])}
-            >
-              <Check className={cn(
-                "h-4 w-4 mr-2",
-                selectedStores.length === 0 ? "opacity-100" : "opacity-0"
-              )} />
-              All Stores
-            </Button>
-            {stores.map(store => {
-              const isSelected = selectedStores.includes(store.public_id);
-              const storeColor = getStoreColor(store.id || store._id);
-              return (
-                <Button
-                  key={store.public_id}
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start hover:bg-sky-tint dark:hover:bg-gray-700",
-                    isSelected && "bg-gradient-to-r from-sky-tint to-lilac-mist/30 dark:from-gray-800 dark:to-gray-700"
-                  )}
-                  onClick={() => handleStoreToggle(store.public_id)}
-                >
-                  <Check className={cn(
-                    "h-4 w-4 mr-2",
-                    isSelected ? "opacity-100" : "opacity-0"
-                  )} />
-                  <div className={cn(
-                    "w-3 h-3 rounded-full mr-2",
-                    storeColor.bg,
-                    storeColor.border,
-                    "border-2"
-                  )} />
-                  {store.name}
-                </Button>
-              );
-            })}
-          </div>
-          )}
-        </PopoverContent>
-      </Popover>
-
-      {/* Filters Button */}
+      {/* Filters Button with Active Filter Display */}
       <Popover open={showFilters} onOpenChange={setShowFilters}>
         <PopoverTrigger asChild>
           <Button
@@ -187,15 +110,62 @@ export const CalendarFilters = ({
           >
             <Filter className="h-4 w-4" />
             <span className="text-sm">
-              {hasActiveFilters ? `Filters (${
-                selectedChannels.length + selectedTags.length + selectedStatuses.length
-              })` : "Filters"}
+              {hasActiveFilters ? `Filters (${totalActiveFilters})` : "Filters"}
             </span>
             {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg" align="start">
           <div className="space-y-4">
+            {/* Stores */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-medium">Stores</h4>
+                {selectedStores.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => setSelectedStores([])}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+              {loadingStores ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-sky-blue"></div>
+                  <span className="ml-2 text-sm text-gray-500">Loading stores...</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {stores.map(store => {
+                    const isSelected = selectedStores.includes(store.public_id);
+                    const storeColor = getStoreColor(store.id || store._id);
+                    return (
+                      <Badge
+                        key={store.public_id}
+                        variant={isSelected ? "default" : "outline"}
+                        className={cn(
+                          "cursor-pointer transition-all",
+                          isSelected 
+                            ? "bg-gradient-to-r from-sky-blue to-vivid-violet border-transparent" 
+                            : "hover:bg-sky-tint/30 dark:hover:bg-gray-700"
+                        )}
+                        onClick={() => handleStoreToggle(store.public_id)}
+                      >
+                        <div className={cn(
+                          "w-2 h-2 rounded-full mr-1",
+                          storeColor.bg
+                        )} />
+                        {store.name}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Channels */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -310,32 +280,6 @@ export const CalendarFilters = ({
           </div>
         </PopoverContent>
       </Popover>
-
-      {/* Active Filter Badges */}
-      {hasActiveFilters && (
-        <div className="flex items-center gap-2">
-          {selectedStores.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedStores.length} store{selectedStores.length > 1 ? 's' : ''}
-            </Badge>
-          )}
-          {selectedChannels.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedChannels.length} channel{selectedChannels.length > 1 ? 's' : ''}
-            </Badge>
-          )}
-          {selectedTags.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedTags.length} tag{selectedTags.length > 1 ? 's' : ''}
-            </Badge>
-          )}
-          {selectedStatuses.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedStatuses.length} status{selectedStatuses.length > 1 ? 'es' : ''}
-            </Badge>
-          )}
-        </div>
-      )}
     </div>
   );
 };

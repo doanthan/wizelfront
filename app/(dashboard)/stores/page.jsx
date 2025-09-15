@@ -66,7 +66,9 @@ export default function StoresPage() {
   // Refresh stores when page mounts and check for action parameter
   useEffect(() => {
     console.log('Stores page mounted, refreshing stores...');
-    refreshStores();
+    if (refreshStores) {
+      refreshStores();
+    }
     
     // Check if we should open the add store dialog
     if (searchParams.get('action') === 'new') {
@@ -75,13 +77,17 @@ export default function StoresPage() {
       router.replace('/stores');
     }
   }, [searchParams, router]);
+  
+  // Log stores when they change
+  useEffect(() => {
+    console.log('Stores updated in stores page:', stores);
+  }, [stores]);
 
   // Get accessible stores for current user - use stores directly since API already filters
   // The getUserAccessibleStores function has issues with session not being ready
   const accessibleStores = stores || [];
-  console.log('Stores page - raw stores from context:', stores);
-  console.log('Stores page - accessible stores:', accessibleStores);
-  console.log('Stores page - accessible stores count:', accessibleStores.length);
+  console.log('Stores page render - stores from context:', stores);
+  console.log('Stores page render - accessible stores count:', accessibleStores.length);
 
   // Filter stores based on search and selected tags
   const filteredStores = accessibleStores.filter(store => {
@@ -90,7 +96,7 @@ export default function StoresPage() {
       selectedTags.some(tag => store.tags.includes(tag));
     return matchesSearch && matchesTags;
   });
-  console.log('Stores page - filtered stores:', filteredStores.length);
+  console.log('Stores page render - filtered stores:', filteredStores.length);
 
   const handleEditStore = (store) => {
     // Navigate to individual store edit page using public_id

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import Store from '@/models/Store';
 import Contract from '@/models/Contract';
 import ContractSeat from '@/models/ContractSeat';
@@ -253,6 +253,15 @@ export async function DELETE(request, { params }) {
       { 'store_access.store_id': store._id },
       { $pull: { store_access: { store_id: store._id } } }
     );
+
+    // Remove store tags from all ContractSeats
+    // We need to unset the specific store's tags from the Map
+    const storeIdStr = store._id.toString();
+    await ContractSeat.updateMany(
+      { [`storeTags.${storeIdStr}`]: { $exists: true } },
+      { $unset: { [`storeTags.${storeIdStr}`]: "" } }
+    );
+    console.log(`Removed tags for store ${store.public_id} from all contract seats`);
 
     // Update user's store access (legacy)
     await User.updateMany(

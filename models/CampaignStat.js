@@ -12,6 +12,12 @@ const CampaignStatSchema = new mongoose.Schema({
         default: []
     },
 
+    // Store tags for grouping/filtering
+    storeTags: {
+        type: [String],
+        default: []
+    },
+
     groupings: {
         send_channel: { type: String, enum: ["email", "sms", "push-notification"], required: true },
         campaign_id: { type: String, required: true },

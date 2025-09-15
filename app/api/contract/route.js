@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import Contract from '@/models/Contract';
 import ContractSeat from '@/models/ContractSeat';
 import User from '@/models/User';

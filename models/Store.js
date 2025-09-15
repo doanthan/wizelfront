@@ -155,6 +155,11 @@ const StoreSchema = new mongoose.Schema({
         type: Array,
         default: [],
     },
+    // Store tags for grouping/filtering in reporting
+    storeTags: [{
+        type: String,
+        trim: true,
+    }],
     // Content tagging system
     template_tags: [{
         type: String,
@@ -190,7 +195,13 @@ const StoreSchema = new mongoose.Schema({
         public_id: { type: String, default: null },
         conversion_type: { type: String, default: "value" },
         conversion_metric_id: { type: String, default: null },
-        apiKey: { type: String, default: null }, // should be encrypted in production, either starts with pk_ for private key or is a bearer OAuth token
+        reporting_metric_id: { type: String, default: null },
+        apiKey: { type: String, default: null }, // Legacy API key (pk_*)
+        // OAuth fields
+        oauth_token: { type: String, default: null }, // OAuth access token
+        refresh_token: { type: String, default: null }, // OAuth refresh token
+        token_expires_at: { type: Date, default: null }, // Token expiration timestamp
+        auth_type: { type: String, enum: ["api_key", "oauth"], default: null }, // Track auth method
         connected_at: { type: Date, default: null },
         account: { type: mongoose.Schema.Types.Mixed, default: {} },
     },
@@ -541,6 +552,74 @@ StoreSchema.methods.getChildStores = function() {
 StoreSchema.methods.getParentStore = function() {
     if (!this.parent_store_id) return null;
     return this.constructor.findById(this.parent_store_id);
+};
+
+// Static method to find stores by user (legacy)
+StoreSchema.statics.findByUser = async function(userId) {
+    if (!userId) return [];
+    
+    try {
+        // Find stores where user_id matches or where user is in team_members
+        const stores = await this.find({
+            $and: [
+                { is_deleted: { $ne: true } },
+                {
+                    $or: [
+                        { user_id: userId },
+                        { 'team_members.user_id': userId }
+                    ]
+                }
+            ]
+        });
+        
+        return stores;
+    } catch (error) {
+        console.error('Error in findByUser:', error);
+        return [];
+    }
+};
+
+// Static method to find stores by user seats (ContractSeat system)
+StoreSchema.statics.findByUserSeats = async function(userId) {
+    if (!userId) return [];
+    
+    try {
+        const ContractSeat = mongoose.models.ContractSeat || require('./ContractSeat').default;
+        
+        // Find all contract seats for this user
+        const seats = await ContractSeat.find({ user_id: userId }).lean();
+        
+        if (!seats || seats.length === 0) {
+            return [];
+        }
+        
+        // Get all store IDs from the user's seats
+        const storeIds = [];
+        seats.forEach(seat => {
+            if (seat.stores && Array.isArray(seat.stores)) {
+                seat.stores.forEach(storeAccess => {
+                    if (storeAccess.store_id) {
+                        storeIds.push(storeAccess.store_id);
+                    }
+                });
+            }
+        });
+        
+        if (storeIds.length === 0) {
+            return [];
+        }
+        
+        // Find all stores matching these IDs
+        const stores = await this.find({
+            _id: { $in: storeIds },
+            is_deleted: { $ne: true }
+        });
+        
+        return stores;
+    } catch (error) {
+        console.error('Error in findByUserSeats:', error);
+        return [];
+    }
 };
 
 // Prevent model recompilation in development

@@ -78,7 +78,10 @@ export default function StoreDetailsPage() {
   const [newBrandName, setNewBrandName] = useState("");
   const [isCreatingBrand, setIsCreatingBrand] = useState(false);
   const [isDeletingBrand, setIsDeletingBrand] = useState(false);
-  const [userPermissions, setUserPermissions] = useState({ canEdit: true, canDelete: true });
+  const [userPermissions, setUserPermissions] = useState({ canEdit: true, canDelete: true, canManageTags: false });
+  const [storeTags, setStoreTags] = useState([]);
+  const [newTag, setNewTag] = useState("");
+  const [isAddingTag, setIsAddingTag] = useState(false);
 
   const MAX_BRANDS = 3;
 
@@ -107,6 +110,8 @@ export default function StoreDetailsPage() {
       
       // Fetch brands for this store
       fetchBrands();
+      // Fetch store tags
+      fetchStoreTags();
     } catch (error) {
       console.error('Error fetching store:', error);
       toast({
@@ -129,6 +134,95 @@ export default function StoreDetailsPage() {
       }
     } catch (error) {
       console.error('Error fetching brands:', error);
+    }
+  };
+
+  const fetchStoreTags = async () => {
+    try {
+      const response = await fetch(`/api/store/${storePublicId}/tags`);
+      if (response.ok) {
+        const data = await response.json();
+        setStoreTags(data.tags || []);
+        // Check if user has manage permission (would be included in response)
+        setUserPermissions(prev => ({ ...prev, canManageTags: true }));
+      }
+    } catch (error) {
+      console.error('Error fetching store tags:', error);
+      // If error is 403, user doesn't have permission
+      if (error.status === 403) {
+        setUserPermissions(prev => ({ ...prev, canManageTags: false }));
+      }
+    }
+  };
+
+  const handleAddTag = async () => {
+    if (!newTag.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a tag",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAddingTag(true);
+    try {
+      const response = await fetch(`/api/store/${storePublicId}/tags`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tag: newTag.trim() }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add tag');
+      }
+
+      const data = await response.json();
+      setStoreTags(data.tags);
+      setNewTag("");
+      toast({
+        title: "Success",
+        description: "Tag added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding tag:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingTag(false);
+    }
+  };
+
+  const handleRemoveTag = async (tag) => {
+    try {
+      const response = await fetch(`/api/store/${storePublicId}/tags?tag=${encodeURIComponent(tag)}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove tag');
+      }
+
+      const data = await response.json();
+      setStoreTags(data.tags);
+      toast({
+        title: "Success",
+        description: "Tag removed successfully",
+      });
+    } catch (error) {
+      console.error('Error removing tag:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -642,6 +736,78 @@ export default function StoreDetailsPage() {
                         {getPreviewUrl()}
                       </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Store Tags */}
+                <div className="space-y-4 p-4 bg-sky-tint/10 dark:bg-sky-blue/5 rounded-lg border border-sky-blue/20 dark:border-sky-blue/10">
+                  <div>
+                    <h3 className="font-semibold text-slate-gray dark:text-white flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-sky-blue" />
+                      Store Tags
+                    </h3>
+                    <p className="text-sm text-neutral-gray dark:text-gray-400 mt-1">
+                      Organize and categorize this store with tags
+                    </p>
+                  </div>
+
+                  {/* Current Tags */}
+                  <div className="flex flex-wrap gap-2">
+                    {storeTags.length === 0 ? (
+                      <p className="text-sm text-neutral-gray dark:text-gray-400 italic">No tags added yet</p>
+                    ) : (
+                      storeTags.map((tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="bg-white dark:bg-gray-800 border-sky-blue/30 px-3 py-1 flex items-center gap-1"
+                        >
+                          {tag}
+                          {userPermissions.canManageTags && (
+                            <button
+                              onClick={() => handleRemoveTag(tag)}
+                              className="ml-1 hover:text-red-600 transition-colors"
+                              title="Remove tag"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </Badge>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add New Tag */}
+                  {userPermissions.canManageTags && (
+                    <div className="flex gap-2">
+                      <Input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                        placeholder="Enter a new tag"
+                        className="flex-1 bg-white dark:bg-gray-800"
+                        disabled={isAddingTag}
+                      />
+                      <Button
+                        onClick={handleAddTag}
+                        disabled={!newTag.trim() || isAddingTag}
+                        size="sm"
+                        className="bg-sky-blue hover:bg-royal-blue text-white"
+                      >
+                        {isAddingTag ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                        Add Tag
+                      </Button>
+                    </div>
+                  )}
+
+                  {!userPermissions.canManageTags && (
+                    <p className="text-xs text-neutral-gray dark:text-gray-400 italic">
+                      You need manage permissions to add or remove tags
+                    </p>
                   )}
                 </div>
 

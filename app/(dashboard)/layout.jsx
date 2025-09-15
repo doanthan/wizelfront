@@ -1,11 +1,14 @@
 "use client";
 
 import Sidebar from "@/app/components/dashboard/sidebar";
+import ChatWidget from "@/app/components/chat/ChatWidget";
+import { Toaster } from "@/app/components/ui/toaster";
 import { ThemeProvider } from "@/app/contexts/theme-context";
 import { StoreProvider } from "@/app/contexts/store-context";
 import { PermissionsProvider } from "@/app/contexts/permissions-context";
 import { SidebarProvider, useSidebar } from "@/app/contexts/sidebar-context";
 import { CampaignDataProvider } from "@/app/contexts/campaign-data-context";
+import { AIProvider } from "@/app/contexts/ai-context";
 
 function DashboardContent({ children }) {
   const { isCollapsed } = useSidebar();
@@ -16,6 +19,8 @@ function DashboardContent({ children }) {
       <main className={`flex-1 p-4 lg:p-6 flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {children}
       </main>
+      <ChatWidget />
+      <Toaster />
     </div>
   );
 }
@@ -26,9 +31,11 @@ export default function DashboardLayout({ children }) {
       <PermissionsProvider>
         <StoreProvider>
           <CampaignDataProvider>
-            <SidebarProvider>
-              <DashboardContent>{children}</DashboardContent>
-            </SidebarProvider>
+            <AIProvider>
+              <SidebarProvider>
+                <DashboardContent>{children}</DashboardContent>
+              </SidebarProvider>
+            </AIProvider>
           </CampaignDataProvider>
         </StoreProvider>
       </PermissionsProvider>

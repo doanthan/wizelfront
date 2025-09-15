@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { 
   LayoutDashboard, 
@@ -28,15 +28,24 @@ import {
   Shield,
   LogOut,
   User,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Rss,
+  Lightbulb,
+  Loader2,
+  CheckCircle,
+  LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/app/contexts/theme-context";
 import { usePermissions } from "@/app/contexts/permissions-context";
 import { useSidebar } from "@/app/contexts/sidebar-context";
+import { useStores } from "@/app/contexts/store-context";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import { FEATURES, ACTIONS } from "@/lib/permissions-config";
+import SidebarStoreSelector from "./sidebar-store-selector";
+import StoreSelectorEnhanced from "./store-selector-enhanced";
 
 // Define permissions for each sidebar item
 const sidebarItemsConfig = [
@@ -62,9 +71,30 @@ const sidebarItemsConfig = [
     action: ACTIONS.VIEW,
   },
   {
+    title: "Planner",
+    icon: LayoutGrid,
+    href: "/planner",
+    feature: FEATURES.CAMPAIGNS,
+    action: ACTIONS.VIEW,
+  },
+  {
     title: "Email Builder",
     icon: Mail,
     href: "/email-builder",
+    feature: FEATURES.CAMPAIGNS,
+    action: ACTIONS.CREATE,
+  },
+  {
+    title: "Web Feeds",
+    icon: Rss,
+    href: "/webfeeds",
+    feature: FEATURES.CAMPAIGNS,
+    action: ACTIONS.VIEW,
+  },
+  {
+    title: "Idea Generator",
+    icon: Lightbulb,
+    href: "/idea-generator",
     feature: FEATURES.CAMPAIGNS,
     action: ACTIONS.CREATE,
   },
@@ -167,30 +197,38 @@ const sidebarItemsConfig = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { checkPermission, currentUser, getUserRole, isImpersonating } = usePermissions();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const { 
+    stores, 
+    selectedStoreId,
+    isLoadingStores, 
+    refreshStores,
+    selectStore,
+    getRecentStores 
+  } = useStores();
   const [expandedItems, setExpandedItems] = useState({});
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [storeSearchQuery, setStoreSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef(null);
+  // User menu state removed - now handled by StoreSelectorEnhanced
 
   useEffect(() => {
     setMounted(true);
+    // Set selected store from current path if in store context
+    const storeFromPath = getStoreIdFromPath();
+    if (storeFromPath && selectStore) {
+      selectStore(storeFromPath);
+    }
+    // Refresh stores on mount
+    if (refreshStores) {
+      refreshStores();
+    }
   }, []);
 
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setShowUserMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // User menu click outside handler removed - now handled by StoreSelectorEnhanced
 
   // Filter sidebar items based on permissions
   // TEMPORARILY DISABLED - Remove this comment block to re-enable permissions
@@ -217,11 +255,41 @@ export default function Sidebar() {
     }));
   };
 
-  const isActive = (href) => pathname === href;
+  // Extract store ID from current path if present
+  const getStoreIdFromPath = () => {
+    if (pathname.includes('/store/')) {
+      const pathParts = pathname.split('/');
+      const storeIndex = pathParts.indexOf('store');
+      if (storeIndex !== -1 && pathParts[storeIndex + 1]) {
+        return pathParts[storeIndex + 1];
+      }
+    }
+    return null;
+  };
+
+  const currentStoreId = getStoreIdFromPath();
+
+  // Adjust href for store context
+  const getAdjustedHref = (originalHref) => {
+    if (currentStoreId && (originalHref === '/idea-generator' || originalHref === '/email-builder')) {
+      return `/store/${currentStoreId}${originalHref}`;
+    }
+    return originalHref;
+  };
+
+  const isActive = (href) => {
+    const adjustedHref = getAdjustedHref(href);
+    return pathname === adjustedHref;
+  };
+  
   const isParentActive = (item) => {
-    if (pathname === item.href) return true;
+    const adjustedHref = getAdjustedHref(item.href);
+    if (pathname === adjustedHref) return true;
     if (item.children) {
-      return item.children.some(child => pathname === child.href);
+      return item.children.some(child => {
+        const childAdjustedHref = getAdjustedHref(child.href);
+        return pathname === childAdjustedHref;
+      });
     }
     return false;
   };
@@ -321,7 +389,7 @@ export default function Sidebar() {
                       </button>
                     ) : (
                       <Link
-                        href={item.href}
+                        href={getAdjustedHref(item.href)}
                         className={cn(
                           "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
                           isActive(item.href)
@@ -348,7 +416,7 @@ export default function Sidebar() {
                       {item.children.map((child) => (
                         <li key={child.title}>
                           <Link
-                            href={child.href}
+                            href={getAdjustedHref(child.href)}
                             className={cn(
                               "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors",
                               isActive(child.href)
@@ -402,89 +470,11 @@ export default function Sidebar() {
               )}
             </button>
 
-            {/* User Profile */}
-            <div className="relative" ref={userMenuRef}>
-              <div 
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className={cn(
-                  "flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer",
-                  isCollapsed ? "justify-center" : "space-x-3"
-                )}
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-sky-blue to-vivid-violet flex-shrink-0 flex items-center justify-center">
-                  <span className="text-white text-sm font-semibold">
-                    {currentUser?.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-                {!isCollapsed && (
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {currentUser?.name || 'User'}
-                      </p>
-                      {isImpersonating && (
-                        <Badge variant="gradient" className="text-xs">Viewing As</Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {currentUser?.stores?.[0]?.roleId || 'owner'}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* User Menu Popup */}
-              {showUserMenu && (
-                <div className={cn(
-                  "absolute bottom-full mb-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50",
-                  isCollapsed ? "left-0 ml-14" : "left-0 right-0"
-                )}>
-                  <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {currentUser?.name || 'User'}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {currentUser?.email || 'user@example.com'}
-                    </p>
-                  </div>
-                  
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      // Navigate to profile settings
-                    }}
-                  >
-                    <User className="h-4 w-4" />
-                    Profile
-                  </button>
-                  
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      // Navigate to settings
-                    }}
-                  >
-                    <SettingsIcon className="h-4 w-4" />
-                    Settings
-                  </button>
-                  
-                  <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
-                    <button
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        signOut({ callbackUrl: '/' });
-                      }}
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Log out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Enhanced Store Selector - Replaces User Profile */}
+            <StoreSelectorEnhanced 
+              collapsed={isCollapsed} 
+              currentUser={currentUser}
+            />
           </div>
         </div>
       </aside>

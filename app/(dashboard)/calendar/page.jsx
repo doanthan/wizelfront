@@ -5,9 +5,12 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { InlineLoading } from '@/app/components/ui/loading-spinner';
 import { useCampaignData } from '@/app/contexts/campaign-data-context';
-import { resetColorAssignments, getStoreColor } from '@/lib/calendar-colors';
+import { resetColorAssignments, getStoreColor, getColorByIndex } from '@/lib/calendar-colors';
 import { cn } from '@/lib/utils';
 import { CalendarHeader } from './components/CalendarHeader';
+import { X, Mail, MessageSquare, Bell, Tag, Check } from 'lucide-react';
+import { Badge } from '@/app/components/ui/badge';
+import { Button } from '@/app/components/ui/button';
 import { MonthView, WeekView, DayView } from './components/CalendarViews';
 import { CampaignStats } from './components/CampaignStats';
 import { 
@@ -483,14 +486,57 @@ export default function CalendarPage() {
   /**
    * Handle campaign click
    */
-  const handleCampaignClick = useCallback((campaign) => {
-    setSelectedCampaign(campaign);
+  const handleCampaignClick = useCallback((campaign, source = 'calendar') => {
+    setSelectedCampaign({ ...campaign, navigationSource: source });
     setShowCampaignDetails(true);
     // Fetch audiences for this campaign's store if needed
     if (campaign.klaviyo_public_id) {
       fetchAudiences(campaign.klaviyo_public_id);
     }
   }, [fetchAudiences]);
+  
+  /**
+   * Handle day click - show day campaigns modal if multiple campaigns
+   */
+  const handleDayClick = useCallback((clickedDate) => {
+    const dayCampaigns = getCampaignsForDate(clickedDate);
+    
+    if (dayCampaigns.length > 1) {
+      // Multiple campaigns - show day modal
+      setSelectedDayCampaigns(dayCampaigns);
+      setShowDayCampaigns(true);
+    } else if (dayCampaigns.length === 1) {
+      // Single campaign - open directly
+      handleCampaignClick(dayCampaigns[0], 'calendar');
+    } else {
+      // No campaigns - just set the date
+      setDate(clickedDate);
+    }
+  }, [getCampaignsForDate, handleCampaignClick]);
+  
+  // Filter handlers for inline chip removal
+  const handleStoreToggle = useCallback((storeId) => {
+    setSelectedStores(prev => prev.filter(id => id !== storeId));
+  }, []);
+  
+  const handleChannelToggle = useCallback((channel) => {
+    setSelectedChannels(prev => prev.filter(c => c !== channel));
+  }, []);
+  
+  const handleTagToggle = useCallback((tag) => {
+    setSelectedTags(prev => prev.filter(t => t !== tag));
+  }, []);
+  
+  const handleStatusToggle = useCallback((status) => {
+    setSelectedStatuses(prev => prev.filter(s => s !== status));
+  }, []);
+  
+  const clearAllFilters = useCallback(() => {
+    setSelectedStores([]);
+    setSelectedChannels([]);
+    setSelectedTags([]);
+    setSelectedStatuses([]);
+  }, []);
   
   /**
    * Handle comparison toggle - limit to 5 campaigns
@@ -509,18 +555,6 @@ export default function CalendarPage() {
       }
     });
   }, []);
-  
-  /**
-   * Handle day click
-   */
-  const handleDayClick = useCallback((clickedDate) => {
-    const dayCampaigns = getCampaignsForDate(clickedDate);
-    if (dayCampaigns.length > 0) {
-      setSelectedDayCampaigns(dayCampaigns);
-      setShowDayCampaigns(true);
-    }
-  }, [getCampaignsForDate]);
-  
   
   return (
     <div className="space-y-4">
@@ -556,69 +590,161 @@ export default function CalendarPage() {
         loadingStores={loadingStores}
       />
       
-      {/* Store Legend */}
-      <div className="bg-gradient-to-r from-sky-50/50 to-purple-50/50 dark:from-gray-800/50 dark:to-gray-800/50 rounded-lg border border-sky-blue/30 dark:border-gray-700 p-3">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-wrap gap-2 items-center flex-1">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-              {selectedStores.length === 0 ? "ALL STORES:" : "SELECTED STORES:"}
-            </span>
-            {selectedStores.length === 0 ? (
-              // Show all stores with Klaviyo when "View All Stores" is selected
-              stores
-                .filter(store => store.klaviyo_integration?.public_id)
-                .map(store => {
-                  const colorKey = store.id || store._id || store.public_id;
-                  const storeColor = getStoreColor(colorKey);
-                  return (
-                    <div
-                      key={store.public_id || store.id || store._id}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
-                        storeColor.bg,
-                        storeColor.text,
-                        storeColor.border
-                      )}
-                    >
-                      <div className={cn("w-2 h-2 rounded-full", storeColor.bg)} />
-                      {store.name}
-                    </div>
-                  );
-                })
-            ) : (
-              // Show selected stores
-              selectedStores.map(storeId => {
-                const store = stores.find(s => s.public_id === storeId || s.id === storeId || s._id === storeId);
-                if (!store) return null;
-                const colorKey = store.id || store._id || store.public_id;
-                const storeColor = getStoreColor(colorKey);
-                return (
-                  <div
-                    key={storeId}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border",
-                      storeColor.bg,
-                      storeColor.text,
-                      storeColor.border
-                    )}
-                  >
-                    <div className={cn("w-2 h-2 rounded-full", storeColor.bg)} />
-                    {store.name}
-                  </div>
-                );
-              })
-            )}
-          </div>
-          
-          {/* Loading indicators for future campaigns */}
-          {futureLoadingState && (
-            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-lg shadow-sm">
-              <div className="h-3 w-3 border-2 border-vivid-violet border-t-transparent rounded-full animate-spin"></div>
-              <span className="font-medium text-xs">Loading scheduled campaigns...</span>
-            </div>
+      {/* Filters and Store Legend Section */}
+      <div className="bg-gradient-to-r from-sky-50/50 to-purple-50/50 dark:from-gray-800/50 dark:to-gray-800/50 rounded-lg border border-sky-blue/30 dark:border-gray-700 p-3 space-y-2">
+        {/* Store Legend - Always visible */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+            STORES:
+          </span>
+          {stores
+            .filter(store => store.klaviyo_integration?.public_id)
+            .map((store, index) => {
+              const colorIndex = index * 3; // Skip 3 colors for differentiation
+              const storeColor = getColorByIndex(colorIndex);
+              const isFiltered = selectedStores.includes(store.public_id);
+              return (
+                <button
+                  key={store.public_id || store.id || store._id}
+                  onClick={() => {
+                    // Toggle this store as a filter
+                    if (isFiltered) {
+                      setSelectedStores(prev => prev.filter(id => id !== store.public_id));
+                    } else {
+                      setSelectedStores(prev => [...prev, store.public_id]);
+                    }
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                    storeColor.bg,
+                    storeColor.text,
+                    storeColor.border,
+                    isFiltered ? "ring-2 ring-sky-blue shadow-sm" : "opacity-70 hover:opacity-100",
+                    "hover:scale-105"
+                  )}
+                  title={isFiltered ? `Click to show all ${store.name} campaigns` : `Click to filter by ${store.name}`}
+                >
+                  <div className={cn("w-2 h-2 rounded-full", storeColor.bg)} />
+                  {store.name}
+                  {isFiltered && (
+                    <Check className="h-3 w-3 ml-0.5" />
+                  )}
+                </button>
+              );
+            })
+          }
+          {selectedStores.length > 0 && (
+            <button
+              onClick={() => setSelectedStores([])}
+              className="text-xs text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 underline ml-2"
+            >
+              Show all stores
+            </button>
           )}
         </div>
+        
+        {/* Active Filters Row - Only show if filters exist */}
+        {(selectedChannels.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0) && (
+          <div className="flex flex-wrap gap-2 items-center border-t border-sky-blue/20 dark:border-gray-700 pt-2">
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              ACTIVE FILTERS:
+            </span>
+            
+            {/* Channel filters */}
+            {selectedChannels.map(channel => {
+              const channelInfo = {
+                email: { label: 'Email', icon: Mail, color: 'text-blue-600' },
+                sms: { label: 'SMS', icon: MessageSquare, color: 'text-green-600' },
+                'push-notification': { label: 'Push', icon: Bell, color: 'text-purple-600' }
+              }[channel];
+              const Icon = channelInfo?.icon;
+              return (
+                <Badge
+                  key={channel}
+                  variant="secondary"
+                  className="pl-1.5 pr-1 py-0.5 text-xs bg-gradient-to-r from-sky-tint to-lilac-mist/50 border-sky-blue/30 hover:border-sky-blue/50 transition-all"
+                >
+                  {Icon && <Icon className={cn("h-3 w-3 mr-1", channelInfo.color)} />}
+                  {channelInfo?.label}
+                  <button
+                    onClick={() => handleChannelToggle(channel)}
+                    className="ml-1 hover:bg-sky-blue/20 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              );
+            })}
+            
+            {/* Tag filters */}
+            {selectedTags.map(tag => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="pl-1.5 pr-1 py-0.5 text-xs bg-gradient-to-r from-sky-tint to-lilac-mist/50 border-sky-blue/30 hover:border-sky-blue/50 transition-all"
+              >
+                <Tag className="h-3 w-3 mr-1" />
+                {tag}
+                <button
+                  onClick={() => handleTagToggle(tag)}
+                  className="ml-1 hover:bg-sky-blue/20 rounded-full p-0.5 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            
+            {/* Status filters */}
+            {selectedStatuses.map(status => {
+              const statusInfo = {
+                sent: { label: 'Sent', color: 'text-gray-600' },
+                scheduled: { label: 'Scheduled', color: 'text-sky-blue' },
+                draft: { label: 'Draft', color: 'text-yellow-600' }
+              }[status];
+              return (
+                <Badge
+                  key={status}
+                  variant="secondary"
+                  className="pl-1.5 pr-1 py-0.5 text-xs bg-gradient-to-r from-sky-tint to-lilac-mist/50 border-sky-blue/30 hover:border-sky-blue/50 transition-all"
+                >
+                  {statusInfo?.label}
+                  <button
+                    onClick={() => handleStatusToggle(status)}
+                    className="ml-1 hover:bg-sky-blue/20 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              );
+            })}
+            
+            {/* Clear all button for non-store filters */}
+            {(selectedChannels.length + selectedTags.length + selectedStatuses.length) > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                onClick={() => {
+                  setSelectedChannels([]);
+                  setSelectedTags([]);
+                  setSelectedStatuses([]);
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        )}
       </div>
+          
+      
+      {/* Loading indicators for future campaigns */}
+      {futureLoadingState && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-lg shadow-sm">
+          <div className="h-3 w-3 border-2 border-vivid-violet border-t-transparent rounded-full animate-spin"></div>
+          <span className="font-medium text-xs">Loading scheduled campaigns...</span>
+        </div>
+      )}
       
       {/* Calendar Views */}
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
@@ -672,6 +798,12 @@ export default function CalendarPage() {
           }}
           stores={stores}
           audienceCache={audienceCache}
+          onBackToDay={() => {
+            // Re-open the day campaigns modal if we came from there
+            if (selectedCampaign?.navigationSource === 'dayModal' && selectedDayCampaigns.length > 0) {
+              setShowDayCampaigns(true);
+            }
+          }}
         />
       )}
       

@@ -5,7 +5,7 @@ import Contract from '@/models/Contract';
 import ContractSeat from '@/models/ContractSeat';
 import Role from '@/models/Role';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 import connectToDatabase from '@/lib/mongoose';
 // import Stripe from 'stripe';

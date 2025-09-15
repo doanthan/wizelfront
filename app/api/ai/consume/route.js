@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { AICreditsModel } from '@/lib/ai-credits-model';
-import { StoreModel } from '@/lib/store-model';
+import { authOptions } from '@/lib/auth';
+import AICredits from '@/models/AICredits';
+import Store from '@/models/Store';
+import connectToDatabase from '@/lib/mongoose';
 
 export async function POST(request) {
   try {

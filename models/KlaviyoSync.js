@@ -6,7 +6,6 @@ const KlaviyoSyncSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        index: true,
         trim: true
     },
     
@@ -342,7 +341,7 @@ KlaviyoSyncSchema.methods.needsSync = function(syncType = 'all', hoursThreshold 
 };
 
 // Indexes for better query performance
-KlaviyoSyncSchema.index({ klaviyo_public_id: 1 }, { unique: true });
+// klaviyo_public_id already has a unique index from the field definition
 KlaviyoSyncSchema.index({ store_public_ids: 1 });
 KlaviyoSyncSchema.index({ store_ids: 1 });
 KlaviyoSyncSchema.index({ status: 1 });

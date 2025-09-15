@@ -41,6 +41,11 @@ const ContractSeatSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  storeTags: {
+    type: Map,
+    of: [String],
+    default: new Map()
+  },
   status: {
     type: String,
     enum: ['pending', 'active', 'suspended', 'revoked'],
@@ -185,6 +190,44 @@ ContractSeatSchema.methods.revokeStoreAccess = function(storeId) {
   this.store_access = this.store_access.filter(access => 
     access.store_id.toString() !== storeId.toString()
   );
+};
+
+// Instance methods for managing store tags
+ContractSeatSchema.methods.addStoreTag = function(storeId, tag) {
+  const storeIdStr = storeId.toString();
+  const currentTags = this.storeTags.get(storeIdStr) || [];
+  if (!currentTags.includes(tag)) {
+    currentTags.push(tag);
+    this.storeTags.set(storeIdStr, currentTags);
+  }
+  return currentTags;
+};
+
+ContractSeatSchema.methods.removeStoreTag = function(storeId, tag) {
+  const storeIdStr = storeId.toString();
+  const currentTags = this.storeTags.get(storeIdStr) || [];
+  const updatedTags = currentTags.filter(t => t !== tag);
+  if (updatedTags.length > 0) {
+    this.storeTags.set(storeIdStr, updatedTags);
+  } else {
+    this.storeTags.delete(storeIdStr);
+  }
+  return updatedTags;
+};
+
+ContractSeatSchema.methods.getStoreTags = function(storeId) {
+  const storeIdStr = storeId.toString();
+  return this.storeTags.get(storeIdStr) || [];
+};
+
+ContractSeatSchema.methods.setStoreTags = function(storeId, tags) {
+  const storeIdStr = storeId.toString();
+  if (tags && tags.length > 0) {
+    this.storeTags.set(storeIdStr, tags);
+  } else {
+    this.storeTags.delete(storeIdStr);
+  }
+  return tags || [];
 };
 
 // Instance method to suspend seat

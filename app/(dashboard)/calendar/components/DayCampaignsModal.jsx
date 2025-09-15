@@ -66,7 +66,7 @@ export default function DayCampaignsModal({
                     s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
                   )}
                   onClick={() => {
-                    onSelectCampaign(campaign);
+                    onSelectCampaign(campaign, 'dayModal');
                     onClose();
                   }}
                 />
@@ -77,7 +77,7 @@ export default function DayCampaignsModal({
               campaigns={campaigns}
               stores={stores}
               onSelectCampaign={(campaign) => {
-                onSelectCampaign(campaign);
+                onSelectCampaign(campaign, 'dayModal');
                 onClose();
               }}
             />

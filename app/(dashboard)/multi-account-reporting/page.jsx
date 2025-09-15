@@ -7,6 +7,7 @@ import { DateRangeSelector } from "@/app/components/ui/date-range-selector"
 import { Loading } from "@/app/components/ui/loading"
 import { useStores } from "@/app/contexts/store-context"
 import { useCampaignData } from "@/app/contexts/campaign-data-context"
+import { useAI } from "@/app/contexts/ai-context"
 
 // Import tab components
 import RevenueTab from "./components/RevenueTab"
@@ -18,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 export default function AnalyticsPage() {
     const searchParams = useSearchParams()
     const { stores } = useStores()
+    const { updateAIState } = useAI()
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'revenue')
     
     // Use shared campaign data context
@@ -261,6 +263,128 @@ export default function AnalyticsPage() {
             setActiveTab(tab)
         }
     }, [searchParams])
+    
+    // Update AI state when tab changes or data is updated
+    useEffect(() => {
+        const pageTitle = `Multi-Account Reporting - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`
+        
+        // Calculate basic metrics
+        const selectedAccountsList = selectedAccounts.map(acc => acc.label).join(', ')
+        const dateRange = dateRangeSelection.ranges?.main ? 
+            `${dateRangeSelection.ranges.main.start?.toLocaleDateString()} - ${dateRangeSelection.ranges.main.end?.toLocaleDateString()}` : 
+            'Last 90 days'
+        
+        // Base AI state
+        const aiState = {
+            currentPage: `multi-account-reporting-${activeTab}`,
+            pageTitle,
+            filters: {
+                accounts: selectedAccountsList,
+                dateRange,
+                comparisonType: dateRangeSelection.comparisonType,
+                activeTab
+            },
+            metrics: {},
+            data: {},
+            insights: []
+        }
+        
+        // Add tab-specific data and insights
+        if (activeTab === 'campaigns' && campaignsData) {
+            const totalCampaigns = campaignsData.campaigns?.length || 0
+            const avgOpenRate = campaignsData.aggregateStats?.avgOpenRate || 0
+            const avgClickRate = campaignsData.aggregateStats?.avgClickRate || 0
+            const avgRevenue = campaignsData.aggregateStats?.avgRevenue || 0
+            
+            aiState.metrics = {
+                totalCampaigns,
+                avgOpenRate: `${avgOpenRate.toFixed(1)}%`,
+                avgClickRate: `${avgClickRate.toFixed(1)}%`,
+                avgRevenue: `$${avgRevenue.toFixed(2)}`,
+                ...campaignsData.aggregateStats
+            }
+            
+            aiState.data = {
+                totalRecords: totalCampaigns,
+                dateRange,
+                topPerformers: campaignsData.campaigns?.slice(0, 5).map(c => ({
+                    name: c.subject,
+                    openRate: c.openRate,
+                    revenue: c.totalRevenue
+                }))
+            }
+            
+            // Generate insights
+            const insights = []
+            if (avgOpenRate > 25) {
+                insights.push(`Strong open rate performance at ${avgOpenRate.toFixed(1)}% (industry average: 20-25%)`)
+            } else if (avgOpenRate < 15) {
+                insights.push(`Open rates need improvement at ${avgOpenRate.toFixed(1)}% (industry average: 20-25%)`)
+            }
+            
+            if (avgClickRate > 3) {
+                insights.push(`Excellent click rate at ${avgClickRate.toFixed(1)}% (industry average: 2-3%)`)
+            } else if (avgClickRate < 1.5) {
+                insights.push(`Click rates could be improved at ${avgClickRate.toFixed(1)}% (industry average: 2-3%)`)
+            }
+            
+            if (totalCampaigns > 0) {
+                const topCampaign = campaignsData.campaigns?.reduce((max, c) => 
+                    c.totalRevenue > (max?.totalRevenue || 0) ? c : max, null)
+                if (topCampaign) {
+                    insights.push(`Top performing campaign "${topCampaign.subject}" generated $${topCampaign.totalRevenue.toFixed(2)}`)
+                }
+            }
+            
+            aiState.insights = insights
+        } else if (activeTab === 'deliverability' && campaignsData) {
+            // Add deliverability-specific metrics
+            const bounceRate = campaignsData.aggregateStats?.bounceRate || 0
+            const unsubscribeRate = campaignsData.aggregateStats?.unsubscribeRate || 0
+            const spamRate = campaignsData.aggregateStats?.spamRate || 0
+            
+            aiState.metrics = {
+                bounceRate: `${bounceRate.toFixed(2)}%`,
+                unsubscribeRate: `${unsubscribeRate.toFixed(2)}%`,
+                spamRate: `${spamRate.toFixed(2)}%`,
+                deliverabilityScore: calculateDeliverabilityScore(bounceRate, spamRate)
+            }
+            
+            // Generate deliverability insights
+            const insights = []
+            if (bounceRate > 2) {
+                insights.push(`High bounce rate at ${bounceRate.toFixed(2)}% - consider list cleaning`)
+            }
+            if (unsubscribeRate > 0.5) {
+                insights.push(`Unsubscribe rate of ${unsubscribeRate.toFixed(2)}% is above average - review content relevance`)
+            }
+            if (spamRate > 0.1) {
+                insights.push(`Spam complaints at ${spamRate.toFixed(2)}% - review sending practices`)
+            }
+            
+            aiState.insights = insights
+        } else if (activeTab === 'flows') {
+            // Flows tab data will be added when flows data is available
+            aiState.metrics = {
+                status: 'Flows data loading...'
+            }
+            aiState.insights = ['Flows analytics will be available once data is loaded']
+        } else if (activeTab === 'revenue') {
+            // Revenue tab data will be handled by the RevenueTab component itself
+            aiState.metrics = {
+                status: 'Revenue data managed by RevenueTab component'
+            }
+        }
+        
+        // Update AI context
+        updateAIState(aiState)
+    }, [activeTab, selectedAccounts, dateRangeSelection, campaignsData, updateAIState])
+    
+    // Helper function to calculate deliverability score
+    const calculateDeliverabilityScore = (bounceRate, spamRate) => {
+        const score = 100 - (bounceRate * 10) - (spamRate * 100)
+        return Math.max(0, Math.min(100, score)).toFixed(0)
+    }
     
     // Handle date range changes from the date selector
     const handleDateRangeChange = (newDateRangeSelection) => {

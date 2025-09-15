@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { UserModel } from '@/lib/user-model';
-import { ContractModel } from '@/lib/contract-model';
+import User from '@/models/User';
+import Contract from '@/models/Contract';
+import connectToDatabase from '@/lib/mongoose';
 // import Stripe from 'stripe';
 
 // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {

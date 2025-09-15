@@ -11,6 +11,8 @@ const StoreContext = createContext({
   userContracts: [],
   currentContract: null,
   organizationType: 'enterprise',
+  recentStores: [],
+  selectedStoreId: null,
   addStore: () => {},
   updateStore: () => {},
   deleteStore: () => {},
@@ -27,6 +29,8 @@ const StoreContext = createContext({
   isParentStore: () => false,
   refreshStores: () => {},
   isLoadingStores: false,
+  selectStore: () => {},
+  getRecentStores: () => [],
 });
 
 export const useStores = () => {
@@ -49,6 +53,10 @@ export const StoreProvider = ({ children }) => {
   // Start with empty stores - will be loaded from API
   const [stores, setStores] = useState([]);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
+  
+  // Store selection and recent stores tracking
+  const [selectedStoreId, setSelectedStoreId] = useState(null);
+  const [recentStoreIds, setRecentStoreIds] = useState([]);
 
   const [tags, setTags] = useState([
     { id: "flagship", name: "Flagship", color: "blue" },
@@ -275,6 +283,43 @@ export const StoreProvider = ({ children }) => {
   const isParentStore = (storeId) => {
     return stores.some(s => s.parent_store_id === storeId);
   };
+  
+  // Select a store and track it as recently used
+  const selectStore = (storeId) => {
+    if (!storeId) return;
+    
+    console.log('Selecting store:', storeId);
+    setSelectedStoreId(storeId);
+    
+    // Update recent stores - move selected to front, keep max 10
+    setRecentStoreIds(prev => {
+      const filtered = prev.filter(id => id !== storeId);
+      const updated = [storeId, ...filtered].slice(0, 10);
+      console.log('Updated recent store IDs:', updated);
+      // Save to localStorage
+      localStorage.setItem('recentStoreIds', JSON.stringify(updated));
+      return updated;
+    });
+  };
+  
+  // Get recent stores (up to 4)
+  const getRecentStores = (limit = 4) => {
+    // If we have recent store IDs, use them
+    if (recentStoreIds && recentStoreIds.length > 0) {
+      const recentStores = recentStoreIds
+        .slice(0, limit)
+        .map(id => stores.find(s => (s.public_id || s._id) === id))
+        .filter(Boolean);
+      
+      // If we found stores from recent IDs, return them
+      if (recentStores.length > 0) {
+        return recentStores;
+      }
+    }
+    
+    // Otherwise return the first 'limit' stores as fallback
+    return stores.slice(0, limit);
+  };
 
   // Load user contracts and stores on session change
   useEffect(() => {
@@ -298,6 +343,8 @@ export const StoreProvider = ({ children }) => {
     const savedTags = localStorage.getItem("tags");
     const savedPermissions = localStorage.getItem("userPermissions");
     const savedContract = localStorage.getItem("currentContract");
+    const savedRecentStores = localStorage.getItem("recentStoreIds");
+    const savedSelectedStore = localStorage.getItem("selectedStoreId");
 
     if (savedTags) setTags(JSON.parse(savedTags));
     if (savedPermissions) setUserPermissions(JSON.parse(savedPermissions));
@@ -308,6 +355,16 @@ export const StoreProvider = ({ children }) => {
       } catch (error) {
         console.error('Error parsing saved contract:', error);
       }
+    }
+    if (savedRecentStores) {
+      try {
+        setRecentStoreIds(JSON.parse(savedRecentStores));
+      } catch (error) {
+        console.error('Error parsing saved recent stores:', error);
+      }
+    }
+    if (savedSelectedStore) {
+      setSelectedStoreId(savedSelectedStore);
     }
   }, []);
 
@@ -357,7 +414,10 @@ export const StoreProvider = ({ children }) => {
         
         // Always update stores, even if empty
         if (data.stores) {
-          const apiStores = data.stores.map(store => ({
+          console.log('Processing stores from API:', data.stores);
+          const apiStores = data.stores.map(store => {
+            console.log('Processing store:', store.name, 'with public_id:', store.public_id);
+            return {
             id: store._id || store.id,
             _id: store._id,
             name: store.name,
@@ -385,13 +445,16 @@ export const StoreProvider = ({ children }) => {
             },
             locked_elements: store.locked_elements || { templates: [], brandAssets: new Map() },
             permission_version: 'v3' // Updated for ContractSeat system
-          }));
+          };
+          });
           
           console.log('Setting stores:', apiStores);
           setStores(apiStores);
         }
       } else {
         console.error('API response not ok:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
       }
     } catch (error) {
       console.error('Failed to fetch stores from API:', error);
@@ -419,6 +482,13 @@ export const StoreProvider = ({ children }) => {
       localStorage.setItem("currentContract", JSON.stringify(currentContract));
     }
   }, [currentContract]);
+  
+  // Save selected store to localStorage
+  useEffect(() => {
+    if (selectedStoreId) {
+      localStorage.setItem("selectedStoreId", selectedStoreId);
+    }
+  }, [selectedStoreId]);
 
   return (
     <StoreContext.Provider
@@ -430,6 +500,8 @@ export const StoreProvider = ({ children }) => {
         userContracts,
         currentContract,
         organizationType,
+        selectedStoreId,
+        recentStores: getRecentStores(),
         setOrganizationType,
         addStore,
         updateStore,
@@ -447,6 +519,8 @@ export const StoreProvider = ({ children }) => {
         isParentStore,
         refreshStores: fetchStoresFromAPI,
         isLoadingStores,
+        selectStore,
+        getRecentStores,
       }}
     >
       {children}

@@ -11,7 +11,7 @@ import { useStores } from "@/app/contexts/store-context";
 
 
 export default function StoreDialog({ store, onClose }) {
-  const { tags, addStore, updateStore, addTag, deleteStore } = useStores();
+  const { addStore, updateStore, deleteStore } = useStores();
   const isEditing = !!store;
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -22,11 +22,7 @@ export default function StoreDialog({ store, onClose }) {
   const [formData, setFormData] = useState({
     name: store?.name || "",
     url: store?.url || "",
-    tagNames: store?.tagNames || [],
   });
-  
-  const [newTagInput, setNewTagInput] = useState("");
-  const [showNewTag, setShowNewTag] = useState(false);
   const [urlError, setUrlError] = useState("");
 
   // Validate and format URL
@@ -136,11 +132,8 @@ export default function StoreDialog({ store, onClose }) {
           platform: data.store.platform,
           subscription_status: data.store.subscription_status,
           trial_ends_at: data.store.trial_ends_at,
-          tagNames: formData.tagNames,
-          tags: formData.tagNames.map(name => {
-            const tag = tags.find(t => t.name === name);
-            return tag ? tag.id : name.toLowerCase().replace(/\s+/g, '-');
-          }),
+          tagNames: [],
+          tags: [],
         });
         
         // Close dialog
@@ -153,43 +146,6 @@ export default function StoreDialog({ store, onClose }) {
     }
   };
 
-  const toggleTag = (tagName) => {
-    setFormData(prev => ({
-      ...prev,
-      tagNames: prev.tagNames.includes(tagName)
-        ? prev.tagNames.filter(t => t !== tagName)
-        : [...prev.tagNames, tagName]
-    }));
-  };
-  
-  const handleAddNewTag = () => {
-    if (newTagInput.trim() && !formData.tagNames.includes(newTagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tagNames: [...prev.tagNames, newTagInput.trim()]
-      }));
-      
-      // Add to global tags if it doesn't exist
-      const tagExists = tags.some(t => t.name.toLowerCase() === newTagInput.trim().toLowerCase());
-      if (!tagExists) {
-        addTag({
-          id: newTagInput.trim().toLowerCase().replace(/\s+/g, '-'),
-          name: newTagInput.trim(),
-          color: 'blue'
-        });
-      }
-      
-      setNewTagInput("");
-      setShowNewTag(false);
-    }
-  };
-  
-  const removeTag = (tagName) => {
-    setFormData(prev => ({
-      ...prev,
-      tagNames: prev.tagNames.filter(t => t !== tagName)
-    }));
-  };
 
   const handleDelete = async () => {
     // Double-check the name matches
@@ -282,99 +238,6 @@ export default function StoreDialog({ store, onClose }) {
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 URL will be automatically formatted with https://
               </p>
-            </div>
-
-
-            {/* Tags */}
-            <div>
-              <Label>Tags</Label>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Add tags to categorize this store
-              </p>
-              
-              {/* Selected Tags */}
-              {formData.tagNames.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {formData.tagNames.map(tagName => (
-                    <Badge
-                      key={tagName}
-                      variant="default"
-                      className="group"
-                    >
-                      {tagName}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tagName)}
-                        className="ml-1 hover:text-red-400"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              
-              {/* Available Tags */}
-              <div className="flex flex-wrap gap-2">
-                {tags
-                  .filter(tag => !formData.tagNames.includes(tag.name))
-                  .map(tag => (
-                    <Badge
-                      key={tag.id}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
-                      onClick={() => toggleTag(tag.name)}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      {tag.name}
-                    </Badge>
-                  ))}
-                
-                {/* Add New Tag Button */}
-                {!showNewTag ? (
-                  <Badge
-                    variant="outline"
-                    className="cursor-pointer border-dashed hover:bg-gray-100 dark:hover:bg-gray-800"
-                    onClick={() => setShowNewTag(true)}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    New Tag
-                  </Badge>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="text"
-                      value={newTagInput}
-                      onChange={(e) => setNewTagInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewTag())}
-                      placeholder="Tag name"
-                      className="h-7 w-32 text-sm"
-                      autoFocus
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0"
-                      onClick={handleAddNewTag}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0"
-                      onClick={() => {
-                        setShowNewTag(false);
-                        setNewTagInput("");
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Billing Info for new stores */}

@@ -1047,6 +1047,41 @@ export const tokens = {
 }
 ```
 
+## Toast Notifications
+
+### IMPORTANT: Use the Correct Toast Implementation
+**Always use the custom toast component from `/components/ui/toast`**
+- **DO NOT** use `react-hot-toast` or other external toast libraries
+- **DO** use the toast hook: `import { useToast } from "@/app/components/ui/use-toast"`
+- **DO** follow this pattern:
+
+```jsx
+// ✅ CORRECT - Using the custom toast
+import { useToast } from "@/app/components/ui/use-toast";
+
+export function MyComponent() {
+  const { toast } = useToast();
+  
+  const handleAction = () => {
+    toast({
+      title: "Success",
+      description: "Your action was completed successfully",
+    });
+  };
+}
+```
+
+```jsx
+// ❌ WRONG - Don't use react-hot-toast
+import { toast } from 'react-hot-toast';
+toast.success('Message'); // Don't use this!
+```
+
+### Toast Variants
+- **Default**: General notifications
+- **Destructive**: Error messages
+- **Success**: Positive confirmations (use green styling)
+
 ## Quality Checklist
 
 ### Before Shipping Features
@@ -1060,6 +1095,7 @@ export const tokens = {
 - [ ] Performance profiled
 - [ ] Animations respect prefers-reduced-motion
 - [ ] Documentation updated
+- [ ] Uses correct toast implementation from `/components/ui/toast`
 
 ## Design Don'ts
 

@@ -22,10 +22,10 @@ export default function CampaignDetailsModal({
   onClose, 
   stores,
   audienceCache = {},
-  previousView = 'calendar',
   onBackToDay
 }) {
   const [selectedCampaign, setSelectedCampaign] = useState(campaign);
+  const navigationSource = campaign?.navigationSource || 'calendar';
   
   useEffect(() => {
     setSelectedCampaign(campaign);
@@ -88,11 +88,12 @@ export default function CampaignDetailsModal({
                   className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => {
                     onClose();
-                    if (previousView === 'dayModal' && onBackToDay) {
+                    // If we came from the day modal, re-open it
+                    if (navigationSource === 'dayModal' && onBackToDay) {
                       onBackToDay();
                     }
                   }}
-                  title={previousView === 'dayModal' ? "Back to day view" : "Back to calendar"}
+                  title={navigationSource === 'dayModal' ? "Back to day view" : "Back to calendar"}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>

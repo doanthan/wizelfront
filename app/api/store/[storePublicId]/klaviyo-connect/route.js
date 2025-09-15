@@ -1,11 +1,123 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import Store from '@/models/Store';
 import ContractSeat from '@/models/ContractSeat';
 import Role from '@/models/Role';
 import connectToDatabase from '@/lib/mongoose';
 import { klaviyoGetAll } from '@/lib/klaviyo-api';
+import { logAuditEvent } from '@/lib/posthog-audit';
+
+async function completeConnection(store, apiKey, metricId, reportingMetricId) {
+  try {
+    console.log("Completing Klaviyo connection with metrics:", { conversion: metricId, reporting: reportingMetricId });
+    
+    // Fetch account info to verify API key
+    const account = await klaviyoGetAll("accounts", { apiKey });
+    
+    if (!account || !account.data || account.data.length === 0) {
+      return NextResponse.json({ error: 'Invalid API key' }, { status: 400 });
+    }
+    
+    // Update store with Klaviyo integration
+    store.klaviyo_integration = {
+      status: 'connected',
+      account: account,
+      public_id: account.data[0].attributes?.public_api_key || account.data[0].id,
+      conversion_metric_id: metricId,
+      reporting_metric_id: reportingMetricId || null,
+      conversion_type: 'value',
+      apiKey: apiKey,
+      auth_type: 'api_key',
+      connected_at: new Date(),
+      last_sync: new Date()
+    };
+    
+    // Save timezone and currency from Klaviyo account
+    if (account.data[0].attributes?.timezone) {
+      store.timezone = account.data[0].attributes.timezone;
+    }
+    if (account.data[0].attributes?.preferred_currency) {
+      store.currency = account.data[0].attributes.preferred_currency;
+    }
+    
+    await store.save();
+    console.log("Store saved with Klaviyo integration");
+    
+    // Log audit event for Klaviyo connection
+    await logAuditEvent({
+      action: 'KLAVIYO_CONNECT',
+      userId: store._id.toString(),
+      storeId: store.public_id,
+      metadata: {
+        account_id: account.data[0].id,
+        auth_type: 'api_key',
+        has_conversion_metric: !!metricId,
+        has_reporting_metric: !!reportingMetricId
+      },
+      severity: 'info',
+      success: true
+    });
+    
+    // Trigger sync if we have a metric
+    if (metricId) {
+      // Check if it's Shopify Placed Order
+      let isShopifyPlacedOrder = false;
+      try {
+        const metrics = await klaviyoGetAll("metrics", { apiKey });
+        const selectedMetric = metrics.data.find(m => m.id === metricId);
+        isShopifyPlacedOrder = selectedMetric && 
+                               selectedMetric.attributes.name === "Placed Order" && 
+                               selectedMetric.attributes.integration?.key === "shopify";
+      } catch (e) {
+        console.error("Error checking metric type:", e);
+      }
+      
+      // Trigger report server sync (fire-and-forget)
+      const reportServerUrl = process.env.REPORT_SERVER || 'http://localhost:8001';
+      const reportServerKey = process.env.REPORT_SERVER_KEY;
+      
+      if (reportServerKey) {
+        (async () => {
+          try {
+            const syncPayload = {
+              klaviyo_public_id: store.klaviyo_integration.public_id,
+              store_public_id: store.public_id,
+              do_not_order_sync: !isShopifyPlacedOrder,
+              env: process.env.NODE_ENV
+            };
+            
+            console.log("Triggering report server sync:", syncPayload);
+            
+            await fetch(`${reportServerUrl}/api/v1/reports/full_sync`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${reportServerKey}`
+              },
+              body: JSON.stringify(syncPayload)
+            });
+          } catch (error) {
+            console.error("Report server sync error (non-blocking):", error);
+          }
+        })();
+      }
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Klaviyo connected successfully',
+      klaviyo_integration: store.klaviyo_integration
+    });
+    
+  } catch (error) {
+    console.error("Error completing Klaviyo connection:", error);
+    return NextResponse.json({
+      error: 'Failed to connect Klaviyo',
+      details: error.message
+    }, { status: 500 });
+  }
+}
 
 async function validatePermissions(userId, storeId) {
   // Find the user's contract seat for this store
@@ -102,7 +214,7 @@ export async function POST(request, { params }) {
     
     const { storePublicId } = await params;
     const body = await request.json();
-    const { apiKey, action, conversionMetricId } = body;
+    const { apiKey, action, conversionMetricId, conversion_metric_id, reporting_metric_id, conversion_type } = body;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
@@ -208,12 +320,32 @@ export async function POST(request, { params }) {
       }
     }
 
-    // Otherwise, complete the connection with the selected metric
-    if (!conversionMetricId) {
-      return NextResponse.json({ error: 'Conversion metric ID is required' }, { status: 400 });
+    // If action is "connect", complete the connection
+    if (action === 'connect') {
+      // Use conversion_metric_id from body (frontend sends this), fallback to conversionMetricId
+      const metricId = conversion_metric_id || conversionMetricId || null;
+      
+      // Check if store already has OAuth connection
+      if (store.klaviyo_integration?.auth_type === 'oauth' && store.klaviyo_integration?.oauth_token) {
+        // Update only the metrics for OAuth connections
+        store.klaviyo_integration.conversion_metric_id = metricId;
+        store.klaviyo_integration.reporting_metric_id = reporting_metric_id || null;
+        store.klaviyo_integration.conversion_type = conversion_type || 'value';
+        await store.save();
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Klaviyo settings updated successfully',
+          klaviyo_integration: store.klaviyo_integration
+        });
+      }
+      
+      // Otherwise use API key to complete connection
+      return await completeConnection(store, apiKey, metricId, reporting_metric_id);
     }
 
-    let conversion_metric_id = conversionMetricId;
+    // Otherwise, complete the connection with the selected metric (legacy flow)
+    let finalMetricId = conversion_metric_id || conversionMetricId;
     let isShopifyPlacedOrder = false; // Define in outer scope
     
     try {
@@ -239,6 +371,7 @@ export async function POST(request, { params }) {
         account: account,  // Store full account object like old code
         public_id: account.data[0].id,
         conversion_metric_id: conversion_metric_id ? conversion_metric_id : null,
+        reporting_metric_id: reporting_metric_id ? reporting_metric_id : null,
         conversion_type: 'value',
         apiKey: apiKey,
         connected_at: new Date(),
@@ -252,8 +385,26 @@ export async function POST(request, { params }) {
       
       console.timeEnd("klaviyo fetches");
       
-      // Save the store with updated integration FIRST
+      // Save the store with updated integration
       await store.save();
+      
+      // Log audit event for successful connection
+      await logAuditEvent({
+        action: 'KLAVIYO_CONNECT',
+        userId: session.user.id,
+        userEmail: session.user.email,
+        storeId: store.public_id,
+        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+        metadata: {
+          account_id: store.klaviyo_integration.public_id,
+          auth_type: 'api_key',
+          has_conversion_metric: !!conversion_metric_id,
+          has_reporting_metric: !!reporting_metric_id,
+          is_shopify_placed_order: isShopifyPlacedOrder
+        },
+        severity: 'info',
+        success: true
+      });
       
     } catch (error) {
       console.error("Error testing Klaviyo API key:", error);
@@ -280,7 +431,8 @@ export async function POST(request, { params }) {
             const syncPayload = {
               klaviyo_public_id: store.klaviyo_integration.public_id,
               store_public_id: store.public_id,
-              do_not_order_sync: !isShopifyPlacedOrder  // true if NOT Shopify Placed Order
+              do_not_order_sync: !isShopifyPlacedOrder,  // true if NOT Shopify Placed Order
+              env: process.env.NODE_ENV
             };
             
             console.log("Sending sync request to report server:", {
@@ -373,6 +525,21 @@ export async function DELETE(request, { params }) {
     };
     
     await store.save();
+
+    // Log audit event for Klaviyo disconnection
+    await logAuditEvent({
+      action: 'KLAVIYO_DISCONNECT',
+      userId: session.user.id,
+      userEmail: session.user.email,
+      storeId: store.public_id,
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+      metadata: {
+        previous_account_id: klaviyoIntegration.public_id,
+        auth_type: klaviyoIntegration.auth_type || 'api_key'
+      },
+      severity: 'info',
+      success: true
+    });
 
     return NextResponse.json({
       success: true,

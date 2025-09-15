@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import KlaviyoSync from '@/models/KlaviyoSync';
+import StoreStatSync from '@/models/StoreStatSync';
 import Store from '@/models/Store';
 import connectToDatabase from '@/lib/mongoose';
 
@@ -75,6 +76,11 @@ export async function GET(request) {
         // Get date ranges for next sync
         const nextSyncDateRanges = syncRecord.getSyncDateRanges('all');
 
+        // Get store stat sync status
+        const statSyncRecord = await StoreStatSync.getSyncStatus(
+            syncRecord.klaviyo_public_id
+        );
+
         return NextResponse.json({
             syncRecord: {
                 klaviyo_public_id: syncRecord.klaviyo_public_id,
@@ -93,7 +99,16 @@ export async function GET(request) {
                 account_info: syncRecord.account_info,
                 needsSync,
                 nextSyncDateRanges
-            }
+            },
+            statSyncStatus: statSyncRecord ? {
+                campaignStats: statSyncRecord.campaignStats,
+                flowStats: statSyncRecord.flowStats,
+                segmentStats: statSyncRecord.segmentStats,
+                formStats: statSyncRecord.formStats,
+                orderStats: statSyncRecord.orderStats,
+                lastFullSync: statSyncRecord.lastFullSync,
+                lastError: statSyncRecord.lastError
+            } : null
         });
 
     } catch (error) {
@@ -287,9 +302,35 @@ export async function PUT(request) {
         if (status === 'completed') {
             // Complete the sync with stats
             await syncRecord.completeSync(syncType, stats || {});
+            
+            // Update StoreStatSync based on sync type
+            if (syncType === 'all') {
+                // Full sync - update all stat types
+                await StoreStatSync.updateFullSync(klaviyoId);
+                console.log(`✅ Full sync completed for Klaviyo account: ${klaviyoId}`);
+            } else {
+                // Individual sync types
+                const syncTypeMapping = {
+                    'campaigns': 'campaignStats',
+                    'flows': 'flowStats',
+                    'segments': 'segmentStats',
+                    'forms': 'formStats',
+                    'orders': 'orderStats'
+                };
+                
+                const statSyncType = syncTypeMapping[syncType];
+                if (statSyncType) {
+                    await StoreStatSync.updateSyncStatus(klaviyoId, statSyncType);
+                    console.log(`✅ ${statSyncType} sync completed for Klaviyo account: ${klaviyoId}`);
+                }
+            }
+            
         } else if (status === 'error' && error) {
-            // Log error
+            // Log error in both models
             await syncRecord.logError(error.type || 'unknown', error.message || 'Unknown error');
+            await StoreStatSync.recordError(klaviyoId, error.message || 'Unknown sync error');
+            console.error(`❌ Sync error for Klaviyo account ${klaviyoId}: ${error.message}`);
+            
         } else if (status === 'in_progress') {
             // Update as still in progress
             syncRecord.is_updating_dashboard = true;

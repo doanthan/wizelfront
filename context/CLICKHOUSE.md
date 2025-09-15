@@ -1,7 +1,8 @@
-# ClickHouse Integration Guide for Next.js Frontend
+# ClickHouse Integration Guide for Wizel Dashboard
 
 ## 📋 Table of Contents
 - [Connection Details](#connection-details)
+- [API Endpoints](#api-endpoints)
 - [Installation](#installation)
 - [Environment Setup](#environment-setup)
 - [API Route Implementation](#api-route-implementation)
@@ -13,15 +14,118 @@
 
 ## 🔧 Connection Details
 
-Your ClickHouse instance is hosted on Azure ClickHouse Cloud with the following details:
+Your ClickHouse instance is hosted on AWS ClickHouse Cloud with the following details:
 
 ```
-Host: jv23a8z4w0.westus3.azure.clickhouse.cloud
-Database: wizel
+Host: kis8xv8y1f.us-east-1.aws.clickhouse.cloud
+Database: default
 Username: default
-Password: ilJThTHOS~gm0
-Port: 8443 (HTTPS) / 8123 (HTTP)
-SSL: true (required for Azure ClickHouse Cloud)
+Password: kivR_vYaWBs8B
+Port: 8443 (HTTPS)
+SSL: true (required for AWS ClickHouse Cloud)
+```
+
+## 🚀 API Endpoints
+
+### Main Reporting Endpoint
+
+#### `/api/report` - Account Dashboard Reporting
+**Method**: GET
+
+**Description**: Fetches reporting data from ClickHouse, aggregating by `klaviyo_public_key` for multi-store reporting.
+
+**Query Parameters**:
+- `startDate` (optional): Start date in YYYY-MM-DD format (default: 90 days ago)
+- `endDate` (optional): End date in YYYY-MM-DD format (default: today)
+- `storeIds` (optional): Comma-separated list of store public IDs
+- `type` (optional): Report type - `dashboard`, `campaigns`, `flows`, `performance` (default: dashboard)
+- `metric` (optional): Specific metric to query (default: revenue)
+
+**Example Requests**:
+```javascript
+// Dashboard overview for last 30 days
+GET /api/report?startDate=2025-08-15&endDate=2025-09-15&type=dashboard
+
+// Campaign performance for specific stores
+GET /api/report?storeIds=store1,store2&type=campaigns
+
+// Flow metrics for all user's stores
+GET /api/report?type=flows
+
+// Account performance rankings
+GET /api/report?type=performance
+```
+
+**Response Structure** (Dashboard Type):
+```json
+{
+  "success": true,
+  "data": {
+    "overview": {
+      "totalRevenue": 125000.50,
+      "attributedRevenue": 98000.25,
+      "attributionRate": 78.4,
+      "totalOrders": 450,
+      "aov": 277.78,
+      "yoyGrowth": 23.5
+    },
+    "channels": {
+      "email": {
+        "revenue": 75000,
+        "recipients": 12000,
+        "revenuePerRecipient": 6.25
+      },
+      "sms": {
+        "revenue": 23000,
+        "recipients": 5000,
+        "revenuePerRecipient": 4.60
+      },
+      "overall": {
+        "revenuePerRecipient": 5.42
+      }
+    }
+  },
+  "metadata": {
+    "startDate": "2025-08-15",
+    "endDate": "2025-09-15",
+    "storeCount": 3,
+    "reportType": "dashboard"
+  }
+}
+```
+
+### Superuser Endpoints
+
+#### `/api/superuser/clickhouse` - ClickHouse Admin Interface
+**Method**: GET, POST
+
+**Description**: Superuser-only endpoint for ClickHouse monitoring and management.
+
+**GET Parameters**:
+- `action`: `overview`, `test`, `tables`, `table-stats`, `system-metrics`, `database-stats` (default: overview)
+- `database` (for table-stats): Database name
+- `table` (for table-stats): Table name
+
+**POST Body**:
+```json
+{
+  "query": "SELECT * FROM system.tables LIMIT 10"
+}
+```
+
+**Example Requests**:
+```javascript
+// Get overview
+GET /api/superuser/clickhouse?action=overview
+
+// Get table statistics
+GET /api/superuser/clickhouse?action=table-stats&database=analytics&table=orders
+
+// Execute custom query (SELECT/SHOW/DESCRIBE only)
+POST /api/superuser/clickhouse
+{
+  "query": "SELECT COUNT(*) FROM analytics.orders"
+}
 ```
 
 ## 📦 Installation
@@ -42,16 +146,16 @@ Create or update `.env.local` in your Next.js project root:
 
 ```env
 # ClickHouse Configuration
-NEXT_PUBLIC_CLICKHOUSE_HOST=jv23a8z4w0.westus3.azure.clickhouse.cloud
-NEXT_PUBLIC_CLICKHOUSE_DATABASE=wizel
-
-# Server-side only (never expose these to client)
-CLICKHOUSE_USERNAME=default
-CLICKHOUSE_PASSWORD=ilJThTHOS~gm0
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=kivR_vYaWBs8B
+CLICKHOUSE_HOST=kis8xv8y1f.us-east-1.aws.clickhouse.cloud
+CLICKHOUSE_PORT=8443
+CLICKHOUSE_DATABASE=default
+CLICKHOUSE_SECURE=true
 ```
 
 **⚠️ IMPORTANT:** 
-- Never expose `CLICKHOUSE_USERNAME` and `CLICKHOUSE_PASSWORD` in client-side code
+- Never expose `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` in client-side code
 - Only use `NEXT_PUBLIC_*` prefixed variables for non-sensitive configuration
 - Always access the database through API routes
 
@@ -68,11 +172,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Initialize ClickHouse client
 const client = createClient({
-  host: `https://${process.env.NEXT_PUBLIC_CLICKHOUSE_HOST}:8443`,
-  database: process.env.NEXT_PUBLIC_CLICKHOUSE_DATABASE,
-  username: process.env.CLICKHOUSE_USERNAME,
+  host: process.env.CLICKHOUSE_SECURE === 'true' 
+    ? `https://${process.env.CLICKHOUSE_HOST}:${process.env.CLICKHOUSE_PORT || 8443}`
+    : `http://${process.env.CLICKHOUSE_HOST}:${process.env.CLICKHOUSE_PORT || 8123}`,
+  database: process.env.CLICKHOUSE_DATABASE || 'default',
+  username: process.env.CLICKHOUSE_USER || 'default',
   password: process.env.CLICKHOUSE_PASSWORD,
-  // Important for Azure ClickHouse Cloud
+  // Important for AWS ClickHouse Cloud
   clickhouse_settings: {
     max_result_rows: '10000',
   },
@@ -200,9 +306,11 @@ import { createClient } from '@clickhouse/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const client = createClient({
-  host: `https://${process.env.NEXT_PUBLIC_CLICKHOUSE_HOST}:8443`,
-  database: process.env.NEXT_PUBLIC_CLICKHOUSE_DATABASE,
-  username: process.env.CLICKHOUSE_USERNAME,
+  host: process.env.CLICKHOUSE_SECURE === 'true' 
+    ? `https://${process.env.CLICKHOUSE_HOST}:${process.env.CLICKHOUSE_PORT || 8443}`
+    : `http://${process.env.CLICKHOUSE_HOST}:${process.env.CLICKHOUSE_PORT || 8123}`,
+  database: process.env.CLICKHOUSE_DATABASE || 'default',
+  username: process.env.CLICKHOUSE_USER || 'default',
   password: process.env.CLICKHOUSE_PASSWORD,
 });
 
@@ -1116,10 +1224,12 @@ npm run dev
 For production deployment (Vercel, Netlify, etc.), add these environment variables:
 
 ```env
-NEXT_PUBLIC_CLICKHOUSE_HOST=jv23a8z4w0.westus3.azure.clickhouse.cloud
-NEXT_PUBLIC_CLICKHOUSE_DATABASE=wizel
-CLICKHOUSE_USERNAME=default
-CLICKHOUSE_PASSWORD=ilJThTHOS~gm0
+CLICKHOUSE_HOST=kis8xv8y1f.us-east-1.aws.clickhouse.cloud
+CLICKHOUSE_DATABASE=default
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=kivR_vYaWBs8B
+CLICKHOUSE_PORT=8443
+CLICKHOUSE_SECURE=true
 ```
 
 ### Vercel Deployment
@@ -1128,10 +1238,12 @@ CLICKHOUSE_PASSWORD=ilJThTHOS~gm0
 // vercel.json
 {
   "env": {
-    "NEXT_PUBLIC_CLICKHOUSE_HOST": "@clickhouse_host",
-    "NEXT_PUBLIC_CLICKHOUSE_DATABASE": "@clickhouse_database",
-    "CLICKHOUSE_USERNAME": "@clickhouse_username",
-    "CLICKHOUSE_PASSWORD": "@clickhouse_password"
+    "CLICKHOUSE_HOST": "@clickhouse_host",
+    "CLICKHOUSE_DATABASE": "@clickhouse_database",
+    "CLICKHOUSE_USER": "@clickhouse_user",
+    "CLICKHOUSE_PASSWORD": "@clickhouse_password",
+    "CLICKHOUSE_PORT": "@clickhouse_port",
+    "CLICKHOUSE_SECURE": "@clickhouse_secure"
   }
 }
 ```
@@ -1171,8 +1283,48 @@ CLICKHOUSE_PASSWORD=ilJThTHOS~gm0
    - Implement pagination
    - Limit result set size
 
+## 📈 Database Schema
+
+### Main Analytics Tables
+
+The ClickHouse database contains the following tables for analytics:
+
+#### `analytics.orders`
+- Primary key: `klaviyo_public_key`
+- Contains order data aggregated by Klaviyo integration
+- Used for revenue, order counts, and customer analytics
+
+#### `analytics.campaign_stats`
+- Primary key: `klaviyo_public_key`
+- Campaign performance metrics (opens, clicks, conversions)
+- Aggregated by campaign and date
+
+#### `analytics.flow_stats`
+- Primary key: `klaviyo_public_key`
+- Flow automation performance data
+- Completion rates and revenue attribution
+
+#### `analytics.segment_stats`
+- Primary key: `klaviyo_public_key`
+- Customer segment growth and engagement metrics
+
+### Key Aggregation Pattern
+
+**IMPORTANT**: All analytics queries must aggregate by `klaviyo_public_key` to support multi-store reporting:
+
+```sql
+-- Example: Get revenue for multiple stores
+SELECT 
+  klaviyo_public_key,
+  SUM(revenue) as total_revenue
+FROM analytics.orders
+WHERE klaviyo_public_key IN ('key1', 'key2', 'key3')
+  AND date >= '2025-01-01'
+GROUP BY klaviyo_public_key
+```
+
 ---
 
 **Last Updated**: September 2025  
-**Version**: 1.0.0  
-**Author**: Your Development Team
+**Version**: 2.0.0  
+**Connection**: AWS ClickHouse Cloud (kis8xv8y1f.us-east-1.aws.clickhouse.cloud)

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { fetchKlaviyoCampaignMessage } from '@/lib/klaviyo';
+import { buildKlaviyoAuthOptions } from '@/lib/klaviyo-auth-helper';
 import Store from '@/models/Store';
 import CampaignStat from '@/models/CampaignStat';
 import connectToDatabase from '@/lib/mongoose';
@@ -57,14 +58,16 @@ export async function GET(request, { params }) {
       'groupings.campaign_message_id': messageId
     });
 
-    if (!store.klaviyo_integration?.apiKey) {
+    // Check if store has Klaviyo authentication (OAuth or API key)
+    if (!store.klaviyo_integration || (!store.klaviyo_integration.apiKey && !store.klaviyo_integration.oauth_token)) {
       console.log('Klaviyo integration details:', {
         hasIntegration: !!store.klaviyo_integration,
         hasApiKey: !!store.klaviyo_integration?.apiKey,
+        hasOAuth: !!store.klaviyo_integration?.oauth_token,
         publicId: store.klaviyo_integration?.public_id
       });
       return NextResponse.json({ 
-        error: 'Klaviyo API key not configured for this store' 
+        error: 'Klaviyo authentication not configured for this store' 
       }, { status: 404 });
     }
 
@@ -88,17 +91,20 @@ export async function GET(request, { params }) {
       }
     }
 
-    // 5. Fetch from Klaviyo API
+    // 5. Build OAuth-first authentication options
+    const klaviyoAuthOptions = buildKlaviyoAuthOptions(store);
+    
+    // 6. Fetch from Klaviyo API using OAuth-first approach
     const campaignMessage = await fetchKlaviyoCampaignMessage(
       messageId,
-      store.klaviyo_integration.apiKey
+      klaviyoAuthOptions
     );
 
-    // 6. Extract template HTML and metadata
+    // 7. Extract template HTML and metadata
     const template = campaignMessage.included?.find(item => item.type === 'template');
     const messageData = campaignMessage.data;
 
-    // 7. Check if this is an SMS campaign and return appropriate data
+    // 8. Check if this is an SMS campaign and return appropriate data
     const channel = messageData?.attributes?.channel || 
                    messageData?.attributes?.definition?.channel ||
                    campaign?.groupings?.send_channel || 
@@ -155,7 +161,7 @@ export async function GET(request, { params }) {
       return NextResponse.json(responseData);
     }
     
-    // 8. Return formatted response for email
+    // 9. Return formatted response for email
     const emailResponse = {
       success: true,
       data: {
