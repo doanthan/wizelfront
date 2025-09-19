@@ -62,11 +62,26 @@ This is a modern web application built with Next.js, React, and Tailwind CSS. Th
 
 ## 🚨 CRITICAL: Store ID Usage Guidelines
 
-### When to Use Klaviyo's Public Key vs Store Public ID
+### ClickHouse Tables - Always Use `klaviyo_public_id`
 
-**IMPORTANT**: The application uses different ID types depending on the data being queried:
+**IMPORTANT**: ALL ClickHouse tables use `klaviyo_public_id` (string) as the primary identifier:
 
-#### Use `klaviyo_public_id` (Klaviyo's public key) for:
+#### ClickHouse Tables (all use `klaviyo_public_id`):
+- **Analytics/Metrics Tables:**
+  - `account_metrics_daily` - Daily aggregated metrics
+  - `campaign_statistics` - Campaign performance data
+  - `flow_statistics` - Flow performance data
+  - `klaviyo_orders` - Order transactions
+  - `segments_statistics` - Segment metrics
+  - `form_statistics` - Form submission metrics
+  - `email_statistics` - Email engagement metrics
+  
+**Field Name**: Always `klaviyo_public_id` (not `store_public_id`)
+**Data Type**: String
+**Reason**: ClickHouse stores are identified by their Klaviyo integration public ID
+
+#### MongoDB Collections:
+##### Use `klaviyo_public_id` for:
 - **Analytics Data Collections:**
   - `orders` collection
   - `campaignstats` collection  
@@ -76,8 +91,8 @@ This is a modern web application built with Next.js, React, and Tailwind CSS. Th
   
 **Reason**: Multiple Store records can share the same Klaviyo integration for analytics. This allows different accounts/stores to view analytics from the same Klaviyo account.
 
-#### Use `store_public_id` (Store's public ID) for:
-- **All other operations:**
+##### Use `store_public_id` (Store's public ID) for:
+- **All other MongoDB operations:**
   - User permissions
   - Store settings
   - Store management
@@ -87,15 +102,27 @@ This is a modern web application built with Next.js, React, and Tailwind CSS. Th
   
 **Example:**
 ```javascript
-// ✅ CORRECT - Querying analytics data
+// ✅ CORRECT - ClickHouse query with klaviyo_public_id
+const query = `
+  SELECT * FROM account_metrics_daily 
+  WHERE klaviyo_public_id = '${klaviyoPublicId}'
+`;
+
+// ✅ CORRECT - MongoDB analytics query
 const campaignStats = await CampaignStat.find({
   klaviyo_public_id: store.klaviyo_integration.public_id
 });
 
-// ✅ CORRECT - Store management
+// ✅ CORRECT - Store management in MongoDB
 const userStores = await Store.find({
   public_id: { $in: user.store_ids }
 });
+
+// ❌ WRONG - Don't use store_public_id for ClickHouse
+const query = `
+  SELECT * FROM account_metrics_daily 
+  WHERE store_public_id = '${storeId}'  // This field doesn't exist!
+`;
 
 // ❌ WRONG - Don't use store_public_id for analytics
 const campaignStats = await CampaignStat.find({
@@ -103,7 +130,11 @@ const campaignStats = await CampaignStat.find({
 });
 ```
 
-**Key Point**: Always check which ID type a MongoDB collection uses before querying! Analytics collections use `klaviyo_public_id`, everything else uses `store_public_id`.
+**Key Points**: 
+- ALL ClickHouse tables use `klaviyo_public_id` field (string type)
+- MongoDB analytics collections use `klaviyo_public_id`
+- MongoDB store/user collections use `store_public_id`
+- Always check which ID type to use before querying!
 
 ## 🔐 CRITICAL: Klaviyo OAuth-First Authentication
 
@@ -178,20 +209,6 @@ if (!store.klaviyo_integration ||
     error: 'Klaviyo authentication not configured' 
   }, { status: 404 });
 }
-```
-
-### Key Benefits of OAuth-First:
-1. **Better Security**: OAuth tokens can be revoked and have limited scope
-2. **Automatic Refresh**: Tokens refresh automatically when expired
-3. **No Manual Token Management**: System handles all token lifecycle
-4. **Fallback Support**: Seamlessly falls back to API key if OAuth fails
-5. **Future-Proof**: OAuth is Klaviyo's preferred authentication method
-
-### Required Environment Variables for OAuth:
-```bash
-WIZEL_KLAVIYO_ID=your_oauth_client_id
-WIZEL_KLAVIYO_SECRET=your_oauth_client_secret
-```
 
 ### Store Integration Fields:
 ```javascript
@@ -608,15 +625,6 @@ try {
 }
 ```
 
-#### Key Benefits of OAuth-First Approach
-
-1. **Better Security**: OAuth tokens can be revoked and have limited scope
-2. **Automatic Refresh**: No need to manually handle token expiration
-3. **Future-Proof**: OAuth is Klaviyo's preferred authentication method
-4. **Rate Limiting**: Centralized rate limiting and retry logic
-5. **Consistent Error Handling**: Unified error handling across all API calls
-
-#### Migration Notes
 
 When updating existing code:
 1. Replace direct `fetch()` calls with `klaviyoRequest()`
@@ -712,7 +720,7 @@ Use gradients from the design system for:
 
 ### Typography
 - Font: **Roboto** (already configured)
-- Headings: Use `font-bold` or `font-extrabold` with `text-slate-gray`
+- Headings: Use `font-bold` or `font-extrabold` 
 - Body text: Use `text-neutral-gray` for secondary text
 - Always maintain proper hierarchy
 
@@ -759,7 +767,7 @@ import { Mail, MessageSquare, Bell, Users } from 'lucide-react';
 
 ### 📊 ALWAYS CHECK ANALYTICS DOCUMENTATION
 **When implementing ANY analytics features, metrics, or calculations, you MUST:**
-1. **Read and follow `/context/analytics.md`** for proper metric calculations
+1. **Read and follow `/context/analytics.md` or context/CLICKHOUSE_TABLES_COMPLETE_V2.md** for proper metric calculations
 2. **Use weighted averages** for aggregate metrics (not simple averages)
 3. **Calculate rates correctly** using unique counts where appropriate
 4. **Follow established naming conventions** for metrics
@@ -973,6 +981,7 @@ npm run lint    # Run linting
 4. **USE the component library** in `/app/components/ui/` as the source of truth
 5. **FOLLOW the established patterns** rather than creating new ones
 6. **ALWAYS use centralized number formatting** from `/lib/utils.js` for all analytics displays
+7. **AVOID low-contrast text** - Never use `text-neutral-gray`, `text-muted`, or similar low-contrast colors for primary content. Use `text-gray-900 dark:text-gray-100` for main text and `text-gray-600 dark:text-gray-400` for secondary text to ensure readability
 
 ## 🛡️ SOC2 & ISO 27001 Compliance Implementation
 
@@ -1040,111 +1049,189 @@ SENTRY_DSN=your_sentry_dsn  # For error tracking
 COMPLIANCE_EMAILS=security@company.com,compliance@company.com
 ```
 
-### Critical Actions Logged (Basic Mode)
 
-Only these actions are logged in basic mode to minimize overhead:
+## 🔄 CRITICAL: Loading States and Skeletons
+
+### **IMPORTANT: ALL API calls and data fetching MUST use proper loading states**
+
+**Always use the MorphingLoader component from `/app/components/ui/loading.jsx` for ALL loading states in the application.**
+
+### Loading State Implementation Pattern
 
 ```javascript
-const CRITICAL_ACTIONS = [
-  'USER_LOGIN',
-  'USER_LOGOUT',
-  'USER_IMPERSONATION',
-  'DATA_EXPORT',
-  'STORE_DELETE',
-  'PAYMENT_ATTEMPT',
-  'PERMISSION_CHANGE',
-  'API_KEY_CREATE',
-  'API_KEY_REVOKE',
-  'FAILED_LOGIN',
-  'UNAUTHORIZED_ACCESS'
-];
+// ✅ CORRECT - Import and use MorphingLoader for loading states
+import MorphingLoader from '@/app/components/ui/loading';
+import { Skeleton } from '@/app/components/ui/skeleton';
+
+export default function Component() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+
+  // For full-page loading
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <MorphingLoader
+          size="large"
+          showText={true}
+          text="Loading campaigns..."
+        />
+      </div>
+    );
+  }
+
+  // For inline loading (smaller components)
+  if (loadingItem) {
+    return <MorphingLoader size="small" showThemeText={false} />;
+  }
+
+  // For skeleton loading (when layout is known)
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
+        <div className="grid grid-cols-3 gap-4">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+      </div>
+    );
+  }
+}
 ```
 
-### Compliance Checklist
+### When to Use Each Loading Pattern
 
-#### SOC2 Type II Controls
-- ✅ **CC6.1**: Logical Access Controls (NextAuth)
-- ✅ **CC6.2**: Security Headers (Middleware)
-- ✅ **CC6.3**: Registration & Authorization
-- ✅ **CC7.1**: System Monitoring (Audit Logs)
-- ✅ **CC7.2**: Security Incident Monitoring
-- ✅ **CC8.1**: Change Management (Git)
-- ⚠️ **A1.2**: System Availability (Needs uptime monitoring)
-- ⚠️ **C1.1**: Data Confidentiality (Partial encryption)
-
-#### ISO 27001 Controls
-- ✅ **A.9**: Access Control (RBAC implemented)
-- ✅ **A.10**: Cryptography (Encryption available)
-- ✅ **A.12**: Operations Security (Audit logging)
-- ✅ **A.13**: Communications Security (HTTPS, headers)
-- ✅ **A.16**: Incident Management (Dashboard)
-- ⚠️ **A.14**: Secure Development (Needs SAST/DAST)
-- ⚠️ **A.17**: Business Continuity (Needs DR plan)
-
-### Performance Impact
-
-| Feature | Basic Mode | Standard Mode | Full Mode |
-|---------|------------|---------------|-----------|
-| Security Headers | <0.1% | <0.1% | <0.1% |
-| Critical Audit Logs | 0.5-1% | 2-3% | 5-7% |
-| Rate Limiting | 0.2% | 0.2% | 0.2% |
-| Encryption | 1-2% | 2-3% | 3-5% |
-| **Total Overhead** | **~2%** | **~5%** | **~10%** |
-
-### Usage Examples
-
-#### Manually Log an Audit Event
+#### 1. **MorphingLoader** - For API calls and data fetching
+Use for any async operations, API calls, or when waiting for data:
 ```javascript
-import AuditLog from '@/models/AuditLog';
+// ✅ Page-level loading
+<div className="flex items-center justify-center min-h-screen">
+  <MorphingLoader size="xlarge" />
+</div>
 
-await AuditLog.logAction({
-  action: 'CUSTOM_ACTION',
-  userId: user._id,
-  userEmail: user.email,
-  ip: request.ip,
-  metadata: { additional: 'data' }
-});
+// ✅ Section loading
+<div className="bg-white rounded-lg p-8 min-h-[300px] flex items-center justify-center">
+  <MorphingLoader size="medium" showText={true} text="Fetching data..." />
+</div>
+
+// ✅ Button/inline loading
+<button disabled={isLoading}>
+  {isLoading ? <MorphingLoader size="small" showThemeText={false} /> : 'Save'}
+</button>
 ```
 
-#### Check Compliance Status
+#### 2. **Skeleton** - For content placeholders
+Use when you know the structure of the content being loaded:
 ```javascript
-import { getComplianceStatus } from '@/lib/compliance-config';
+// ✅ List skeleton
+{loading ? (
+  <div className="space-y-2">
+    {[...Array(5)].map((_, i) => (
+      <Skeleton key={i} className="h-16 w-full" />
+    ))}
+  </div>
+) : (
+  <ActualListContent />
+)}
 
-const status = getComplianceStatus();
-console.log(`Compliance Score: ${status.overall}%`);
+// ✅ Card skeleton
+{loading ? (
+  <div className="grid grid-cols-3 gap-4">
+    {[...Array(6)].map((_, i) => (
+      <Skeleton key={i} className="h-48 rounded-lg" />
+    ))}
+  </div>
+) : (
+  <ActualCards />
+)}
 ```
 
-#### Export Compliance Report
+### Size Guidelines for MorphingLoader
+
+- **`small`** (32x32px): Buttons, inline elements, small cards
+- **`medium`** (60x60px): Card sections, modals, default size
+- **`large`** (80x80px): Page sections, large modals
+- **`xlarge`** (96x96px): Full-page loading, initial app load
+
+### Custom Loading Messages
+
+For context-specific loading, provide relevant messages:
 ```javascript
-// GET /api/superuser/compliance?type=report&days=30
-const report = await fetch('/api/superuser/compliance?type=report');
+// ✅ Context-aware messages
+<MorphingLoader
+  size="medium"
+  customThemeTexts={[
+    "Analyzing campaign performance...",
+    "Calculating open rates...",
+    "Processing click data...",
+    "Generating insights..."
+  ]}
+  textDuration={2500}
+/>
 ```
 
-### Best Practices
+### Loading State Checklist
 
-1. **Start with Basic Mode** - Minimal overhead, covers critical requirements
-2. **Monitor Performance** - Check impact before increasing compliance level
-3. **Regular Audits** - Review audit logs weekly via dashboard
-4. **Incident Response** - Document and track all security incidents
-5. **Keep Documentation** - Update security policies as features change
+Before implementing any data fetching:
+- [ ] Import MorphingLoader from `/app/components/ui/loading`
+- [ ] Add loading state variable
+- [ ] Show MorphingLoader during fetch
+- [ ] Use appropriate size for context
+- [ ] Add descriptive text for long operations
+- [ ] Consider skeleton for known layouts
+- [ ] Handle error states appropriately
 
-### Certification Readiness
+### Common Patterns
 
-With this implementation, you can demonstrate:
-- ✅ Audit trail of all critical actions
-- ✅ Security headers and protections
-- ✅ Access control and authentication
-- ✅ Monitoring and alerting capabilities
-- ✅ Data retention policies
-- ✅ Incident management process
+```javascript
+// ❌ WRONG - No loading state
+const data = await fetch('/api/data');
+setData(data);
 
-For full SOC2/ISO27001 certification, you'll also need:
-- Security policies and procedures documentation
-- Employee training records
-- Vendor management processes
-- Business continuity plan
-- Annual penetration testing
-- Risk assessment documentation
+// ❌ WRONG - Generic spinner or custom loader
+<div className="animate-spin">Loading...</div>
+
+// ✅ CORRECT - MorphingLoader with proper state management
+const [loading, setLoading] = useState(false);
+
+const fetchData = async () => {
+  setLoading(true);
+  try {
+    const response = await fetch('/api/data');
+    const data = await response.json();
+    setData(data);
+  } catch (error) {
+    setError(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// In render
+{loading && (
+  <div className="flex justify-center p-8">
+    <MorphingLoader size="medium" showText={true} text="Loading data..." />
+  </div>
+)}
+```
+
+### Why This Matters
+
+1. **Consistency**: Uniform loading experience across the app
+2. **User Feedback**: Clear indication that something is happening
+3. **Brand Identity**: The MorphingLoader includes brand colors and personality
+4. **Accessibility**: Proper loading states improve screen reader experience
+5. **Performance Perception**: Good loading states make the app feel faster
+
+### Migration Notes
+
+- Replace all custom spinners with MorphingLoader
+- Add loading states to all async operations
+- Use skeletons for lists and grids where structure is known
+- Test loading states by throttling network in DevTools
 
 ## Design Principles Priority
 When in doubt about any UI decision:

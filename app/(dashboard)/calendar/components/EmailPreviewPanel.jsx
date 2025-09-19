@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FileText, MessageSquare } from 'lucide-react';
-import { InlineLoading } from '@/app/components/ui/loading-spinner';
+import { InlineLoader } from '@/app/components/ui/loading';
 import { cn } from '@/lib/utils';
 
 export const EmailPreviewPanel = ({ messageId, storeId, compact = false }) => {
@@ -63,15 +63,17 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false }) => {
 
   if (loading) {
     return (
-      <div className={cn("flex items-center justify-center h-full", compact ? "p-4" : "p-8")}>
-        <InlineLoading text={compact ? "Loading..." : "Loading preview..."} />
+      <div className={cn("flex items-center justify-center h-full min-h-[400px]", compact ? "p-4" : "p-8")}>
+        <div className="text-center">
+          <InlineLoader size="medium" showText={true} text={compact ? "Loading..." : "Loading preview..."} />
+        </div>
       </div>
     );
   }
 
   if (!content) {
     return (
-      <div className={cn("flex flex-col items-center justify-center h-full text-gray-500", compact ? "p-4" : "p-8")}>
+      <div className={cn("flex flex-col items-center justify-center h-full min-h-[400px] text-gray-500", compact ? "p-4" : "p-8")}>
         <FileText className={cn("mb-3 text-gray-400", compact ? "h-8 w-8" : "h-12 w-12")} />
         <p className={compact ? "text-xs" : ""}>No preview available</p>
       </div>
@@ -196,11 +198,11 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false }) => {
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-gray-500">From:</span>
-                <span className="font-medium">{content.fromLabel || content.fromEmail || 'Unknown sender'}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{content.fromLabel || content.fromEmail || 'Unknown sender'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-gray-500">Subject:</span>
-                <span className="font-medium truncate">{content.subject || 'No subject'}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100 truncate">{content.subject || 'No subject'}</span>
               </div>
             </div>
             {content.previewText && (

@@ -117,40 +117,9 @@ export async function GET(request) {
       }
     }
 
-    // Also check legacy permissions for backward compatibility
-    const legacyStores = await Store.findByUser(session.user.id).lean();
-    
-    for (const store of legacyStores) {
-      if (processedStoreIds.has(store._id.toString())) {
-        continue;
-      }
-
-      // Only include stores with Klaviyo integration for analytics
-      if (store.klaviyo_integration?.public_id) {
-        // Check user's legacy permissions for this store
-        const userPermission = user.store_permissions?.find(
-          perm => perm.store_id?.toString() === store._id.toString()
-        );
-
-        // Legacy system - assume analytics access for certain roles
-        if (userPermission && 
-            (userPermission.role === 'owner' || 
-             userPermission.role === 'admin' ||
-             userPermission.permissions?.canViewAnalytics)) {
-          storesWithAnalyticsAccess.push({
-            ...store,
-            analytics_permissions: {
-              view_all: true,
-              view_own: true,
-              export: userPermission.role === 'owner' || userPermission.role === 'admin',
-              view_financial: userPermission.role === 'owner'
-            },
-            user_role: userPermission.role
-          });
-          processedStoreIds.add(store._id.toString());
-        }
-      }
-    }
+    // Skip legacy permission check since you've removed legacy stores
+    // The ContractSeat system above handles all permissions now
+    console.log('Skipping legacy store permissions - using ContractSeat system only');
 
     console.log(`Found ${storesWithAnalyticsAccess.length} stores with analytics access`);
 

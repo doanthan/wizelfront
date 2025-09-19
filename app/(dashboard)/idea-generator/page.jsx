@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -11,7 +12,6 @@ import { useToast } from "@/app/hooks/use-toast";
 import { useStores } from "@/app/contexts/store-context";
 import { 
   Lightbulb, 
-  Loader2, 
   Store,
   Sparkles,
   Search,
@@ -165,7 +165,7 @@ export default function IdeaGeneratorPage() {
             {/* Store Cards */}
             {isLoadingStores ? (
               <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+                <MorphingLoader size="small" showThemeText={false} />
                 <span className="ml-2">Loading stores...</span>
               </div>
             ) : (
@@ -246,7 +246,7 @@ export default function IdeaGeneratorPage() {
               </div>
             ) : loadingBrands ? (
               <div className="flex items-center justify-center h-[500px]">
-                <Loader2 className="h-8 w-8 animate-spin text-vivid-violet" />
+                <MorphingLoader size="small" showThemeText={false} />
                 <span className="ml-2">Loading brand profiles...</span>
               </div>
             ) : (

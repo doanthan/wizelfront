@@ -1,864 +1,919 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
-import { Button } from '@/app/components/ui/button';
-import { Badge } from '@/app/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Progress } from '@/app/components/ui/progress';
-import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
-import { 
-  ChevronLeft, Mail, MessageSquare, Bell, Users, Eye, MousePointer, 
-  DollarSign, BarChart3, TrendingUp, Activity, Zap, Info, Settings,
-  CheckCircle, XCircle, Package, Calendar, AlertCircle, ShoppingCart,
-  Target, Clock
-} from 'lucide-react';
-import { format, getDate } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { EmailPreviewPanel } from './EmailPreviewPanel';
+import { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/app/components/ui/dialog'
+import { Badge } from '@/app/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
+import {
+    Mail,
+    Users,
+    Eye,
+    MousePointer,
+    DollarSign,
+    TrendingUp,
+    Calendar,
+    Tag,
+    Target,
+    AlertCircle,
+    CheckCircle,
+    XCircle,
+    ArrowUp,
+    ArrowDown,
+    Zap,
+    BarChart3,
+    Activity,
+    Monitor,
+    Smartphone,
+    MessageSquare,
+    Info,
+    ArrowLeft
+} from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
+import { Progress } from '@/app/components/ui/progress'
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover'
+import { Button } from '@/app/components/ui/button'
+import { InlineLoader } from '@/app/components/ui/loading'
+import dynamic from 'next/dynamic'
 
-export default function CampaignDetailsModal({ 
-  campaign, 
-  onClose, 
-  stores,
-  audienceCache = {},
-  onBackToDay
-}) {
-  const [selectedCampaign, setSelectedCampaign] = useState(campaign);
-  const navigationSource = campaign?.navigationSource || 'calendar';
-  
-  useEffect(() => {
-    setSelectedCampaign(campaign);
-  }, [campaign]);
+// Dynamically import EmailPreviewPanel
+const EmailPreviewPanel = dynamic(
+    () => import('./EmailPreviewPanel').then(mod => mod.EmailPreviewPanel),
+    {
+        loading: () => <div className="flex items-center justify-center p-8"><InlineLoader showText={true} text="Loading preview..." /></div>,
+        ssr: false
+    }
+)
 
-  if (!selectedCampaign) return null;
+export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores, onBackToDay }) {
+    const [activeTab, setActiveTab] = useState('overview')
+    const [campaignData, setCampaignData] = useState(null)
+    const [previewMode, setPreviewMode] = useState('desktop')
 
-  const store = stores.find(s => 
-    s.klaviyo_integration?.public_id === selectedCampaign.klaviyo_public_id
-  );
-
-  // Helper function to resolve audience names
-  const resolveAudienceNames = (audienceData, klaviyoPublicId) => {
-    if (!audienceData || audienceData.length === 0) return [];
+    // Fetch campaign data when modal opens
+    useEffect(() => {
+        if (isOpen && campaign) {
+            console.log('🔍 CampaignDetailsModal: Received campaign data:', campaign);
+            
+            // Always use the campaign data directly since it should contain all metrics
+            // The campaign object passed from calendar should already have the stats
+            setCampaignData(campaign);
+            
+            // Reset tab based on context
+            if (campaign?.showDeliveryFocus) {
+                setActiveTab('deliverability')
+            } else {
+                setActiveTab('overview')
+            }
+        }
+    }, [isOpen, campaign])
     
-    // If the audience data already has name and type (from past campaigns), return as is
-    if (audienceData[0]?.name && audienceData[0]?.type) {
-      return audienceData;
+    if (!campaign) return null
+    
+    // Use campaignData if available, otherwise fall back to campaign prop
+    const data = campaignData || campaign
+    
+    // Debug logging
+    console.log('📊 CampaignDetailsModal: Final data being used:', {
+        opensUnique: data.opensUnique,
+        clicksUnique: data.clicksUnique,
+        revenue: data.revenue,
+        recipients: data.recipients,
+        delivered: data.delivered,
+        openRate: data.openRate,
+        clickRate: data.clickRate,
+        conversionRate: data.conversionRate,
+        fullData: data
+    });
+
+    // Get store info for the campaign
+    const campaignStore = stores?.find(s => 
+        s.public_id === campaign?.store_public_id || 
+        s.klaviyo_integration?.public_id === campaign?.klaviyo_public_id ||
+        campaign?.store_public_ids?.includes(s.public_id) ||
+        // Handle case where data uses different field names
+        s.public_id === data?.store_public_id ||
+        s.klaviyo_integration?.public_id === data?.klaviyo_public_id
+    )
+    
+    console.log('🔍 Store lookup debug:', {
+        availableStores: stores?.length,
+        campaign: {
+            store_public_id: campaign?.store_public_id,
+            klaviyo_public_id: campaign?.klaviyo_public_id,
+            store_public_ids: campaign?.store_public_ids
+        },
+        data: {
+            store_public_id: data?.store_public_id,
+            klaviyo_public_id: data?.klaviyo_public_id
+        },
+        foundStore: campaignStore ? {
+            name: campaignStore.name,
+            public_id: campaignStore.public_id,
+            klaviyo_public_id: campaignStore.klaviyo_integration?.public_id
+        } : null
+    })
+    
+    console.log('🔍 Full campaign data structure:', JSON.stringify(campaign, null, 2))
+    console.log('🔍 Full data structure:', JSON.stringify(data, null, 2))
+
+    // Format numbers
+    const formatNumber = (num) => {
+        if (num === null || num === undefined) return '0'
+        return new Intl.NumberFormat().format(num)
+    }
+
+    const formatPercentage = (num) => {
+        if (num === null || num === undefined) return '0%'
+        if (num === 0) return '0%'
+        // If the number is already a percentage (e.g., 23 for 23%)
+        if (num > 1) {
+            return `${num.toFixed(1)}%`
+        }
+        // If the number is a decimal (e.g., 0.23 for 23%)
+        return `${(num * 100).toFixed(1)}%`
+    }
+
+    const formatCurrency = (num) => {
+        if (num === null || num === undefined) return '$0.00'
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(num)
+    }
+
+    const formatDate = (date) => {
+        if (!date) return 'N/A'
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    }
+
+    // Calculate delivery health score
+    const calculateDeliveryScore = () => {
+        const deliveryRate = data.deliveryRate || 0
+        const bounceRate = data.bounceRate || 0
+        const spamRate = data.spamComplaintRate || 0
+        const unsubRate = data.unsubscribeRate || 0
+        const isSMS = data.type === 'sms' || data.channel === 'sms'
+        
+        let score = 100
+        
+        // Deduct points based on metrics
+        if (deliveryRate < 95) score -= 20
+        
+        // For SMS, bounces are less common but more severe when they happen
+        if (isSMS) {
+            if (bounceRate > 1) score -= 35  // SMS bounce threshold is lower
+        } else {
+            if (bounceRate > 5) score -= 25  // Email bounce threshold
+        }
+        
+        if (spamRate > 0.1) score -= 30
+        if (unsubRate > 2) score -= 15
+        
+        return Math.max(0, score)
+    }
+
+    const deliveryScore = calculateDeliveryScore()
+    
+    const getScoreColor = (score) => {
+        if (score >= 90) return 'text-green-600'
+        if (score >= 75) return 'text-blue-600'
+        if (score >= 60) return 'text-yellow-600'
+        return 'text-red-600'
     }
     
-    // Otherwise, it's just IDs (future campaigns), so resolve from cache
-    const audiences = audienceCache[klaviyoPublicId];
-    if (!audiences) return audienceData.map(id => ({ id, name: id, type: 'unknown' }));
-    
-    return audienceData.map(id => {
-      const segment = audiences.segments?.find(s => s.id === id);
-      if (segment) return { id, name: segment.name, type: 'segment' };
-      
-      const list = audiences.lists?.find(l => l.id === id);
-      if (list) return { id, name: list.name, type: 'list' };
-      
-      return { id, name: id, type: 'unknown' };
-    });
-  };
+    const getScoreLabel = (score) => {
+        if (score >= 90) return 'Excellent'
+        if (score >= 75) return 'Good'
+        if (score >= 60) return 'Fair'
+        return 'Needs Improvement'
+    }
 
-  const isFutureCampaign = selectedCampaign?.isScheduled || 
-                           selectedCampaign?.status === 'Draft' || 
-                           selectedCampaign?.status === 'Scheduled' || 
-                           selectedCampaign?.status === 'Queued without Recipients';
-
-  return (
-    <Dialog 
-      open={true} 
-      onOpenChange={onClose}
-      onEscapeKeyDown={onClose}
-    >
-      <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-gray-50 dark:bg-gray-900 flex flex-col">
-        <DialogHeader className="sr-only">
-          <DialogTitle>Campaign Details</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-1 min-h-0">
-          {/* Email Preview Panel - Left Side */}
-          <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
-            <div className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                {/* Back Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => {
-                    onClose();
-                    // If we came from the day modal, re-open it
-                    if (navigationSource === 'dayModal' && onBackToDay) {
-                      onBackToDay();
-                    }
-                  }}
-                  title={navigationSource === 'dayModal' ? "Back to day view" : "Back to calendar"}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {selectedCampaign?.channel === 'email' && <Mail className="h-4 w-4 text-sky-blue" />}
-                {selectedCampaign?.channel === 'sms' && <MessageSquare className="h-4 w-4 text-green-600" />}
-                {selectedCampaign?.channel === 'push-notification' && <Bell className="h-4 w-4 text-vivid-violet" />}
-                <h3 className="text-sm font-semibold text-slate-gray dark:text-white">
-                  {selectedCampaign?.name}
-                </h3>
-                <Badge className="text-xs bg-gradient-to-r from-sky-blue to-vivid-violet text-white border-0">
-                  {selectedCampaign?.channel?.toUpperCase()}
-                </Badge>
-                <span className="text-xs text-neutral-gray dark:text-gray-400 ml-auto">
-                  {selectedCampaign?.date && (() => {
-                    const date = new Date(selectedCampaign.date);
-                    const day = getDate(date);
-                    const suffix = day === 1 || day === 21 || day === 31 ? 'st' : 
-                                  day === 2 || day === 22 ? 'nd' : 
-                                  day === 3 || day === 23 ? 'rd' : 'th';
-                    const isFuture = selectedCampaign.isScheduled || selectedCampaign.status === 'Draft' || selectedCampaign.status === 'Scheduled';
-                    const label = isFuture ? 'Scheduled For' : 'Sent At';
-                    return `${label}: ${format(date, `d'${suffix}' MMMM yy HH:mm`)}`;
-                  })()}
-                </span>
-              </div>
-              <p className="text-xs text-neutral-gray mt-1">
-                {selectedCampaign.subject || 'No subject'}
-              </p>
-            </div>
-            <div className="flex-1 min-h-0 overflow-hidden bg-gray-100 dark:bg-gray-950">
-              <EmailPreviewPanel 
-                messageId={selectedCampaign.messageId} 
-                storeId={selectedCampaign.klaviyo_public_id || store?.klaviyo_integration?.public_id || selectedCampaign.storeIds?.[0]}
-              />
-            </div>
-          </div>
-
-          {/* Stats Panel or Audience Info - Right Side */}
-          <div className="w-1/2 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
-            {isFutureCampaign ? (
-              /* Future Campaign - Show Audience Info */
-              <div className="flex flex-col h-full">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold text-slate-gray dark:text-white flex items-center gap-2">
-                    <Users className="h-5 w-5 text-sky-blue" />
-                    Campaign Audience
-                  </h3>
-                  <p className="text-sm text-neutral-gray mt-1">
-                    Segments and lists targeted for this campaign
-                  </p>
+    // Metric Card Component
+    const MetricCard = ({ icon: Icon, label, value, subValue, trend, color = "text-gray-900" }) => (
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <Icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
                 </div>
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div className="space-y-6">
-                    {/* Campaign Information */}
-                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <Package className="h-4 w-4 text-sky-blue" />
-                        Campaign Information
-                      </h4>
-                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Campaign Name</span>
-                            <span className="font-medium text-gray-900 dark:text-white">
-                              {selectedCampaign?.name}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Status</span>
-                            <Badge className={cn(
-                              "text-xs",
-                              selectedCampaign?.status === 'scheduled' || selectedCampaign?.isScheduled
-                                ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0"
-                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                            )}>
-                              {selectedCampaign?.isScheduled ? 'Scheduled' : selectedCampaign?.status || 'Unknown'}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Scheduled Date</span>
-                            <span className="font-medium text-gray-900 dark:text-white">
-                              {selectedCampaign?.date ? format(new Date(selectedCampaign.date), 'MMM d, yyyy h:mm a') : 'Not scheduled'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                {trend && (
+                    <div className={`flex items-center gap-1 text-xs ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {trend > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                        {Math.abs(trend)}%
                     </div>
-
-                    {/* Included Audiences */}
-                    <div className="bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        Included Audiences
-                      </h4>
-                      <div className="space-y-2">
-                        {selectedCampaign?.audiences?.included?.length > 0 ? (
-                          resolveAudienceNames(
-                            selectedCampaign.audiences.included,
-                            selectedCampaign.klaviyo_public_id
-                          ).map((audience, index) => (
-                            <div key={index} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-lg p-3 border border-green-200 dark:border-green-800">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Users className="h-4 w-4 text-sky-blue" />
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                      {audience.name}
-                                    </span>
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      {audience.type === 'segment' ? 'Segment' : audience.type === 'list' ? 'List' : 'ID'} • {audience.id}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge 
-                                    className={cn(
-                                      "text-xs border-0",
-                                      audience.type === 'segment' 
-                                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white" 
-                                        : audience.type === 'list'
-                                        ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
-                                        : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                    )}
-                                  >
-                                    {audience.type === 'segment' ? 'Segment' : audience.type === 'list' ? 'List' : 'Unknown'}
-                                  </Badge>
-                                  <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 border-0">
-                                    Included
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                            No audiences selected
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Excluded Audiences */}
-                    {selectedCampaign?.audiences?.excluded?.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                          <XCircle className="h-4 w-4 text-red-600" />
-                          Excluded Audiences
-                        </h4>
-                        <div className="space-y-2">
-                          {resolveAudienceNames(
-                            selectedCampaign.audiences.excluded,
-                            selectedCampaign.klaviyo_public_id
-                          ).map((audience, index) => (
-                            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-red-200 dark:border-red-900/30">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Users className="h-4 w-4 text-red-600" />
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                      {audience.name}
-                                    </span>
-                                    {audience.type !== 'unknown' && (
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        {audience.type === 'segment' ? 'Segment' : 'List'} • {audience.id}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge 
-                                    variant={audience.type === 'segment' ? 'default' : 'secondary'}
-                                    className="text-xs"
-                                  >
-                                    {audience.type === 'segment' ? 'Segment' : audience.type === 'list' ? 'List' : 'Unknown'}
-                                  </Badge>
-                                  <Badge variant="destructive" className="text-xs">
-                                    Excluded
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Campaign Settings */}
-                    <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <Settings className="h-4 w-4 text-gray-600" />
-                        Campaign Settings
-                      </h4>
-                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Channel</span>
-                          <span className="font-medium text-gray-900 dark:text-white capitalize">
-                            {selectedCampaign?.channel || 'email'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">From Address</span>
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {selectedCampaign?.fromAddress ? (
-                              selectedCampaign.fromLabel ? 
-                                `${selectedCampaign.fromLabel} <${selectedCampaign.fromAddress}>` : 
-                                selectedCampaign.fromAddress
-                            ) : 'Not specified'}
-                          </span>
-                        </div>
-                        {selectedCampaign?.tags?.length > 0 && (
-                          <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                            <span className="text-xs text-gray-600 dark:text-gray-400 block mb-2">Tags</span>
-                            <div className="flex flex-wrap gap-1">
-                              {selectedCampaign.tags.map((tag, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Past Campaign - Show Stats */
-              <Tabs defaultValue="overview" className="flex flex-col h-full">
-                <TabsList className="w-full px-6 py-3 bg-transparent border-b border-gray-200 dark:border-gray-700 flex justify-start gap-8 rounded-none flex-shrink-0">
-                  <TabsTrigger 
-                    value="overview" 
-                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:text-sky-blue dark:data-[state=active]:text-sky-blue data-[state=active]:border-sky-blue dark:data-[state=active]:border-sky-blue hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    Overview
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="performance" 
-                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:text-sky-blue dark:data-[state=active]:text-sky-blue data-[state=active]:border-sky-blue dark:data-[state=active]:border-sky-blue hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                  >
-                    <DollarSign className="h-4 w-4" />
-                    Performance
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="engagement" 
-                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:text-sky-blue dark:data-[state=active]:text-sky-blue data-[state=active]:border-sky-blue dark:data-[state=active]:border-sky-blue hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                    Engagement
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Overview Tab */}
-                <TabsContent value="overview" className="flex-1 overflow-y-auto p-4 min-h-0">
-                  <div className="space-y-3">
-                    {/* Primary Performance Metrics */}
-                    <div className="bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 rounded-lg p-4 border border-sky-blue/30 dark:border-gray-700">
-                      <h3 className="text-sm font-semibold text-slate-gray dark:text-white mb-3 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-sky-blue" />
-                        Campaign Performance
-                      </h3>
-                      <div className="grid grid-cols-3 gap-3">
-                        {/* Recipients */}
-                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-neutral-gray">Recipients</span>
-                            <Users className="h-3.5 w-3.5 text-sky-blue" />
-                          </div>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            {(selectedCampaign.performance?.recipients || 0).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-neutral-gray mt-1">
-                            {((selectedCampaign.performance?.delivered || selectedCampaign.performance?.recipients || 0) / (selectedCampaign.performance?.recipients || 1) * 100).toFixed(0)}% delivered
-                          </p>
-                        </div>
-
-                        {/* Open Rate */}
-                        {selectedCampaign?.channel !== 'sms' && (
-                          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-neutral-gray">Open Rate</span>
-                              <Eye className="h-3.5 w-3.5 text-green-600" />
-                            </div>
-                            <p className="text-xl font-bold text-slate-gray dark:text-white">
-                              {((selectedCampaign.performance?.openRate || 0) * 100).toFixed(1)}%
-                            </p>
-                            <p className="text-xs text-neutral-gray mt-1">
-                              {(selectedCampaign.performance?.opensUnique || 0).toLocaleString()} opens
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Click Rate */}
-                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-neutral-gray">Click Rate</span>
-                            <MousePointer className="h-3.5 w-3.5 text-vivid-violet" />
-                          </div>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            {((selectedCampaign.performance?.clickRate || 0) * 100).toFixed(1)}%
-                          </p>
-                          <p className="text-xs text-neutral-gray mt-1">
-                            {(selectedCampaign.performance?.clicksUnique || 0).toLocaleString()} clicks
-                          </p>
-                        </div>
-
-                        {/* CTOR - Click to Open Rate */}
-                        {selectedCampaign?.channel !== 'sms' && selectedCampaign.performance?.opensUnique > 0 && (
-                          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-neutral-gray">CTOR</span>
-                              <Zap className="h-3.5 w-3.5 text-purple-600" />
-                            </div>
-                            <p className="text-xl font-bold text-slate-gray dark:text-white">
-                              {((selectedCampaign.performance?.clicksUnique || 0) / (selectedCampaign.performance?.opensUnique || 1) * 100).toFixed(1)}%
-                            </p>
-                            <p className="text-xs text-neutral-gray mt-1">
-                              Click-to-open
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Conversion Rate */}
-                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-neutral-gray">Conv. Rate</span>
-                            <ShoppingCart className="h-3.5 w-3.5 text-orange-600" />
-                          </div>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            {((selectedCampaign.performance?.conversionRate || 0) * 100).toFixed(2)}%
-                          </p>
-                          <p className="text-xs text-neutral-gray mt-1">
-                            {selectedCampaign.performance?.conversions || 0} orders
-                          </p>
-                        </div>
-
-                        {/* Placeholder for SMS to balance grid */}
-                        {selectedCampaign?.channel === 'sms' && (
-                          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-neutral-gray">Delivered</span>
-                              <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                            </div>
-                            <p className="text-xl font-bold text-slate-gray dark:text-white">
-                              {(selectedCampaign.performance?.delivered || 0).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-neutral-gray mt-1">
-                              Messages sent
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Revenue Metrics */}
-                    <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-gray-800 dark:to-gray-800 rounded-lg p-4 border border-emerald-500/30 dark:border-gray-700">
-                      <h3 className="text-sm font-semibold text-slate-gray dark:text-white mb-3 flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-emerald-600" />
-                        Revenue Metrics
-                      </h3>
-                      <div className="grid grid-cols-4 gap-3">
-                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                          <span className="text-xs text-neutral-gray block mb-1">Total Revenue</span>
-                          <p className="text-lg font-bold text-emerald-600">
-                            ${(selectedCampaign.performance?.revenue || 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                          <span className="text-xs text-neutral-gray block mb-1">AOV</span>
-                          <p className="text-lg font-bold text-slate-gray dark:text-white">
-                            ${selectedCampaign.performance?.averageOrderValue?.toFixed(2) || 
-                              (selectedCampaign.performance?.conversions > 0 
-                                ? (selectedCampaign.performance.revenue / selectedCampaign.performance.conversions).toFixed(2)
-                                : '0.00')}
-                          </p>
-                        </div>
-                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                          <span className="text-xs text-neutral-gray block mb-1">Rev/Recipient</span>
-                          <p className="text-lg font-bold text-slate-gray dark:text-white">
-                            ${selectedCampaign.performance?.revenuePerRecipient?.toFixed(2) ||
-                              (selectedCampaign.performance?.recipients > 0 
-                                ? (selectedCampaign.performance.revenue / selectedCampaign.performance.recipients).toFixed(2)
-                                : '0.00')}
-                          </p>
-                        </div>
-                        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg p-3">
-                          <span className="text-xs text-neutral-gray block mb-1">Total Orders</span>
-                          <p className="text-lg font-bold text-slate-gray dark:text-white">
-                            {(selectedCampaign.performance?.conversions || 0).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Audiences Section */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                      <h3 className="text-sm font-semibold text-slate-gray dark:text-white mb-3 flex items-center gap-2">
-                        <Users className="h-4 w-4 text-sky-blue" />
-                        Target Audiences
-                      </h3>
-                      
-                      {/* Included Audiences */}
-                      {selectedCampaign?.audiences?.included?.length > 0 && (
-                        <div className="mb-3">
-                          <span className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1 mb-2">
-                            <CheckCircle className="h-3 w-3" />
-                            INCLUDED
-                          </span>
-                          <div className="space-y-1.5">
-                            {resolveAudienceNames(
-                              selectedCampaign.audiences.included,
-                              selectedCampaign.klaviyo_public_id
-                            ).map((audience, index) => (
-                              <div key={index} className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                <Badge 
-                                  className={cn(
-                                    "text-xs border-0",
-                                    audience.type === 'segment' 
-                                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" 
-                                      : audience.type === 'list'
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                                      : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                  )}
-                                >
-                                  {audience.type === 'segment' ? 'Segment' : audience.type === 'list' ? 'List' : 'Unknown'}
-                                </Badge>
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">{audience.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Excluded Audiences */}
-                      {selectedCampaign?.audiences?.excluded?.length > 0 && (
-                        <div>
-                          <span className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1 mb-2">
-                            <XCircle className="h-3 w-3" />
-                            EXCLUDED
-                          </span>
-                          <div className="space-y-1.5">
-                            {resolveAudienceNames(
-                              selectedCampaign.audiences.excluded,
-                              selectedCampaign.klaviyo_public_id
-                            ).map((audience, index) => (
-                              <div key={index} className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                <Badge 
-                                  className={cn(
-                                    "text-xs border-0",
-                                    audience.type === 'segment' 
-                                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" 
-                                      : audience.type === 'list'
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                                      : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                  )}
-                                >
-                                  {audience.type === 'segment' ? 'Segment' : audience.type === 'list' ? 'List' : 'Unknown'}
-                                </Badge>
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">{audience.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {(!selectedCampaign?.audiences?.included?.length && !selectedCampaign?.audiences?.excluded?.length) && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                          No audience information available
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Delivery Performance */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Activity className="h-4 w-4 text-sky-blue" />
-                        <h3 className="text-sm font-semibold text-slate-gray dark:text-white">Delivery Performance</h3>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-neutral-gray">Delivery Rate</span>
-                          <span className="font-semibold text-slate-gray dark:text-white">
-                            {((((selectedCampaign.performance?.delivered || selectedCampaign.performance?.recipients || 0) / (selectedCampaign.performance?.recipients || 1))) * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={((selectedCampaign.performance?.delivered || selectedCampaign.performance?.recipients || 0) / (selectedCampaign.performance?.recipients || 1)) * 100}
-                          className="h-1.5"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-4 gap-2">
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-red-600">
-                            {(selectedCampaign.performance?.bounced || 0).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-neutral-gray">Bounced</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-orange-600">
-                            {(selectedCampaign.performance?.failed || 0).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-neutral-gray">Failed</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-yellow-600">
-                            {(selectedCampaign.performance?.unsubscribes || 0).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-neutral-gray">Unsubs</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-gray-600">
-                            {(selectedCampaign.performance?.spamComplaints || 0).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-neutral-gray">Spam</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Engagement Score */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Zap className="h-4 w-4 text-vivid-violet" />
-                        <h3 className="text-sm font-semibold text-slate-gray dark:text-white">Engagement Score</h3>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="ml-auto">
-                              <Info className="h-3.5 w-3.5 text-gray-400 hover:text-sky-blue transition-colors" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg">
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              <p className="font-semibold mb-1">Engagement Score Calculation:</p>
-                              <ul className="space-y-1">
-                                <li>• Open Rate: 40% weight</li>
-                                <li>• Click Rate: 30% weight</li>
-                                <li>• Conversion Rate: 30% weight</li>
-                              </ul>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      
-                      {(() => {
-                        const openScore = (selectedCampaign.performance?.openRate || 0) * 0.4;
-                        const clickScore = (selectedCampaign.performance?.clickRate || 0) * 0.3;
-                        const conversionScore = (selectedCampaign.performance?.conversionRate || 0) * 0.3;
-                        const totalScore = (openScore + clickScore + conversionScore) * 100;
-                        
-                        return (
-                          <>
-                            <div className="mb-3">
-                              <div className="flex justify-between text-xs mb-1">
-                                <span className="text-neutral-gray">Overall Score</span>
-                                <span className={cn(
-                                  "font-semibold",
-                                  totalScore >= 15 ? "text-green-600" : 
-                                  totalScore >= 8 ? "text-yellow-600" : "text-red-600"
-                                )}>
-                                  {totalScore.toFixed(1)}%
-                                </span>
-                              </div>
-                              <Progress
-                                value={Math.min(totalScore, 100)}
-                                className={cn(
-                                  "h-2",
-                                  totalScore >= 15 ? "[&>div]:bg-green-600" : 
-                                  totalScore >= 8 ? "[&>div]:bg-yellow-600" : "[&>div]:bg-red-600"
-                                )}
-                              />
-                            </div>
-                            
-                            <div className="text-xs text-center">
-                              <Badge 
-                                variant={totalScore >= 15 ? "success" : totalScore >= 8 ? "warning" : "destructive"}
-                                className="text-xs"
-                              >
-                                {totalScore >= 15 ? "Excellent" : totalScore >= 8 ? "Good" : "Needs Improvement"}
-                              </Badge>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* Performance Tab */}
-                <TabsContent value="performance" className="flex-1 overflow-y-auto p-4 min-h-0">
-                  <div className="space-y-4">
-                    {/* Revenue Metrics */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-4">
-                        <ShoppingCart className="h-4 w-4 text-emerald-600" />
-                        <h3 className="text-sm font-semibold text-slate-gray dark:text-white">Revenue Metrics</h3>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Total Revenue</p>
-                          <p className="text-2xl font-bold text-emerald-600">
-                            ${(selectedCampaign.performance?.revenue || 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Total Orders</p>
-                          <p className="text-2xl font-bold text-slate-gray dark:text-white">
-                            {(selectedCampaign.performance?.conversions || 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Avg Order Value</p>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            ${(selectedCampaign.performance?.conversions > 0 
-                              ? (selectedCampaign.performance.revenue / selectedCampaign.performance.conversions).toFixed(2)
-                              : 0)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Revenue per Recipient</p>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            ${(selectedCampaign.performance?.recipients > 0 
-                              ? (selectedCampaign.performance.revenue / selectedCampaign.performance.recipients).toFixed(2)
-                              : 0)}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <div className="flex justify-between text-xs mb-2">
-                          <span className="text-neutral-gray">Conversion Rate</span>
-                          <span className="font-semibold text-slate-gray dark:text-white">
-                            {((selectedCampaign.performance?.conversionRate || 0) * 100).toFixed(2)}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={(selectedCampaign.performance?.conversionRate || 0) * 100}
-                          className="h-2 [&>div]:bg-emerald-600"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Conversion Funnel */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Target className="h-4 w-4 text-sky-blue" />
-                        <h3 className="text-sm font-semibold text-slate-gray dark:text-white">Conversion Funnel</h3>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {[
-                          { 
-                            label: 'Delivered', 
-                            value: selectedCampaign.performance?.delivered || selectedCampaign.performance?.recipients || 0,
-                            percent: 100
-                          },
-                          { 
-                            label: 'Opened', 
-                            value: selectedCampaign.performance?.opensUnique || 0,
-                            percent: ((selectedCampaign.performance?.openRate || 0) * 100)
-                          },
-                          { 
-                            label: 'Clicked', 
-                            value: selectedCampaign.performance?.clicksUnique || 0,
-                            percent: ((selectedCampaign.performance?.clickRate || 0) * 100)
-                          },
-                          { 
-                            label: 'Converted', 
-                            value: selectedCampaign.performance?.conversions || 0,
-                            percent: ((selectedCampaign.performance?.conversionRate || 0) * 100)
-                          }
-                        ].map((stage, index) => (
-                          <div key={index} className="relative">
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-neutral-gray">{stage.label}</span>
-                              <span className="font-semibold text-slate-gray dark:text-white">
-                                {stage.value.toLocaleString()} ({stage.percent.toFixed(1)}%)
-                              </span>
-                            </div>
-                            <Progress
-                              value={stage.percent}
-                              className="h-6"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* Engagement Tab */}
-                <TabsContent value="engagement" className="flex-1 overflow-y-auto p-4 min-h-0">
-                  <div className="space-y-4">
-                    {/* Click Performance */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-4">
-                        <MousePointer className="h-4 w-4 text-vivid-violet" />
-                        <h3 className="text-sm font-semibold text-slate-gray dark:text-white">Click Performance</h3>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Total Clicks</p>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            {(selectedCampaign.performance?.clicksTotal || 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Unique Clicks</p>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            {(selectedCampaign.performance?.clicksUnique || 0).toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Click Rate</p>
-                          <p className="text-xl font-bold text-vivid-violet">
-                            {((selectedCampaign.performance?.clickRate || 0) * 100).toFixed(1)}%
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-neutral-gray mb-1">Click-to-Open Rate</p>
-                          <p className="text-xl font-bold text-slate-gray dark:text-white">
-                            {selectedCampaign.performance?.opensUnique > 0 
-                              ? ((selectedCampaign.performance.clicksUnique / selectedCampaign.performance.opensUnique) * 100).toFixed(1)
-                              : 0}%
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Additional Metrics */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center gap-2 mb-4">
-                        <AlertCircle className="h-4 w-4 text-gray-600" />
-                        <h3 className="text-sm font-semibold text-slate-gray dark:text-white">Additional Metrics</h3>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-xs">
-                        <div>
-                          <p className="text-neutral-gray mb-1">Unsubscribe Rate</p>
-                          <p className="text-lg font-bold text-yellow-600">
-                            {selectedCampaign.performance?.recipients > 0 
-                              ? ((selectedCampaign.performance?.unsubscribes / selectedCampaign.performance.recipients) * 100).toFixed(2)
-                              : 0}%
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-neutral-gray mb-1">Spam Complaint Rate</p>
-                          <p className="text-lg font-bold text-red-600">
-                            {selectedCampaign.performance?.recipients > 0 
-                              ? ((selectedCampaign.performance?.spamComplaints / selectedCampaign.performance.recipients) * 100).toFixed(3)
-                              : 0}%
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            )}
-          </div>
+                )}
+            </div>
+            <div className={`text-2xl font-bold ${color} dark:text-white`}>{value}</div>
+            {subValue && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subValue}</div>}
         </div>
-      </DialogContent>
-    </Dialog>
-  );
+    )
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-7xl h-[90vh] p-0 overflow-hidden">
+                <DialogTitle className="sr-only">Campaign Deliverability Details</DialogTitle>
+                <DialogDescription className="sr-only">
+                    View detailed deliverability statistics and performance metrics for this campaign
+                </DialogDescription>
+                
+                <div className="flex h-full overflow-hidden">
+                    {/* Left Column - Email Preview with Overlay */}
+                    <div className="w-1/2 border-r dark:border-gray-700 overflow-hidden relative">
+                        {/* Full Height Email Preview with Bottom Padding */}
+                        <div className="h-full overflow-hidden">
+                            <div className="h-full overflow-y-auto">
+                                <div className="pb-40"> {/* Add padding bottom to allow scrolling past overlay */}
+                                    {(() => {
+                                        const messageId = data.message_id || data.messageId || data.groupings?.campaign_message_id;
+                                        const storeId = campaignStore?.klaviyo_integration?.public_id || campaignStore?.public_id;
+                                        
+                                        console.log('🔍 Preview panel debug:', {
+                                            messageId,
+                                            storeId,
+                                            campaignStore: campaignStore ? {
+                                                name: campaignStore.name,
+                                                public_id: campaignStore.public_id,
+                                                klaviyo_public_id: campaignStore.klaviyo_integration?.public_id
+                                            } : null,
+                                            dataKeys: Object.keys(data),
+                                            hasGroupings: !!data.groupings,
+                                            klaviyo_public_id: data.klaviyo_public_id,
+                                            store_public_id: data.store_public_id,
+                                            data_message_id: data.message_id,
+                                            data_groupings: data.groupings,
+                                            full_data_sample: {
+                                                ...data,
+                                                // Limit to first few keys to avoid console spam
+                                                ...(Object.keys(data).length > 10 ? { truncated: '...more keys' } : {})
+                                            }
+                                        });
+                                        
+                                        console.log('🔍 Raw data for message ID extraction:')
+                                        console.log('data.message_id:', data.message_id)
+                                        console.log('data.messageId (camelCase):', data.messageId)
+                                        console.log('data.groupings:', data.groupings)
+                                        console.log('data.groupings?.campaign_message_id:', data.groupings?.campaign_message_id)
+                                        console.log('Final messageId used:', messageId)
+                                        
+                                        if (messageId && storeId) {
+                                            return (
+                                                <EmailPreviewPanel 
+                                                    messageId={messageId}
+                                                    storeId={storeId}
+                                                />
+                                            );
+                                        }
+                                        
+                                        return (
+                                            <div className="flex items-center justify-center h-full text-gray-500">
+                                                <div className="text-center">
+                                                    <Mail className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                                                    <p>No preview available</p>
+                                                    {!campaignStore && <p className="text-xs mt-2">Store not found</p>}
+                                                    {!messageId && <p className="text-xs mt-2">No message ID: {JSON.stringify({
+                                                        message_id: data.message_id,
+                                                        groupings_message_id: data.groupings?.campaign_message_id
+                                                    })}</p>}
+                                                    {!storeId && campaignStore && <p className="text-xs mt-2">No store ID: {JSON.stringify({
+                                                        store_public_id: campaignStore.public_id,
+                                                        klaviyo_public_id: campaignStore.klaviyo_integration?.public_id
+                                                    })}</p>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Back Button - Only show if coming from day modal */}
+                        {campaign?.navigationSource === 'dayModal' && onBackToDay && (
+                            <div className="absolute top-4 left-4 z-10">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        onClose();
+                                        onBackToDay();
+                                    }}
+                                    className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600"
+                                >
+                                    <ArrowLeft className="h-4 w-4 mr-2" />
+                                    Back to Day View
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Sticky Campaign Info Overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 p-6">
+                            <div className="bg-white dark:bg-gray-800 backdrop-blur-md rounded-lg p-4 border border-gray-200 dark:border-gray-600 shadow-lg">
+                                <div>
+                                    <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">
+                                        {data.campaign_name || data.name || 'Untitled Campaign'}
+                                    </h2>
+                                    <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-200">
+                                        <div className="flex items-center gap-1">
+                                            <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                                            <span>{formatDate(data.send_date || data.date)}</span>
+                                        </div>
+                                        <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700">
+                                            {data.type === 'sms' || data.channel === 'sms' ? (
+                                                <><MessageSquare className="w-3 h-3 mr-1" /> SMS</>
+                                            ) : (
+                                                <><Mail className="w-3 h-3 mr-1" /> Email</>
+                                            )}
+                                        </Badge>
+                                        <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700">
+                                            {formatNumber(data.recipients)} Recipients
+                                        </Badge>
+                                    </div>
+                                    
+                                    {/* Tags and Audiences */}
+                                    {(data.tagNames?.length > 0 || data.includedAudiences?.length > 0) && (
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            {data.tagNames?.map(tag => (
+                                                <Badge key={tag} variant="secondary" className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600">
+                                                    <Tag className="w-3 h-3 mr-1" />
+                                                    {tag}
+                                                </Badge>
+                                            ))}
+                                            {data.includedAudiences?.map(audience => (
+                                                <Badge key={audience.id || audience.name} variant="outline" className="text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700">
+                                                    <Target className="w-3 h-3 mr-1" />
+                                                    {audience.name}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Right Column - Tab Content with Header */}
+                    <div className="w-1/2 flex flex-col overflow-hidden">
+                        {/* Elegant Tab Header */}
+                        <div className="border-b dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                                <TabsList className="grid w-full grid-cols-2 bg-transparent border-0 rounded-none h-14">
+                                    <TabsTrigger 
+                                        value="overview" 
+                                        className="flex items-center gap-3 px-6 py-4 text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm rounded-none border-0 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
+                                    >
+                                        <BarChart3 className="w-5 h-5" />
+                                        Overview
+                                    </TabsTrigger>
+                                    <TabsTrigger 
+                                        value="deliverability" 
+                                        className="flex items-center gap-3 px-6 py-4 text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm rounded-none border-0 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
+                                    >
+                                        <Mail className="w-5 h-5" />
+                                        Deliverability
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                        
+                        {/* Tab Content */}
+                        <div className="flex-1 overflow-hidden">
+                            {/* Deliverability Tab */}
+                            {activeTab === 'deliverability' && (
+                                <div className="h-full overflow-y-auto">
+                                    <div className="p-4">
+                                        {data.type === 'sms' || data.channel === 'sms' ? (
+                                            /* SMS-focused deliverability */
+                                            <div className="space-y-4">
+                                                {/* SMS Delivery Status */}
+                                                <Card>
+                                                    <CardHeader className="pb-3">
+                                                        <CardTitle className="text-base flex items-center gap-2">
+                                                            <MessageSquare className="w-4 h-4" />
+                                                            SMS Delivery Status
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="grid grid-cols-4 gap-3">
+                                                            <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sent</div>
+                                                                <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.recipients || 0)}</div>
+                                                            </div>
+                                                            <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Delivered</div>
+                                                                <div className="text-xl font-bold text-green-600">{formatNumber(data.delivered || data.recipients || 0)}</div>
+                                                                <div className="text-xs text-green-600">{formatPercentage(data.deliveryRate || 100)}</div>
+                                                            </div>
+                                                            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Failed</div>
+                                                                <div className="text-xl font-bold text-red-600">{formatNumber(data.failed || data.bounced || 0)}</div>
+                                                                <div className="text-xs text-red-600">{formatPercentage(data.failedRate || data.bounceRate || 0)}</div>
+                                                            </div>
+                                                            <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Opt-outs</div>
+                                                                <div className="text-xl font-bold text-blue-600">{formatNumber(data.unsubscribed || 0)}</div>
+                                                                <div className="text-xs text-blue-600">{formatPercentage(data.unsubscribeRate || 0)}</div>
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* SMS Health & Best Practices */}
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                    {/* SMS Health Score */}
+                                                    <Card>
+                                                        <CardHeader className="pb-3">
+                                                            <CardTitle className="text-base flex items-center gap-2">
+                                                                <Activity className="w-4 h-4" />
+                                                                SMS Health Score
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <div className="text-3xl font-bold text-green-600">
+                                                                    {Math.max(90, 100 - (data.failedRate || 0) * 10)}/100
+                                                                </div>
+                                                                <Badge className="bg-green-100 text-green-800">Excellent</Badge>
+                                                            </div>
+                                                            <div className="space-y-2 text-sm">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-600 dark:text-gray-400">Delivery Rate</span>
+                                                                    <span className="text-green-600 font-medium">{formatPercentage(data.deliveryRate || 100)}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-600 dark:text-gray-400">Opt-out Rate</span>
+                                                                    <span className="text-blue-600 font-medium">{formatPercentage(data.unsubscribeRate || 0)}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-600 dark:text-gray-400">Failed Rate</span>
+                                                                    <span className="text-red-600 font-medium">{formatPercentage(data.failedRate || data.bounceRate || 0)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+
+                                                    {/* SMS Best Practices */}
+                                                    <Card>
+                                                        <CardHeader className="pb-3">
+                                                            <CardTitle className="text-base flex items-center gap-2">
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                SMS Best Practices
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
+                                                                    <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                                    <span className="text-green-700 dark:text-green-300">Message under 160 characters</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
+                                                                    <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                                    <span className="text-green-700 dark:text-green-300">Clear opt-out instructions</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
+                                                                    <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                                    <span className="text-green-700 dark:text-green-300">Proper sender identification</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
+                                                                    <AlertCircle className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                                                    <span className="text-blue-700 dark:text-blue-300">Monitor opt-out rates</span>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            /* Email-focused deliverability (compact) */
+                                            <div className="space-y-4">
+                                                {/* Email Delivery Overview */}
+                                                <Card>
+                                                    <CardHeader className="pb-3">
+                                                        <CardTitle className="text-base flex items-center gap-2">
+                                                            <Mail className="w-4 h-4" />
+                                                            Email Delivery Overview
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="grid grid-cols-4 gap-3">
+                                                            <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Recipients</div>
+                                                                <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(data.recipients)}</div>
+                                                            </div>
+                                                            <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Delivered</div>
+                                                                <div className="text-lg font-bold text-green-600">{formatNumber(data.delivered)}</div>
+                                                                <div className="text-xs text-green-600">{formatPercentage(data.deliveryRate)}</div>
+                                                            </div>
+                                                            <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Bounced</div>
+                                                                <div className="text-lg font-bold text-red-600">{formatNumber(data.bounced)}</div>
+                                                                <div className="text-xs text-red-600">{formatPercentage(data.bounceRate)}</div>
+                                                            </div>
+                                                            <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                                                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Spam</div>
+                                                                <div className="text-lg font-bold text-yellow-600">{formatNumber(data.spamReports || 0)}</div>
+                                                                <div className="text-xs text-yellow-600">{formatPercentage(data.spamComplaintRate || 0)}</div>
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+
+                                                {/* Email Health & Quick Stats */}
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                    {/* Email Health Score */}
+                                                    <Card>
+                                                        <CardHeader className="pb-3">
+                                                            <CardTitle className="text-base flex items-center gap-2">
+                                                                <Activity className="w-4 h-4" />
+                                                                Email Health Score
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <div className={`text-3xl font-bold ${getScoreColor(deliveryScore)}`}>
+                                                                    {deliveryScore}/100
+                                                                </div>
+                                                                <Badge 
+                                                                    variant={deliveryScore >= 90 ? "default" : deliveryScore >= 75 ? "secondary" : "destructive"}
+                                                                    className={deliveryScore >= 90 ? "bg-green-100 text-green-700" : ""}
+                                                                >
+                                                                    {getScoreLabel(deliveryScore)}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="space-y-2 text-sm">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-600 dark:text-gray-400">Bounce Rate</span>
+                                                                    <span className={data.bounceRate < 2 ? "text-green-600" : "text-red-600"}>{formatPercentage(data.bounceRate)}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-600 dark:text-gray-400">Spam Rate</span>
+                                                                    <span className={data.spamComplaintRate < 0.1 ? "text-green-600" : "text-red-600"}>{formatPercentage(data.spamComplaintRate)}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-600 dark:text-gray-400">Unsubscribe Rate</span>
+                                                                    <span className={data.unsubscribeRate < 0.5 ? "text-green-600" : "text-yellow-600"}>{formatPercentage(data.unsubscribeRate)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+
+                                                    {/* Quick Health Tips */}
+                                                    <Card>
+                                                        <CardHeader className="pb-3">
+                                                            <CardTitle className="text-base flex items-center gap-2">
+                                                                <CheckCircle className="w-4 h-4" />
+                                                                Health Tips
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="space-y-2">
+                                                                {data.bounceRate < 2 && (
+                                                                    <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
+                                                                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                                        <span className="text-green-700 dark:text-green-300">Excellent bounce rate</span>
+                                                                    </div>
+                                                                )}
+                                                                {data.spamComplaintRate < 0.1 && (
+                                                                    <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
+                                                                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                                        <span className="text-green-700 dark:text-green-300">Low spam complaints</span>
+                                                                    </div>
+                                                                )}
+                                                                {data.deliveryRate > 95 && (
+                                                                    <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
+                                                                        <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                                        <span className="text-green-700 dark:text-green-300">High delivery rate</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
+                                                                    <AlertCircle className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                                                                    <span className="text-blue-700 dark:text-blue-300">Monitor sender reputation</span>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Consolidated Overview Tab */}
+                            {activeTab === 'overview' && (
+                            <div className="flex-1 overflow-hidden">
+                            <div className="h-full overflow-y-auto">
+                                <div className="p-6 space-y-6">
+                                    {/* Key Performance Metrics Grid */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                        {data.type === 'sms' || data.channel === 'sms' ? (
+                                            // SMS-focused metrics
+                                            <>
+                                                <MetricCard
+                                                    icon={MessageSquare}
+                                                    label="Delivered"
+                                                    value={formatNumber(data.delivered || data.recipients || 0)}
+                                                    subValue={`${formatPercentage(data.deliveryRate || 100)} rate`}
+                                                    color="text-green-600"
+                                                />
+                                                <MetricCard
+                                                    icon={MousePointer}
+                                                    label="Clicks"
+                                                    value={formatNumber(data.clicksUnique || 0)}
+                                                    subValue={`${formatPercentage(data.clickRate)} rate`}
+                                                    color="text-purple-600"
+                                                />
+                                                <MetricCard
+                                                    icon={DollarSign}
+                                                    label="Revenue"
+                                                    value={formatCurrency(data.revenue || 0)}
+                                                    subValue={`${formatNumber(data.conversions || 0)} orders`}
+                                                    color="text-green-600"
+                                                />
+                                                <MetricCard
+                                                    icon={TrendingUp}
+                                                    label="Conversion"
+                                                    value={formatPercentage(data.conversionRate)}
+                                                    subValue={`${formatCurrency(data.revenuePerRecipient)}/recipient`}
+                                                    color="text-green-600"
+                                                />
+                                            </>
+                                        ) : (
+                                            // Email-focused metrics
+                                            <>
+                                                <MetricCard
+                                                    icon={Eye}
+                                                    label="Opens"
+                                                    value={formatNumber(data.opensUnique || 0)}
+                                                    subValue={`${formatPercentage(data.openRate)} rate`}
+                                                    color="text-blue-600"
+                                                />
+                                                <MetricCard
+                                                    icon={MousePointer}
+                                                    label="Clicks"
+                                                    value={formatNumber(data.clicksUnique || 0)}
+                                                    subValue={`${formatPercentage(data.clickRate)} rate`}
+                                                    color="text-purple-600"
+                                                />
+                                                <MetricCard
+                                                    icon={DollarSign}
+                                                    label="Revenue"
+                                                    value={formatCurrency(data.revenue || 0)}
+                                                    subValue={`${formatNumber(data.conversions || 0)} orders`}
+                                                    color="text-green-600"
+                                                />
+                                                <MetricCard
+                                                    icon={TrendingUp}
+                                                    label="Conversion"
+                                                    value={formatPercentage(data.conversionRate)}
+                                                    subValue={`${formatCurrency(data.revenuePerRecipient)}/recipient`}
+                                                    color="text-green-600"
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Two Column Layout */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Engagement Funnel */}
+                                        <Card>
+                                            <CardHeader className="pb-3">
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                    <Activity className="w-4 h-4" />
+                                                    {data.type === 'sms' || data.channel === 'sms' ? 'SMS Engagement Funnel' : 'Engagement Funnel'}
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-3">
+                                                {((data.type === 'sms' || data.channel === 'sms') ? (
+                                                    // SMS funnel - no opens step
+                                                    [
+                                                        {
+                                                            label: 'Delivered',
+                                                            value: data.delivered || data.recipients || 0,
+                                                            percentage: 100,
+                                                            color: 'bg-green-400'
+                                                        },
+                                                        {
+                                                            label: 'Clicked',
+                                                            value: data.clicksUnique || 0,
+                                                            percentage: data.clickRate || 0,
+                                                            color: 'bg-purple-500'
+                                                        },
+                                                        {
+                                                            label: 'Converted',
+                                                            value: data.conversions || 0,
+                                                            percentage: data.conversionRate || 0,
+                                                            color: 'bg-blue-500'
+                                                        }
+                                                    ]
+                                                ) : (
+                                                    // Email funnel - includes opens
+                                                    [
+                                                        {
+                                                            label: 'Delivered',
+                                                            value: data.delivered || 0,
+                                                            percentage: 100,
+                                                            color: 'bg-blue-400'
+                                                        },
+                                                        {
+                                                            label: 'Opened',
+                                                            value: data.opensUnique || 0,
+                                                            percentage: data.openRate || 0,
+                                                            color: 'bg-blue-500'
+                                                        },
+                                                        {
+                                                            label: 'Clicked',
+                                                            value: data.clicksUnique || 0,
+                                                            percentage: data.clickRate || 0,
+                                                            color: 'bg-purple-500'
+                                                        },
+                                                        {
+                                                            label: 'Converted',
+                                                            value: data.conversions || 0,
+                                                            percentage: data.conversionRate || 0,
+                                                            color: 'bg-green-500'
+                                                        }
+                                                    ]
+                                                )).map((step) => (
+                                                    <div key={step.label}>
+                                                        <div className="flex justify-between text-xs mb-1">
+                                                            <span className="font-medium text-gray-700 dark:text-gray-300">{step.label}</span>
+                                                            <span className="text-gray-600 dark:text-gray-400">
+                                                                {formatNumber(step.value)} ({formatPercentage(step.percentage)})
+                                                            </span>
+                                                        </div>
+                                                        <div className="relative">
+                                                            <Progress value={step.percentage > 1 ? step.percentage : step.percentage * 100} className="h-6" />
+                                                            <div
+                                                                className={`absolute inset-0 ${step.color} rounded-md transition-all opacity-20`}
+                                                                style={{ width: `${step.percentage > 1 ? step.percentage : step.percentage * 100}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* Performance Summary */}
+                                        <Card>
+                                            <CardHeader className="pb-3">
+                                                <CardTitle className="text-base flex items-center gap-2">
+                                                    <BarChart3 className="w-4 h-4" />
+                                                    Performance Summary
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4">
+                                                {/* CTOR for Email, Click-to-Delivery for SMS */}
+                                                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 rounded-lg">
+                                                    <div className="flex items-center gap-2">
+                                                        <Zap className="w-4 h-4 text-orange-500" />
+                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            {data.type === 'sms' || data.channel === 'sms' ? 'Click-to-Delivery Rate' : 'Click-to-Open Rate'}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-lg font-bold text-orange-600">
+                                                        {data.type === 'sms' || data.channel === 'sms' 
+                                                            ? formatPercentage(((data.clicksUnique || 0) / (data.delivered || data.recipients || 1)) * 100)
+                                                            : formatPercentage(data.ctor || data.clickToOpenRate || data.clickToOpen || 0)
+                                                        }
+                                                    </span>
+                                                </div>
+
+                                                {/* Revenue Metrics */}
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Revenue</div>
+                                                        <div className="text-xl font-bold text-green-600">{formatCurrency(data.revenue || 0)}</div>
+                                                    </div>
+                                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Revenue/Recipient</div>
+                                                        <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.revenuePerRecipient || 0)}</div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Delivery Health */}
+                                                <div className="pt-2 border-t dark:border-gray-700">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Delivery Health</span>
+                                                        <Badge 
+                                                            variant={deliveryScore >= 90 ? "default" : deliveryScore >= 75 ? "secondary" : "destructive"}
+                                                            className={deliveryScore >= 90 ? "bg-green-100 text-green-700" : ""}
+                                                        >
+                                                            {deliveryScore}/100
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600 dark:text-gray-400">Bounced</span>
+                                                            <span className={data.bounceRate < 2 ? "text-green-600" : "text-red-600"}>
+                                                                {formatPercentage(data.bounceRate)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600 dark:text-gray-400">Unsubscribed</span>
+                                                            <span className={data.unsubscribeRate < 0.5 ? "text-green-600" : "text-yellow-600"}>
+                                                                {formatPercentage(data.unsubscribeRate)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+
+                                    {/* Additional Metrics Row */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Users className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                                                <span className="text-xs text-gray-600 dark:text-gray-400">Total Recipients</span>
+                                            </div>
+                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(data.recipients)}</div>
+                                        </div>
+                                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <CheckCircle className="w-3 h-3 text-green-600" />
+                                                <span className="text-xs text-gray-600 dark:text-gray-400">Delivered</span>
+                                            </div>
+                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(data.delivered)}</div>
+                                        </div>
+                                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <XCircle className="w-3 h-3 text-red-600" />
+                                                <span className="text-xs text-gray-600 dark:text-gray-400">Bounced</span>
+                                            </div>
+                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(data.bounced)}</div>
+                                        </div>
+                                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-1">
+                                                    <BarChart3 className="w-3 h-3 text-blue-600" />
+                                                    <span className="text-xs text-gray-600 dark:text-gray-400">Delivery Score</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button className="ml-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full p-0.5">
+                                                                <Info className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-80 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg">
+                                                            <div className="space-y-3">
+                                                                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Delivery Health Score</h4>
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                                    Our delivery score rates campaign quality from 0-100 based on key metrics:
+                                                                </p>
+                                                                <div className="space-y-2 text-xs">
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-600 dark:text-gray-400">Delivery Rate &lt; 95%:</span>
+                                                                        <span className="text-red-600">-20 points</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-600 dark:text-gray-400">
+                                                                            {data.type === 'sms' || data.channel === 'sms' ? 'Bounce Rate > 1%:' : 'Bounce Rate > 5%:'}
+                                                                        </span>
+                                                                        <span className="text-red-600">
+                                                                            {data.type === 'sms' || data.channel === 'sms' ? '-35 points' : '-25 points'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-600 dark:text-gray-400">Spam Rate &gt; 0.1%:</span>
+                                                                        <span className="text-red-600">-30 points</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-gray-600 dark:text-gray-400">Unsubscribe Rate &gt; 2%:</span>
+                                                                        <span className="text-red-600">-15 points</span>
+                                                                    </div>
+                                                                </div>
+                                                                {data.type === 'sms' || data.channel === 'sms' ? (
+                                                                    <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                                                                        SMS campaigns have stricter bounce thresholds since delivery failures are less common but more impactful.
+                                                                    </p>
+                                                                ) : null}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
+                                            </div>
+                                            <div className={`text-lg font-semibold ${getScoreColor(deliveryScore)} dark:text-white flex items-center gap-1`}>
+                                                {deliveryScore}/100
+                                                <span className={`text-xs font-medium ${getScoreColor(deliveryScore)}`}>
+                                                    {getScoreLabel(deliveryScore)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
 }

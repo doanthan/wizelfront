@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -20,7 +21,6 @@ import {
   X,
   Trash2,
   Copy,
-  Loader2,
   ShoppingCart,
   Calendar,
   Tag,
@@ -218,7 +218,7 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-sky-blue" />
+          <MorphingLoader size="small" showThemeText={false} />
           <span className="text-neutral-gray dark:text-gray-400">Loading product...</span>
         </div>
       </div>
@@ -466,7 +466,7 @@ export default function ProductDetailPage() {
                           disabled={isSaving}
                           className="bg-sky-blue hover:bg-royal-blue text-white"
                         >
-                          {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          {isSaving ? <MorphingLoader size="small" showThemeText={false} /> : <Save className="h-3 w-3" />}
                         </Button>
                         <Button
                           size="sm"
@@ -507,7 +507,7 @@ export default function ProductDetailPage() {
                           disabled={isSaving}
                           className="bg-sky-blue hover:bg-royal-blue text-white"
                         >
-                          {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                          {isSaving ? <MorphingLoader size="small" showThemeText={false} /> : <Save className="h-3 w-3" />}
                         </Button>
                         <Button
                           size="sm"
@@ -753,7 +753,7 @@ export default function ProductDetailPage() {
                     disabled={isSaving}
                     className="bg-sky-blue hover:bg-royal-blue text-white"
                   >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {isSaving ? <MorphingLoader size="small" showThemeText={false} /> : <Save className="h-4 w-4" />}
                     Save Description
                   </Button>
                   <Button

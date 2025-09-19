@@ -64,9 +64,9 @@ export function DateRangeSelector({
         to: initialDateRange.ranges.main.end,
       };
     }
-    // Use a fixed date for initial state to avoid hydration mismatch
-    const endDate = new Date('2025-09-09T00:00:00.000Z');
-    const startDate = new Date('2025-08-11T00:00:00.000Z');
+    // Default to last 30 days - use current date, not future
+    const endDate = endOfDay(new Date());
+    const startDate = subDays(endDate, 29);
     return {
       from: startDate,
       to: endDate,
@@ -98,11 +98,19 @@ export function DateRangeSelector({
           label: "Previous Period"
         };
       } else if (comparisonPeriod === "previous-year") {
+        // Create previous year dates by subtracting exactly 365 days (or 366 for leap years)
+        // This ensures we maintain the same time of day and handle edge cases properly
+        const previousYearFrom = new Date(dateRange.from);
+        const previousYearTo = new Date(dateRange.to);
+
+        previousYearFrom.setFullYear(dateRange.from.getFullYear() - 1);
+        previousYearTo.setFullYear(dateRange.to.getFullYear() - 1);
+
         comparisonRange = {
-          from: new Date(dateRange.from.getFullYear() - 1, dateRange.from.getMonth(), dateRange.from.getDate()),
-          to: new Date(dateRange.to.getFullYear() - 1, dateRange.to.getMonth(), dateRange.to.getDate()),
-          start: new Date(dateRange.from.getFullYear() - 1, dateRange.from.getMonth(), dateRange.from.getDate()),
-          end: new Date(dateRange.to.getFullYear() - 1, dateRange.to.getMonth(), dateRange.to.getDate()),
+          from: previousYearFrom,
+          to: previousYearTo,
+          start: previousYearFrom,
+          end: previousYearTo,
           label: "Previous Year"
         };
       }

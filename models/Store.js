@@ -196,6 +196,7 @@ const StoreSchema = new mongoose.Schema({
         conversion_type: { type: String, default: "value" },
         conversion_metric_id: { type: String, default: null },
         reporting_metric_id: { type: String, default: null },
+        refund_metric_ids: [{ type: String }], // Array of metric IDs for cancelled/refunded orders
         apiKey: { type: String, default: null }, // Legacy API key (pk_*)
         // OAuth fields
         oauth_token: { type: String, default: null }, // OAuth access token

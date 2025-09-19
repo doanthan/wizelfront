@@ -351,34 +351,53 @@ export async function GET(request) {
     const isSuperAdmin = user?.is_super_user || user?.super_user_role === 'SUPER_ADMIN';
     console.log('User is super admin:', isSuperAdmin);
     
-    let stores;
+    let stores = [];
+
     if (isSuperAdmin) {
       // Super admin can see all non-deleted stores
       stores = await Store.find({ is_deleted: { $ne: true } }).lean();
       console.log('Super admin - found stores:', stores.length);
     } else {
-      // Regular users see stores via ContractSeats or legacy access
+      // Regular users see stores via ContractSeat permissions only
       try {
-        // First try new ContractSeat system
-        const contractSeatStores = await Store.findByUserSeats(session.user.id);
-        
-        // Also get legacy stores for backward compatibility
-        const legacyStores = await Store.findByUser(session.user.id).lean();
-        
-        // Combine and deduplicate
-        const storeMap = new Map();
-        
-        [...contractSeatStores, ...legacyStores].forEach(store => {
-          storeMap.set(store._id.toString(), store);
-        });
-        
-        stores = Array.from(storeMap.values());
-        console.log('User stores found (ContractSeat + Legacy):', stores.length);
+        // Get user's ContractSeats to find accessible stores
+        const userSeats = await ContractSeat.find({
+          user_id: session.user.id,
+          status: 'active'
+        }).populate('default_role_id');
+
+        const accessibleStoreIds = new Set();
+
+        for (const seat of userSeats) {
+          // Get all stores in this contract
+          const contractStores = await Store.find({
+            contract_id: seat.contract_id,
+            is_deleted: { $ne: true }
+          });
+
+          for (const store of contractStores) {
+            // Check if user has access to this specific store
+            const hasStoreAccess = seat.hasStoreAccess(store._id);
+            if (hasStoreAccess) {
+              accessibleStoreIds.add(store._id.toString());
+            }
+          }
+        }
+
+        // Get all accessible stores
+        if (accessibleStoreIds.size > 0) {
+          const storeObjectIds = Array.from(accessibleStoreIds).map(id => new ObjectId(id));
+          stores = await Store.find({
+            _id: { $in: storeObjectIds },
+            is_deleted: { $ne: true }
+          }).lean();
+        }
+
+        console.log('User stores found via ContractSeat system:', stores.length);
       } catch (error) {
-        console.error('Error fetching user stores:', error);
-        // Fall back to legacy system only
-        stores = await Store.findByUser(session.user.id).lean();
-        console.log('User stores found (Legacy fallback):', stores.length);
+        console.error('Error fetching user stores via ContractSeat:', error);
+        // Return empty array if ContractSeat system fails
+        stores = [];
       }
     }
 

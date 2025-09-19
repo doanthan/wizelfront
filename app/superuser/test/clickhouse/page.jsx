@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -30,7 +31,6 @@ import {
   BarChart3,
   FileText,
   Search,
-  Loader2,
   Info,
   Settings
 } from "lucide-react";
@@ -177,7 +177,7 @@ export default function ClickHouseTestPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-sky-blue mx-auto mb-4" />
+          <MorphingLoader size="small" showThemeText={false} />
           <p className="text-neutral-gray">Connecting to ClickHouse...</p>
         </div>
       </div>
@@ -550,7 +550,7 @@ export default function ClickHouseTestPage() {
                     >
                       {executing ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <MorphingLoader size="small" showThemeText={false} />
                           Executing...
                         </>
                       ) : (

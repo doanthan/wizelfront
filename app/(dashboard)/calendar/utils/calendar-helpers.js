@@ -57,15 +57,47 @@ export const formatCampaignForCalendar = (campaign, store) => {
  */
 export const filterCampaignsByDate = (campaigns, date) => {
   if (!campaigns || campaigns.length === 0) return [];
-  
-  return campaigns.filter(campaign => {
+
+  // Debug logging for Week and Day views
+  const viewType = window.location.pathname.includes('week') ? 'Week' :
+                   window.location.pathname.includes('day') ? 'Day' : 'Other';
+
+  const filtered = campaigns.filter(campaign => {
     const campaignDate = new Date(campaign.date);
-    return (
-      campaignDate.getDate() === date.getDate() &&
-      campaignDate.getMonth() === date.getMonth() &&
-      campaignDate.getFullYear() === date.getFullYear()
+    const targetDate = new Date(date);
+
+    // Compare dates without time
+    const matches = (
+      campaignDate.getDate() === targetDate.getDate() &&
+      campaignDate.getMonth() === targetDate.getMonth() &&
+      campaignDate.getFullYear() === targetDate.getFullYear()
     );
+
+    // Debug log for the first few campaigns
+    if (campaigns.indexOf(campaign) < 3) {
+      console.log(`[${viewType} View] Comparing:`, {
+        campaign: campaign.name,
+        campaignDate: `${campaignDate.getFullYear()}-${campaignDate.getMonth()+1}-${campaignDate.getDate()}`,
+        targetDate: `${targetDate.getFullYear()}-${targetDate.getMonth()+1}-${targetDate.getDate()}`,
+        matches
+      });
+    }
+
+    return matches;
   });
+
+  console.log(`[${viewType} View] filterCampaignsByDate:`, {
+    totalCampaigns: campaigns.length,
+    targetDate: `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`,
+    filteredCount: filtered.length,
+    firstThreeCampaigns: campaigns.slice(0, 3).map(c => ({
+      name: c.name,
+      date: c.date,
+      parsedDate: new Date(c.date).toLocaleDateString()
+    }))
+  });
+
+  return filtered;
 };
 
 /**

@@ -21,6 +21,7 @@ export async function GET(request) {
     const storeIds = searchParams.get('storeIds'); // Changed to handle multiple stores
     const channel = searchParams.get('channel');
     const search = searchParams.get('search');
+    const status = searchParams.get('status'); // New parameter for status filtering
 
     const options = {
       limit: 1000, // Get all campaigns for calendar view
@@ -43,11 +44,14 @@ export async function GET(request) {
     
     // Filter stores if specific ones are selected
     if (storeIds && storeIds !== 'all') {
+      // The storeIds parameter now contains klaviyo_public_ids from the dashboard
       const selectedKlaviyoIds = storeIds.split(',').filter(Boolean);
-      accessibleStores = allStores.filter(store => 
+
+      accessibleStores = allStores.filter(store =>
         selectedKlaviyoIds.includes(store.klaviyo_integration?.public_id)
       );
       accessibleKlaviyoIds.push(...selectedKlaviyoIds);
+
     } else {
       // Get all accessible Klaviyo IDs
       for (const store of accessibleStores) {
@@ -71,7 +75,6 @@ export async function GET(request) {
     // PART 1: Fetch PAST campaigns from MongoDB (only if date range includes past)
     if (requestedStartDate <= now) {
       try {
-        console.log('Fetching historical campaigns from MongoDB...');
         
         // Build the query for past campaigns
         const query = {
@@ -107,47 +110,40 @@ export async function GET(request) {
 
         // Filter results to ensure they have send_time
         historicalCampaigns = campaignsFromDB.filter(campaign => campaign.send_time);
-        console.log(`Found ${historicalCampaigns.length} historical campaigns from MongoDB`);
         
       } catch (error) {
         console.error('Error fetching historical campaigns:', error);
         // Continue without historical campaigns if MongoDB fails
       }
-    } else {
-      console.log('Skipping MongoDB (viewing only future dates)');
     }
 
     // PART 2: Fetch Draft/Scheduled campaigns from Klaviyo API (including past drafts)
     // Always fetch if we have stores with API keys, as drafts can be in the past
-    if (accessibleStores.some(s => s.klaviyo_integration?.apiKey)) {
+    if (accessibleStores.some(s => s.klaviyo_integration?.apiKey || s.klaviyo_integration?.oauth_token)) {
       try {
-        console.log('Fetching draft/scheduled campaigns from Klaviyo API...');
-        
         // Use the full requested date range to include past drafts
         const klaviyoStartDate = requestedStartDate;
         const klaviyoEndDate = requestedEndDate;
-        
+
         // Increase timeout to account for 3 sequential API calls with delays
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Klaviyo API timeout')), 10000) // 10 second timeout
         );
-        
+
         const klaviyoPromise = fetchScheduledCampaignsForStores(
-          accessibleStores, 
-          klaviyoStartDate, 
-          klaviyoEndDate
+          accessibleStores,
+          klaviyoStartDate,
+          klaviyoEndDate,
+          status // Pass status filter to the function
         );
-        
+
         const scheduledCampaigns = await Promise.race([klaviyoPromise, timeoutPromise]);
         futureCampaigns = scheduledCampaigns;
-        console.log(`Found ${futureCampaigns.length} future campaigns from Klaviyo`);
-        
+
       } catch (error) {
         console.warn('Error fetching future campaigns:', error.message);
         // Continue without future campaigns if API fails or times out
       }
-    } else {
-      console.log('Skipping Klaviyo API (viewing only past dates or no API keys)');
     }
 
     // Format historical campaigns for calendar display
@@ -184,6 +180,8 @@ export async function GET(request) {
       },
       tags: campaign.tagNames || [],
       storeIds: campaign.store_public_ids || [],
+      store_public_ids: campaign.store_public_ids || [],
+      klaviyo_public_id: campaign.klaviyo_public_id,
       fromAddress: campaign.from_address,
       audiences: {
         included: campaign.included_audiences || [],
@@ -254,6 +252,7 @@ export async function GET(request) {
         },
         tags: campaign.attributes?.tags || [],
         storeIds: [campaign.storeInfo?.publicId] || [],
+        store_public_ids: [campaign.storeInfo?.publicId] || [],
         storeName: campaign.storeInfo?.name || 'Unknown Store',
         klaviyo_public_id: campaign.storeInfo?.klaviyoPublicId, // Match historical format
         fromAddress: campaign.attributes?.from_email || '',
@@ -284,13 +283,6 @@ export async function GET(request) {
     // Sort by date (most recent first)
     finalCampaigns.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    console.log('Campaign summary:', {
-      historical: formattedHistorical.length,
-      scheduled: formattedFuture.length,
-      total: finalCampaigns.length,
-      sampleHistorical: formattedHistorical.slice(0, 2).map(c => ({ id: c.id, name: c.name, klaviyo_public_id: c.klaviyo_public_id })),
-      sampleFuture: formattedFuture.slice(0, 2).map(c => ({ id: c.id, name: c.name, klaviyo_public_id: c.klaviyo_public_id }))
-    });
 
     return NextResponse.json({
       campaigns: finalCampaigns,

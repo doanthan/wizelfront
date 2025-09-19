@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -31,7 +32,6 @@ import {
   Settings as SettingsIcon,
   Rss,
   Lightbulb,
-  Loader2,
   CheckCircle,
   LayoutGrid
 } from "lucide-react";
@@ -335,12 +335,21 @@ export default function Sidebar() {
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <Link href="/dashboard" className={cn(
               "flex items-center",
-              isCollapsed ? "justify-center" : "space-x-2"
+              isCollapsed ? "justify-center" : "gap-3"
             )}>
-              <div className="w-8 h-8 bg-gradient-to-r from-sky-blue to-vivid-violet rounded-lg shadow-sm flex-shrink-0" />
+              <div className="w-10 h-10 bg-gradient-to-br from-sky-blue to-vivid-violet rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white" aria-hidden="true">
+                  <path d="M12 8V4H8"></path>
+                  <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                  <path d="M2 14h2"></path>
+                  <path d="M20 14h2"></path>
+                  <path d="M15 13v2"></path>
+                  <path d="M9 13v2"></path>
+                </svg>
+              </div>
               {!isCollapsed && (
                 <span className="text-xl font-bold text-gray-900 dark:text-white">
-                  wizel.ai
+                  wizel
                 </span>
               )}
             </Link>

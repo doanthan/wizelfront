@@ -26,9 +26,9 @@ import {
   CheckCircle,
   LayoutGrid,
   List,
-  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import MorphingLoader from "@/app/components/ui/loading";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
@@ -122,18 +122,18 @@ export default function StoresPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="flex-1 space-y-4 p-8 pt-6">
+      {/* Header - Compact style matching dashboard */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
             Stores
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Manage your connected stores and integrations
           </p>
         </div>
-        
+
         <Button
           onClick={() => {
             setEditingStore(null);
@@ -187,7 +187,7 @@ export default function StoresPage() {
       {/* Loading State */}
       {isLoadingStores && (
         <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+          <MorphingLoader size="medium" showThemeText={false} />
         </div>
       )}
 

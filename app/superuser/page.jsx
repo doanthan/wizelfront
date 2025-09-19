@@ -77,20 +77,20 @@ export default function SuperuserDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+    <div className="flex-1 space-y-4 p-8 pt-6">
+      {/* Header - Compact style matching dashboard */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Super Admin Dashboard
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            System overview, metrics, and administrative controls
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-sky-blue to-vivid-violet rounded-xl flex items-center justify-center">
             <Shield className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-gray dark:text-white">
-              Super Admin Dashboard
-            </h1>
-            <p className="text-neutral-gray dark:text-gray-400">
-              System overview, metrics, and administrative controls
-            </p>
           </div>
         </div>
       </div>

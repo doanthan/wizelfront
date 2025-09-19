@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { InlineLoading } from '@/app/components/ui/loading-spinner';
+import { InlineLoader } from '@/app/components/ui/loading';
 import { useCampaignData } from '@/app/contexts/campaign-data-context';
 import { resetColorAssignments, getStoreColor, getColorByIndex } from '@/lib/calendar-colors';
 import { cn } from '@/lib/utils';
 import { CalendarHeader } from './components/CalendarHeader';
+import { CalendarSkeleton } from './components/CalendarSkeleton';
 import { X, Mail, MessageSquare, Bell, Tag, Check } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
@@ -22,17 +23,17 @@ import {
 import 'react-calendar/dist/Calendar.css';
 import './calendar.css';
 
-// Dynamically import heavy components
+// Dynamically import heavy components from shared location
 const EmailPreviewPanel = dynamic(
-  () => import('./components/EmailPreviewPanel').then(mod => mod.EmailPreviewPanel),
-  { 
-    loading: () => <InlineLoading text="Loading preview..." />,
-    ssr: false 
+  () => import('@/app/components/campaigns/EmailPreviewPanel').then(mod => mod.EmailPreviewPanel),
+  {
+    loading: () => <div className="flex items-center justify-center p-4"><InlineLoader showText={true} text="Loading preview..." /></div>,
+    ssr: false
   }
 );
 
-// Will create these modal components separately
-const CampaignDetailsModal = dynamic(() => import('./components/CampaignDetailsModal'), { ssr: false });
+// Import modals from shared location
+const CampaignDetailsModal = dynamic(() => import('@/app/components/campaigns/CampaignDetailsModal'), { ssr: false });
 const DayCampaignsModal = dynamic(() => import('./components/DayCampaignsModal'), { ssr: false });
 const CampaignComparisonModal = dynamic(() => import('./components/CampaignComparisonModal'), { ssr: false });
 const NewCampaignModal = dynamic(() => import('./components/NewCampaignModal'), { ssr: false });
@@ -157,19 +158,36 @@ export default function CalendarPage() {
   const getDateRange = useCallback(() => {
     const startDate = new Date(date);
     const endDate = new Date(date);
-    
+
     if (view === 'month') {
+      // Set to first day of month
       startDate.setDate(1);
-      endDate.setMonth(endDate.getMonth() + 1);
-      endDate.setDate(0);
+      startDate.setHours(0, 0, 0, 0);
+      // Set to last day of month (get next month, then day 0 = last day of current month)
+      const nextMonth = new Date(date);
+      nextMonth.setMonth(date.getMonth() + 1);
+      nextMonth.setDate(0);
+      endDate.setTime(nextMonth.getTime());
+      endDate.setHours(23, 59, 59, 999);
     } else if (view === 'week') {
-      startDate.setDate(date.getDate() - 7);
-      endDate.setDate(date.getDate() + 7);
+      // Get start of week (Sunday)
+      const dayOfWeek = date.getDay();
+      startDate.setDate(date.getDate() - dayOfWeek);
+      startDate.setHours(0, 0, 0, 0);
+      // Get end of week (Saturday)
+      endDate.setDate(date.getDate() + (6 - dayOfWeek));
+      endDate.setHours(23, 59, 59, 999);
     } else {
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(23, 59, 59, 999);
     }
-    
+
+    console.log('📅 Date range calculated:', {
+      view,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+
     return { startDate, endDate };
   }, [date, view]);
 
@@ -342,11 +360,23 @@ export default function CalendarPage() {
     
     // Always filter cached future campaigns for current view
     const allFutureCampaigns = Array.from(futureCampaignCache.current.campaigns.values());
+
+    console.log('🔍 Future campaigns in cache:', allFutureCampaigns.map(c => ({
+      name: c.name,
+      date: c.date,
+      parsedDate: new Date(c.date).toISOString(),
+      status: c.status
+    })));
+
     const filteredFutureCampaigns = allFutureCampaigns.filter(c => {
       const cDate = new Date(c.date).getTime();
-      return cDate >= startDate.getTime() && cDate <= endDate.getTime();
+      const inRange = cDate >= startDate.getTime() && cDate <= endDate.getTime();
+      if (!inRange) {
+        console.log(`❌ Campaign "${c.name}" excluded - date ${c.date} outside range`);
+      }
+      return inRange;
     });
-    
+
     setFutureCampaigns(filteredFutureCampaigns);
     console.log(`📅 Showing ${filteredFutureCampaigns.length} future campaigns for current view (from ${allFutureCampaigns.length} total cached)`);
   }, [getDateRange]);
@@ -397,13 +427,19 @@ export default function CalendarPage() {
       // Just re-filter the cached future campaigns for the new view
       const { startDate, endDate } = getDateRange();
       const allFutureCampaigns = Array.from(futureCampaignCache.current.campaigns.values());
+
+      console.log('📅 View/Date change - re-filtering campaigns:', {
+        dateRange: { start: startDate.toISOString(), end: endDate.toISOString() },
+        cachedCampaigns: allFutureCampaigns.length
+      });
+
       const filteredFutureCampaigns = allFutureCampaigns.filter(c => {
         const cDate = new Date(c.date).getTime();
         return cDate >= startDate.getTime() && cDate <= endDate.getTime();
       });
       setFutureCampaigns(filteredFutureCampaigns);
       console.log(`📅 View changed - showing ${filteredFutureCampaigns.length} future campaigns from cache`);
-      
+
       // Also update past campaigns for the new view
       loadPastCampaigns();
     }
@@ -489,11 +525,7 @@ export default function CalendarPage() {
   const handleCampaignClick = useCallback((campaign, source = 'calendar') => {
     setSelectedCampaign({ ...campaign, navigationSource: source });
     setShowCampaignDetails(true);
-    // Fetch audiences for this campaign's store if needed
-    if (campaign.klaviyo_public_id) {
-      fetchAudiences(campaign.klaviyo_public_id);
-    }
-  }, [fetchAudiences]);
+  }, []);
   
   /**
    * Handle day click - show day campaigns modal if multiple campaigns
@@ -555,12 +587,72 @@ export default function CalendarPage() {
       }
     });
   }, []);
+
+  /**
+   * Get filtered campaigns for stats - apply all active filters
+   */
+  const getFilteredCampaigns = useCallback(() => {
+    let filteredCampaigns = [...campaigns];
+
+    // Apply store filter
+    if (selectedStores.length > 0) {
+      filteredCampaigns = filteredCampaigns.filter(campaign => {
+        const store = stores.find(s =>
+          s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
+        );
+
+        if (store && selectedStores.includes(store.public_id)) {
+          return true;
+        }
+
+        if (campaign.storeIds?.some(id => selectedStores.includes(id))) {
+          return true;
+        }
+
+        return false;
+      });
+    }
+
+    // Apply channel filter
+    if (selectedChannels.length > 0) {
+      filteredCampaigns = filteredCampaigns.filter(c =>
+        selectedChannels.includes(c.channel)
+      );
+    }
+
+    // Apply tag filter
+    if (selectedTags.length > 0) {
+      filteredCampaigns = filteredCampaigns.filter(c =>
+        c.tags?.some(tag => selectedTags.includes(tag))
+      );
+    }
+
+    // Apply status filter
+    if (selectedStatuses.length > 0) {
+      filteredCampaigns = filteredCampaigns.filter(campaign => {
+        const isScheduled = isCampaignScheduled(campaign);
+        const status = campaign.status?.toLowerCase();
+
+        return selectedStatuses.some(s => {
+          if (s === 'sent' && !isScheduled && status === 'sent') return true;
+          if (s === 'scheduled' && (isScheduled || status === 'scheduled')) return true;
+          if (s === 'draft' && status === 'draft') return true;
+          return false;
+        });
+      });
+    }
+
+    return filteredCampaigns;
+  }, [campaigns, selectedStores, selectedChannels, selectedTags, selectedStatuses, stores]);
   
   return (
     <div className="space-y-4">
-      {/* Campaign Stats Cards */}
-      {!loadingStores && campaigns.length > 0 && (
-        <CampaignStats campaigns={campaigns} />
+      {/* Campaign Stats Cards - Always show, even with 0 campaigns */}
+      {!loadingStores && (
+        <CampaignStats
+          campaigns={getFilteredCampaigns()}
+          isFiltered={selectedStores.length > 0 || selectedChannels.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0}
+        />
       )}
       
       {/* Calendar Header */}
@@ -740,18 +832,15 @@ export default function CalendarPage() {
       
       {/* Loading indicators for future campaigns */}
       {futureLoadingState && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-lg shadow-sm">
-          <div className="h-3 w-3 border-2 border-vivid-violet border-t-transparent rounded-full animate-spin"></div>
-          <span className="font-medium text-xs">Loading scheduled campaigns...</span>
+        <div className="bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-lg shadow-sm">
+          <InlineLoader size="small" showText={true} text="Loading scheduled campaigns..." />
         </div>
       )}
       
       {/* Calendar Views */}
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         {(pastLoading || loadingStores) ? (
-          <div className="flex items-center justify-center py-20">
-            <InlineLoading text="Loading past campaigns..." />
-          </div>
+          <CalendarSkeleton view={view} />
         ) : view === 'month' ? (
           <MonthView
             date={date}
@@ -789,9 +878,10 @@ export default function CalendarPage() {
       </div>
       
       {/* Modals */}
-      {showCampaignDetails && selectedCampaign && (
+      {selectedCampaign && (
         <CampaignDetailsModal
           campaign={selectedCampaign}
+          isOpen={showCampaignDetails}
           onClose={() => {
             setShowCampaignDetails(false);
             setSelectedCampaign(null);

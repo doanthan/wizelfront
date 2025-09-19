@@ -224,6 +224,65 @@ Right Panel
 - **Instant Search**: Filter templates as you type
 - **Hover Preview**: Larger preview on hover with details
 
+## Layout & Spacing Principles
+
+### Page Headers
+**Dashboard pages should use compact headers to maximize content space and maintain visual consistency with the application sidebar.**
+
+#### Compact Dashboard Header Style
+```scss
+// Dashboard & Admin Page Headers
+.dashboard-header {
+  padding: 1.5rem 2rem 1rem; // Reduced top/bottom padding (24px top, 16px bottom)
+
+  // Title styling
+  .page-title {
+    font-size: 1.875rem;      // 30px - Large but not oversized
+    font-weight: 700;          // Bold
+    line-height: 1.2;          // Tight line height
+    margin-bottom: 0.25rem;    // Minimal space below title
+  }
+
+  // Subtitle/description
+  .page-description {
+    font-size: 0.875rem;       // 14px - Compact
+    color: $neutral-gray;
+    margin: 0;                 // No extra margin
+  }
+
+  // Header actions (buttons, selectors) aligned to the right
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+}
+```
+
+#### Implementation Pattern
+```jsx
+// Standard compact header for dashboard pages
+<div className="flex-1 space-y-4 p-8 pt-6">
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+      <p className="text-sm text-muted-foreground">Cross-account analytics</p>
+    </div>
+    <div className="flex items-center gap-4">
+      {/* Action buttons, selectors, etc. */}
+    </div>
+  </div>
+  {/* Page content */}
+</div>
+```
+
+**Key Principles:**
+- **Vertical Economy**: Use `pt-6` (1.5rem) top padding instead of larger values
+- **Tight Spacing**: Minimal gap between title and description
+- **Aligned Actions**: Keep controls at the same height as the title
+- **Consistent Height**: Match the visual height of the Wizel sidebar header
+- **Apply To**: All pages in `/(dashboard)` folder, `/superuser` routes, and admin panels
+
 ## Canvas Design Principles
 
 ### Visual Feedback
@@ -1050,9 +1109,10 @@ export const tokens = {
 ## Toast Notifications
 
 ### IMPORTANT: Use the Correct Toast Implementation
-**Always use the custom toast component from `/components/ui/toast`**
+**Always use the custom toast component from `/app/components/ui/toast.jsx`**
 - **DO NOT** use `react-hot-toast` or other external toast libraries
 - **DO** use the toast hook: `import { useToast } from "@/app/components/ui/use-toast"`
+- **DO** include the Toaster component: `import { Toaster } from "@/app/components/ui/toaster"`
 - **DO** follow this pattern:
 
 ```jsx
@@ -1061,7 +1121,7 @@ import { useToast } from "@/app/components/ui/use-toast";
 
 export function MyComponent() {
   const { toast } = useToast();
-  
+
   const handleAction = () => {
     toast({
       title: "Success",

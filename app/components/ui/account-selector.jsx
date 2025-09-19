@@ -40,10 +40,12 @@ export function AccountSelector({
   }, [value]);
 
   const hasViewAll = selectedAccounts.some(acc => acc.value === 'all');
-  const totalSelected = hasViewAll ? 0 : selectedAccounts.length;
+  const totalSelected = hasViewAll ? 0 : selectedAccounts.filter(acc => !acc.isTag).length;
+  const tagsSelected = hasViewAll ? 0 : selectedAccounts.filter(acc => acc.isTag).length;
 
   const handleAccountToggle = (account) => {
     const isViewAll = account.value === 'all';
+    const isTag = account.isTag;
     const isSelected = selectedAccounts.some(acc => acc.value === account.value);
     
     let newSelection = [];
@@ -58,6 +60,24 @@ export function AccountSelector({
         if (newSelection.length === 0) {
           // If no accounts selected, keep View All selected
           newSelection = [account];
+        }
+      }
+    } else if (isTag) {
+      // Handle tag selection - when a tag is selected, it filters stores with that tag
+      if (hasViewAll) {
+        // If View All is selected, replace it with this tag
+        newSelection = [account];
+      } else {
+        // Toggle the tag
+        if (isSelected) {
+          newSelection = selectedAccounts.filter(acc => acc.value !== account.value);
+          // If nothing selected after removal, select View All
+          if (newSelection.length === 0) {
+            newSelection = [{ value: 'all', label: 'View All' }];
+          }
+        } else {
+          // Add the tag to selection
+          newSelection = [...selectedAccounts, account];
         }
       }
     } else {
@@ -106,9 +126,23 @@ export function AccountSelector({
       return "All Accounts";
     }
     if (selectedAccounts.length === 1) {
-      return selectedAccounts[0].label;
+      const account = selectedAccounts[0];
+      if (account.isTag) {
+        return account.label;
+      }
+      return account.label;
     }
-    return `${selectedAccounts.length} Accounts`;
+    
+    const tagCount = selectedAccounts.filter(acc => acc.isTag).length;
+    const storeCount = selectedAccounts.filter(acc => !acc.isTag && acc.value !== 'all').length;
+    
+    if (tagCount > 0 && storeCount > 0) {
+      return `${tagCount} Tags, ${storeCount} Stores`;
+    } else if (tagCount > 0) {
+      return `${tagCount} Tag${tagCount > 1 ? 's' : ''}`;
+    } else {
+      return `${storeCount} Store${storeCount > 1 ? 's' : ''}`;
+    }
   };
 
   return (
@@ -125,12 +159,12 @@ export function AccountSelector({
         >
           <Store className="h-4 w-4" />
           <span className="text-sm">{getButtonLabel()}</span>
-          {totalSelected > 0 && (
+          {(totalSelected > 0 || tagsSelected > 0) && (
             <Badge 
               variant="default" 
               className="ml-1 h-5 px-1.5 text-xs bg-sky-blue text-white"
             >
-              {totalSelected}
+              {totalSelected + tagsSelected}
             </Badge>
           )}
           <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
@@ -150,8 +184,9 @@ export function AccountSelector({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    // Select all individual accounts
-                    setSelectedAccounts(accounts);
+                    // Select all individual accounts (not tags)
+                    const storeAccounts = accounts.filter(acc => !acc.isTag);
+                    setSelectedAccounts(storeAccounts);
                   }}
                   className="h-auto p-1 text-xs hover:bg-sky-tint/50"
                 >
@@ -191,15 +226,19 @@ export function AccountSelector({
 
             {accounts.length > 0 && <Separator className="my-2" />}
 
-            {/* Individual Accounts */}
+            {/* Tags and Individual Accounts */}
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
               {accounts.map(account => {
                 const isSelected = selectedAccounts.some(acc => acc.value === account.value);
+                const isTag = account.isTag;
                 
                 return (
                   <div 
                     key={account.value} 
-                    className="flex items-center space-x-2"
+                    className={cn(
+                      "flex items-center space-x-2",
+                      isTag && "bg-purple-50 dark:bg-purple-900/20 p-1 rounded"
+                    )}
                   >
                     <Checkbox
                       id={account.value}
@@ -210,14 +249,14 @@ export function AccountSelector({
                     <label
                       htmlFor={account.value}
                       className={cn(
-                        "text-sm cursor-pointer transition-colors",
-                        "text-gray-700 dark:text-gray-300 hover:text-sky-blue"
+                        "text-sm cursor-pointer transition-colors flex-1",
+                        isTag ? "font-semibold text-purple-600 dark:text-purple-400" : "text-gray-700 dark:text-gray-300 hover:text-sky-blue"
                       )}
                     >
                       {account.label}
-                      {account.klaviyo && (
-                        <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
-                          ({account.klaviyo})
+                      {account.storeTags && account.storeTags.length > 0 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          [{account.storeTags.join(", ")}]
                         </span>
                       )}
                     </label>
@@ -227,36 +266,8 @@ export function AccountSelector({
             </div>
           </div>
 
-          {/* Selected Accounts Summary */}
-          {totalSelected > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div className="mb-3">
-                <Label className="text-xs text-gray-600 dark:text-gray-400">
-                  Selected accounts ({totalSelected})
-                </Label>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {selectedAccounts.filter(acc => acc.value !== 'all').map(account => (
-                    <Badge
-                      key={account.value}
-                      variant="secondary"
-                      className="text-xs px-2 py-0.5 bg-sky-tint/50 hover:bg-sky-tint text-gray-700 dark:text-gray-300"
-                    >
-                      {account.label}
-                      <button
-                        onClick={() => handleAccountToggle(account)}
-                        className="ml-1 hover:text-red-500"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          <Separator className="my-4" />
+          {/* Separator before action buttons */}
+          {accounts.length > 0 && <Separator className="my-4" />}
 
           {/* Action Buttons */}
           <div className="flex gap-2">

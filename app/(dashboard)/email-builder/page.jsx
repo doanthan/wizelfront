@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -12,7 +13,6 @@ import {
   CheckCircle,
   Package,
   Palette,
-  Loader2,
   Search
 } from "lucide-react";
 import { useStores } from "@/app/contexts/store-context";
@@ -73,7 +73,7 @@ export default function EmailBuilderStoreSelectorPage() {
       {/* Loading State */}
       {isLoadingStores && (
         <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+          <MorphingLoader size="small" showThemeText={false} />
         </div>
       )}
 

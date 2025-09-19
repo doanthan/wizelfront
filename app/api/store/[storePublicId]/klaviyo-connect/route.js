@@ -8,9 +8,9 @@ import connectToDatabase from '@/lib/mongoose';
 import { klaviyoGetAll } from '@/lib/klaviyo-api';
 import { logAuditEvent } from '@/lib/posthog-audit';
 
-async function completeConnection(store, apiKey, metricId, reportingMetricId) {
+async function completeConnection(store, apiKey, metricId, reportingMetricId, refundMetricIds) {
   try {
-    console.log("Completing Klaviyo connection with metrics:", { conversion: metricId, reporting: reportingMetricId });
+    console.log("Completing Klaviyo connection with metrics:", { conversion: metricId, reporting: reportingMetricId, refund: refundMetricIds });
     
     // Fetch account info to verify API key
     const account = await klaviyoGetAll("accounts", { apiKey });
@@ -26,6 +26,7 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId) {
       public_id: account.data[0].attributes?.public_api_key || account.data[0].id,
       conversion_metric_id: metricId,
       reporting_metric_id: reportingMetricId || null,
+      refund_metric_ids: refundMetricIds || [],
       conversion_type: 'value',
       apiKey: apiKey,
       auth_type: 'api_key',
@@ -53,7 +54,8 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId) {
         account_id: account.data[0].id,
         auth_type: 'api_key',
         has_conversion_metric: !!metricId,
-        has_reporting_metric: !!reportingMetricId
+        has_reporting_metric: !!reportingMetricId,
+        refund_metric_count: refundMetricIds?.length || 0
       },
       severity: 'info',
       success: true
@@ -214,7 +216,7 @@ export async function POST(request, { params }) {
     
     const { storePublicId } = await params;
     const body = await request.json();
-    const { apiKey, action, conversionMetricId, conversion_metric_id, reporting_metric_id, conversion_type } = body;
+    const { apiKey, action, conversionMetricId, conversion_metric_id, reporting_metric_id, refund_metric_ids, conversion_type } = body;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
@@ -330,6 +332,7 @@ export async function POST(request, { params }) {
         // Update only the metrics for OAuth connections
         store.klaviyo_integration.conversion_metric_id = metricId;
         store.klaviyo_integration.reporting_metric_id = reporting_metric_id || null;
+        store.klaviyo_integration.refund_metric_ids = refund_metric_ids || [];
         store.klaviyo_integration.conversion_type = conversion_type || 'value';
         await store.save();
         
@@ -341,7 +344,7 @@ export async function POST(request, { params }) {
       }
       
       // Otherwise use API key to complete connection
-      return await completeConnection(store, apiKey, metricId, reporting_metric_id);
+      return await completeConnection(store, apiKey, metricId, reporting_metric_id, refund_metric_ids);
     }
 
     // Otherwise, complete the connection with the selected metric (legacy flow)
@@ -372,6 +375,7 @@ export async function POST(request, { params }) {
         public_id: account.data[0].id,
         conversion_metric_id: conversion_metric_id ? conversion_metric_id : null,
         reporting_metric_id: reporting_metric_id ? reporting_metric_id : null,
+        refund_metric_ids: refund_metric_ids || [],
         conversion_type: 'value',
         apiKey: apiKey,
         connected_at: new Date(),
@@ -400,6 +404,7 @@ export async function POST(request, { params }) {
           auth_type: 'api_key',
           has_conversion_metric: !!conversion_metric_id,
           has_reporting_metric: !!reporting_metric_id,
+          refund_metric_count: refund_metric_ids?.length || 0,
           is_shopify_placed_order: isShopifyPlacedOrder
         },
         severity: 'info',
@@ -431,16 +436,16 @@ export async function POST(request, { params }) {
             const syncPayload = {
               klaviyo_public_id: store.klaviyo_integration.public_id,
               store_public_id: store.public_id,
-              do_not_order_sync: !isShopifyPlacedOrder,  // true if NOT Shopify Placed Order
+               "run_aggregations": true,
               env: process.env.NODE_ENV
             };
             
             console.log("Sending sync request to report server:", {
-              url: `${reportServerUrl}/api/v1/reports/full_sync`,
+              url: `${reportServerUrl}/api/v2/reports/full_sync`,
               ...syncPayload
             });
             
-            const response = await fetch(`${reportServerUrl}/api/v1/reports/full_sync`, {
+            const response = await fetch(`${reportServerUrl}/api/v2/reports/full_sync`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -515,6 +520,8 @@ export async function DELETE(request, { params }) {
       public_id: null,
       conversion_type: 'value',
       conversion_metric_id: null,
+      reporting_metric_id: null,
+      refund_metric_ids: [],
       apiKey: null,
       connected_at: null,
       is_updating_dashboard: false,

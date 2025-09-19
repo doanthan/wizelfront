@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Debug Test</title>
+</head>
+<body>
+    <h1>Dashboard Debug Test</h1>
+    <button onclick="testUserDashboard()">Test User Dashboard Flow</button>
+    <button onclick="testUserDashboardWithStoreIds()">Test with Specific Store IDs</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function testUserDashboard() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing user dashboard flow...\n';
+
+            try {
+                const response = await fetch('/api/debug/user-dashboard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testUserDashboardWithStoreIds() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing with specific store IDs...\n';
+
+            try {
+                const response = await fetch('/api/debug/user-dashboard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        testStoreIds: ['qNVU8wF', 'zp7vNlc'] // The "Bal Real" stores with XqkVGb
+                    })
+                });
+
+                const data = await response.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

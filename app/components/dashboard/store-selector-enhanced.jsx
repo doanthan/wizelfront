@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter } from "next/navigation";
 import { 
     Search, 
@@ -13,7 +14,6 @@ import {
     LogOut,
     CheckCircle,
     Building2,
-    Loader2,
     Shield,
     User
 } from "lucide-react";
@@ -249,7 +249,7 @@ export default function StoreSelectorEnhanced({ collapsed = false, currentUser }
                 <div className="mt-1 max-h-[200px] overflow-y-auto">
                     {isLoadingStores ? (
                         <div className="flex items-center justify-center py-4">
-                            <Loader2 className="h-5 w-5 animate-spin text-sky-blue" />
+                            <MorphingLoader size="small" showThemeText={false} />
                             <span className="ml-2 text-sm text-neutral-gray">Loading stores...</span>
                         </div>
                     ) : filteredStores.length === 0 ? (

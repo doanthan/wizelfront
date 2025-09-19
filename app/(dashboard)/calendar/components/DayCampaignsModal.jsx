@@ -17,7 +17,9 @@ export default function DayCampaignsModal({
   onSelectCampaign,
   stores 
 }) {
-  const [viewMode, setViewMode] = useState('card'); // 'card' or 'table'
+  const [viewMode, setViewMode] = useState('table'); // 'card' or 'table'
+  const [sortField, setSortField] = useState('time');
+  const [sortDirection, setSortDirection] = useState('asc');
   
   if (!campaigns || campaigns.length === 0) return null;
   
@@ -38,18 +40,18 @@ export default function DayCampaignsModal({
             </div>
             <div className="flex items-center gap-2">
               <Button
-                variant={viewMode === 'card' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('card')}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
                 variant={viewMode === 'table' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('table')}
               >
                 <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'card' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('card')}
+              >
+                <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
           </DialogTitle>
@@ -147,20 +149,122 @@ function CampaignCard({ campaign, store, onClick }) {
 }
 
 function CampaignTable({ campaigns, stores, onSelectCampaign }) {
+  const [sortField, setSortField] = useState('time');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  const sortedCampaigns = [...campaigns].sort((a, b) => {
+    let aValue, bValue;
+
+    switch(sortField) {
+      case 'campaign':
+        aValue = a.name || '';
+        bValue = b.name || '';
+        break;
+      case 'store':
+        aValue = stores.find(s => s.klaviyo_integration?.public_id === a.klaviyo_public_id)?.name || '';
+        bValue = stores.find(s => s.klaviyo_integration?.public_id === b.klaviyo_public_id)?.name || '';
+        break;
+      case 'time':
+        aValue = new Date(a.date).getTime();
+        bValue = new Date(b.date).getTime();
+        break;
+      case 'openRate': {
+        const aMetrics = getCampaignMetrics(a);
+        const bMetrics = getCampaignMetrics(b);
+        aValue = aMetrics.openRate;
+        bValue = bMetrics.openRate;
+        break;
+      }
+      case 'clickRate': {
+        const aMetrics = getCampaignMetrics(a);
+        const bMetrics = getCampaignMetrics(b);
+        aValue = aMetrics.clickRate;
+        bValue = bMetrics.clickRate;
+        break;
+      }
+      case 'revenue': {
+        const aMetrics = getCampaignMetrics(a);
+        const bMetrics = getCampaignMetrics(b);
+        aValue = aMetrics.revenue;
+        bValue = bMetrics.revenue;
+        break;
+      }
+      default:
+        return 0;
+    }
+
+    if (sortDirection === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   return (
     <table className="w-full">
       <thead>
         <tr className="border-b-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-          <th className="text-left p-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Campaign</th>
-          <th className="text-left p-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Store</th>
-          <th className="text-center p-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Time</th>
-          <th className="text-center p-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Open Rate</th>
-          <th className="text-center p-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Click Rate</th>
-          <th className="text-right p-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Revenue</th>
+          <th className="text-left p-3 text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('campaign')}>
+            <div className="flex items-center gap-1">
+              Campaign
+              {sortField === 'campaign' && (
+                <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </div>
+          </th>
+          <th className="text-left p-3 text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('store')}>
+            <div className="flex items-center gap-1">
+              Store
+              {sortField === 'store' && (
+                <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </div>
+          </th>
+          <th className="text-center p-3 text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('time')}>
+            <div className="flex items-center justify-center gap-1">
+              Time
+              {sortField === 'time' && (
+                <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </div>
+          </th>
+          <th className="text-center p-3 text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('openRate')}>
+            <div className="flex items-center justify-center gap-1">
+              Open Rate
+              {sortField === 'openRate' && (
+                <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </div>
+          </th>
+          <th className="text-center p-3 text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('clickRate')}>
+            <div className="flex items-center justify-center gap-1">
+              Click Rate
+              {sortField === 'clickRate' && (
+                <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </div>
+          </th>
+          <th className="text-right p-3 text-sm font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onClick={() => handleSort('revenue')}>
+            <div className="flex items-center justify-end gap-1">
+              Revenue
+              {sortField === 'revenue' && (
+                <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </div>
+          </th>
         </tr>
       </thead>
       <tbody>
-        {campaigns.map((campaign, idx) => {
+        {sortedCampaigns.map((campaign, idx) => {
           const store = stores.find(s => 
             s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
           );
@@ -188,7 +292,21 @@ function CampaignTable({ campaigns, stores, onSelectCampaign }) {
                   )}
                 </div>
               </td>
-              <td className="p-3 text-sm text-gray-900 dark:text-white">{store?.name || 'Unknown'}</td>
+              <td className="p-3">
+                {store && (
+                  <Badge
+                    className={cn(
+                      "text-xs font-medium",
+                      getStoreColor(store?.id || store?._id).bg,
+                      getStoreColor(store?.id || store?._id).text,
+                      getStoreColor(store?.id || store?._id).border
+                    )}
+                  >
+                    {store.name}
+                  </Badge>
+                )}
+                {!store && <span className="text-sm text-gray-500">Unknown</span>}
+              </td>
               <td className="p-3 text-sm text-center text-gray-900 dark:text-white">
                 {format(new Date(campaign.date), 'h:mm a')}
               </td>

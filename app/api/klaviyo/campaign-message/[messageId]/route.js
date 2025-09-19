@@ -9,10 +9,12 @@ import connectToDatabase from '@/lib/mongoose';
 
 export async function GET(request, { params }) {
   try {
+    console.log('🚀 Campaign message API called:', { url: request.url });
     await connectToDatabase();
     
     // Get the message ID from params
     const { messageId } = await params;
+    console.log('📧 Message ID from params:', messageId);
     
     if (!messageId) {
       return NextResponse.json({ error: 'Message ID is required' }, { status: 400 });
@@ -27,8 +29,10 @@ export async function GET(request, { params }) {
     // 2. Get storeId from query parameter (required)
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get('storeId');
+    console.log('🏪 Store ID from query:', storeId);
     
     if (!storeId) {
+      console.log('❌ No store ID provided');
       return NextResponse.json({ 
         error: 'Store ID is required' 
       }, { status: 400 });
@@ -36,22 +40,32 @@ export async function GET(request, { params }) {
 
     // 3. Find the store by the provided storeId
     // The storeId is likely a klaviyo_public_id (e.g., "SwiuXz")
+    console.log('🔍 Looking for store with klaviyo_public_id:', storeId);
     let store = await Store.findOne({
       'klaviyo_integration.public_id': storeId
     });
     
     // If not found by klaviyo_public_id, try by store public_id
     if (!store) {
+      console.log('🔍 Store not found by klaviyo_public_id, trying store public_id:', storeId);
       store = await Store.findOne({
         public_id: storeId
       });
     }
 
     if (!store) {
+      console.log('❌ Store not found by either ID:', storeId);
       return NextResponse.json({ 
         error: 'Store not found' 
       }, { status: 404 });
     }
+    
+    console.log('✅ Store found:', {
+      id: store._id.toString(),
+      name: store.name,
+      public_id: store.public_id,
+      klaviyo_public_id: store.klaviyo_integration?.public_id
+    });
     
     // Optional: Try to find campaign in database for additional metadata
     let campaign = await CampaignStat.findOne({
@@ -72,23 +86,48 @@ export async function GET(request, { params }) {
     }
 
     // 4. Check user has access to this store - simplified check using Store model
+    console.log('🔐 Checking store access:', {
+      storeId: store._id.toString(),
+      storeName: store.name,
+      userId: session.user.id,
+      userEmail: session.user.email
+    });
+    
+    // Get user details first to understand their permissions
+    const User = (await import('@/models/User')).default;
+    const user = await User.findById(session.user.id);
+    
+    console.log('👤 User details:', {
+      userId: session.user.id,
+      userEmail: session.user.email,
+      isSuperAdmin: user?.super_admin,
+      isAdmin: user?.is_super_user,
+      userStoreIds: user?.store_ids,
+      userStores: user?.stores?.map(s => ({ 
+        store_id: s.store_id?.toString(),
+        role: s.role 
+      }))
+    });
+    
     const hasAccess = await Store.hasAccess(store._id, session.user.id);
     
+    console.log('🔐 Store access result:', hasAccess);
+    
     if (!hasAccess) {
-      // Also check if user is super admin
-      const User = (await import('@/models/User')).default;
-      const user = await User.findById(session.user.id);
+      console.log('🔐 Access check failed, checking admin privileges');
       
-      console.log('Access check failed:', {
-        userId: session.user.id,
-        storeId: store._id.toString(),
-        userStores: user.stores?.map(s => s.store_id?.toString()),
-        isSuperAdmin: user.super_admin
-      });
-      
-      if (!user.super_admin) {
+      // Check if user is super admin or super user
+      if (user?.super_admin || user?.is_super_user) {
+        console.log('🔐 Access granted via admin privileges:', {
+          super_admin: user.super_admin,
+          is_super_user: user.is_super_user
+        });
+      } else {
+        console.log('❌ Access denied - no admin privileges or store access');
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
+    } else {
+      console.log('🔐 Access granted via store access check');
     }
 
     // 5. Build OAuth-first authentication options

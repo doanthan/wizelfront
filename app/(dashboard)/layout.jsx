@@ -9,6 +9,7 @@ import { PermissionsProvider } from "@/app/contexts/permissions-context";
 import { SidebarProvider, useSidebar } from "@/app/contexts/sidebar-context";
 import { CampaignDataProvider } from "@/app/contexts/campaign-data-context";
 import { AIProvider } from "@/app/contexts/ai-context";
+import { ChatProvider } from "@/app/contexts/chat-context";
 
 function DashboardContent({ children }) {
   const { isCollapsed } = useSidebar();
@@ -32,9 +33,11 @@ export default function DashboardLayout({ children }) {
         <StoreProvider>
           <CampaignDataProvider>
             <AIProvider>
-              <SidebarProvider>
-                <DashboardContent>{children}</DashboardContent>
-              </SidebarProvider>
+              <ChatProvider>
+                <SidebarProvider>
+                  <DashboardContent>{children}</DashboardContent>
+                </SidebarProvider>
+              </ChatProvider>
             </AIProvider>
           </CampaignDataProvider>
         </StoreProvider>

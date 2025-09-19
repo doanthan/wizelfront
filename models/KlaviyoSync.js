@@ -48,6 +48,16 @@ const KlaviyoSyncSchema = new mongoose.Schema({
         type: Date,
         default: () => new Date('2014-01-01T00:00:00.000Z')
     },
+     events_last_sync: {
+        type: Date,
+        default: () => new Date('2014-01-01T00:00:00.000Z')
+    },
+    aggregates_last_run:{
+             events_last_sync: {
+        type: Date,
+        default: () => new Date('2014-01-01T00:00:00.000Z')
+    }
+    },
     
     // Additional sync metadata
     last_full_sync: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/app/components/ui/button";
@@ -20,7 +21,6 @@ import {
   Shield,
   UserX,
   UserPlus,
-  Loader2,
   Settings,
   Key,
   Clock,
@@ -480,7 +480,7 @@ export default function UsersPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+        <MorphingLoader size="small" showThemeText={false} />
       </div>
     );
   }
@@ -1009,7 +1009,7 @@ export default function UsersPage() {
             >
               {isInviting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <MorphingLoader size="small" showThemeText={false} />
                   Sending...
                 </>
               ) : (
@@ -1281,7 +1281,7 @@ export default function UsersPage() {
             >
               {isUpdating ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <MorphingLoader size="small" showThemeText={false} />
                   Updating...
                 </>
               ) : (

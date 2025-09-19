@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Plus, Globe, Store, AlertCircle, CheckCircle, Loader2, Trash2 } from "lucide-react";
+import MorphingLoader from "@/app/components/ui/loading";
+import { X, Plus, Globe, Store, AlertCircle, CheckCircle, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -303,7 +304,7 @@ export default function StoreDialog({ store, onClose }) {
                           disabled={isDeleting || deleteConfirmName !== formData.name}
                           className={deleteConfirmName !== formData.name ? "opacity-50 cursor-not-allowed" : ""}
                         >
-                          {isDeleting && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          {isDeleting && <MorphingLoader size="small" showThemeText={false} />}
                           Delete Store
                         </Button>
                         <Button
@@ -361,7 +362,7 @@ export default function StoreDialog({ store, onClose }) {
                   className="bg-royal-blue hover:bg-blue-700 text-white transition-colors"
                   disabled={isLoading || isDeleting || !formData.name || !formData.url || showDeleteConfirm}
                 >
-                  {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {isLoading && <MorphingLoader size="small" showThemeText={false} />}
                   {isEditing ? "Save Changes" : "Start Free Trial"}
                 </Button>
               </div>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useStores } from "@/app/contexts/store-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { Loader2 } from "lucide-react";
+import {  } from "lucide-react";
 
 export default function TestStoresPage() {
   const { 
@@ -54,7 +55,7 @@ export default function TestStoresPage() {
             >
               {isLoadingStores ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <MorphingLoader size="small" showThemeText={false} />
                   Refreshing...
                 </>
               ) : (

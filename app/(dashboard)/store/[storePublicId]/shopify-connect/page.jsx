@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Badge } from "@/app/components/ui/badge";
-import { ArrowLeft, ExternalLink, CheckCircle, AlertCircle, Loader2, Store, Shield, Info, ShoppingCart, Package, Tag, TrendingUp } from "lucide-react";
+import { ArrowLeft, ExternalLink, CheckCircle, AlertCircle, Store, Shield, Info, ShoppingCart, Package, Tag, TrendingUp } from "lucide-react";
 import { useToast } from "@/app/hooks/use-toast";
 
 export default function ShopifyConnectPage() {
@@ -160,7 +161,7 @@ export default function ShopifyConnectPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+                <MorphingLoader size="small" showThemeText={false} />
             </div>
         );
     }
@@ -295,7 +296,7 @@ export default function ShopifyConnectPage() {
                                 >
                                     {connecting ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <MorphingLoader size="small" showThemeText={false} />
                                             Connecting...
                                         </>
                                     ) : (
@@ -406,7 +407,7 @@ export default function ShopifyConnectPage() {
                                 >
                                     {connecting ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <MorphingLoader size="small" showThemeText={false} />
                                             Disconnecting...
                                         </>
                                     ) : (

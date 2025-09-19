@@ -7,8 +7,8 @@ import { Input } from "@/app/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { useToast } from "@/app/hooks/use-toast";
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   Plus,
   Tag,
   Search,
@@ -19,7 +19,6 @@ import {
   Edit,
   Trash2,
   Copy,
-  Loader2,
   LayoutGrid,
   List,
   Calendar,

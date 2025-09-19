@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { signIn, getSession, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -65,7 +66,7 @@ export default function LoginPage() {
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-vivid-violet" />
+        <MorphingLoader size="medium" showThemeText={false} />
       </div>
     );
   }
@@ -140,7 +141,7 @@ export default function LoginPage() {
               className="w-full bg-vivid-violet hover:bg-deep-purple text-white"
               disabled={isLoading || !formData.email || !formData.password}
             >
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isLoading && <MorphingLoader size="small" showThemeText={false} />}
               Sign In
             </Button>
           </form>

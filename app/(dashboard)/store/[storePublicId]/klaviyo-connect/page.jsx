@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -10,7 +11,8 @@ import { Badge } from "@/app/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { ArrowLeft, ExternalLink, CheckCircle, AlertCircle, Loader2, Key, Shield, Info, LogIn, RefreshCw } from "lucide-react";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { ArrowLeft, ExternalLink, CheckCircle, AlertCircle, Key, Shield, Info, LogIn, RefreshCw } from "lucide-react";
 import { useToast } from "@/app/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +34,7 @@ export default function KlaviyoConnectPage() {
     const [metrics, setMetrics] = useState([]);
     const [selectedMetricId, setSelectedMetricId] = useState("");
     const [selectedReportingMetricId, setSelectedReportingMetricId] = useState("");
+    const [selectedRefundMetricIds, setSelectedRefundMetricIds] = useState([]);
     const [testingApi, setTestingApi] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
 
@@ -90,6 +93,9 @@ export default function KlaviyoConnectPage() {
                         }
                         if (data.store.klaviyo_integration?.reporting_metric_id) {
                             setSelectedReportingMetricId(data.store.klaviyo_integration.reporting_metric_id);
+                        }
+                        if (data.store.klaviyo_integration?.refund_metric_ids) {
+                            setSelectedRefundMetricIds(data.store.klaviyo_integration.refund_metric_ids);
                         }
                         // Auto-fetch metrics if connected
                         fetchMetrics();
@@ -194,6 +200,18 @@ export default function KlaviyoConnectPage() {
                     }
                 }
                 
+                // Auto-select Cancelled Order and Refunded Order metrics if not already set
+                if (!store?.klaviyo_integration?.refund_metric_ids || store?.klaviyo_integration?.refund_metric_ids.length === 0) {
+                    const refundMetrics = normalizedMetrics.filter(m => {
+                        const name = (m.name || m.attributes?.name || '').toLowerCase();
+                        return name.includes('cancelled order') || name.includes('refunded order') || 
+                               name.includes('canceled order') || name.includes('refund');
+                    });
+                    if (refundMetrics.length > 0 && selectedRefundMetricIds.length === 0) {
+                        setSelectedRefundMetricIds(refundMetrics.map(m => m.id));
+                    }
+                }
+                
                 toast({
                     title: "Success",
                     description: "API key validated successfully",
@@ -247,6 +265,18 @@ export default function KlaviyoConnectPage() {
                     }
                 }
                 
+                // Auto-select Cancelled Order and Refunded Order metrics if not already set
+                if (!store?.klaviyo_integration?.refund_metric_ids || store?.klaviyo_integration?.refund_metric_ids.length === 0) {
+                    const refundMetrics = normalizedMetrics.filter(m => {
+                        const name = (m.name || m.attributes?.name || '').toLowerCase();
+                        return name.includes('cancelled order') || name.includes('refunded order') || 
+                               name.includes('canceled order') || name.includes('refund');
+                    });
+                    if (refundMetrics.length > 0 && selectedRefundMetricIds.length === 0) {
+                        setSelectedRefundMetricIds(refundMetrics.map(m => m.id));
+                    }
+                }
+                
                 if (data.account) {
                     setAccountInfo(data.account);
                 }
@@ -265,6 +295,7 @@ export default function KlaviyoConnectPage() {
                 action: 'connect',
                 conversion_metric_id: selectedMetricId || null,
                 reporting_metric_id: selectedReportingMetricId || null,
+                refund_metric_ids: selectedRefundMetricIds || [],
                 conversion_type: 'value'
             };
 
@@ -354,7 +385,7 @@ export default function KlaviyoConnectPage() {
         return (
             <div className="container mx-auto px-6 py-8">
                 <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+                    <MorphingLoader size="small" showThemeText={false} />
                 </div>
             </div>
         );
@@ -447,7 +478,7 @@ export default function KlaviyoConnectPage() {
                                     >
                                         {connecting ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                <MorphingLoader size="small" showThemeText={false} />
                                                 Connecting...
                                             </>
                                         ) : (
@@ -508,7 +539,7 @@ export default function KlaviyoConnectPage() {
                                 >
                                     {testingApi ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <MorphingLoader size="small" showThemeText={false} />
                                             Validating...
                                         </>
                                     ) : (
@@ -667,6 +698,95 @@ export default function KlaviyoConnectPage() {
                                 </p>
                             </div>
 
+                            {/* Cancelled/Refunded Order Metrics - Multi-select */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Label htmlFor="refund-metrics">Cancelled/Refunded Order</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-4 w-4 p-0">
+                                                <Info className="h-3 w-3 text-neutral-gray" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                                            <div className="space-y-2">
+                                                <h4 className="font-medium text-slate-gray dark:text-white">About Refund Metrics</h4>
+                                                <p className="text-sm text-neutral-gray dark:text-gray-400">
+                                                    Track cancelled and refunded orders to better understand your business metrics. Select one or more metrics that represent cancelled or refunded orders in your Klaviyo account.
+                                                </p>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className="w-full justify-between text-left font-normal"
+                                        >
+                                            <span className="truncate">
+                                                {selectedRefundMetricIds.length === 0
+                                                    ? "Select refund metrics (optional)"
+                                                    : selectedRefundMetricIds.length === 1
+                                                    ? metrics.find(m => m.id === selectedRefundMetricIds[0])?.name || "1 metric selected"
+                                                    : `${selectedRefundMetricIds.length} metrics selected`}
+                                            </span>
+                                            <span className="ml-2 h-4 w-4 shrink-0 opacity-50">▼</span>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700" align="start">
+                                        <div className="max-h-80 overflow-auto p-1">
+                                            {metrics.map((metric) => {
+                                                const isSelected = selectedRefundMetricIds.includes(metric.id);
+                                                const isRecommended = (() => {
+                                                    const name = (metric.name || metric.attributes?.name || '').toLowerCase();
+                                                    return name.includes('cancelled order') || name.includes('refunded order') || 
+                                                           name.includes('canceled order') || name.includes('refund');
+                                                })();
+                                                
+                                                return (
+                                                    <div
+                                                        key={metric.id}
+                                                        className="flex items-center space-x-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer"
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setSelectedRefundMetricIds(prev => prev.filter(id => id !== metric.id));
+                                                            } else {
+                                                                setSelectedRefundMetricIds(prev => [...prev, metric.id]);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Checkbox
+                                                            checked={isSelected}
+                                                            className="data-[state=checked]:bg-sky-blue data-[state=checked]:border-sky-blue"
+                                                        />
+                                                        <div className="flex-1 flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm text-gray-900 dark:text-gray-100">{metric.name || metric.attributes?.name || metric.id}</span>
+                                                                {metric.integration && (
+                                                                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                                        ({metric.integration})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {isRecommended && (
+                                                                <Badge variant="secondary" className="ml-2 text-xs bg-sky-100 text-sky-700 border-sky-200">
+                                                                    Recommended
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <p className="text-xs text-neutral-gray dark:text-gray-400 mt-2">
+                                    Select metrics that track cancelled or refunded orders
+                                </p>
+                            </div>
+
                             <div className="flex gap-3">
                                 <Button
                                     onClick={handleSaveConnection}
@@ -675,7 +795,7 @@ export default function KlaviyoConnectPage() {
                                 >
                                     {connecting ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <MorphingLoader size="small" showThemeText={false} />
                                             Saving...
                                         </>
                                     ) : (

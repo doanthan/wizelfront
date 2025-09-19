@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -18,7 +19,6 @@ import {
   Send,
   TrendingUp,
   ChevronRight,
-  Loader2,
   Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -191,7 +191,7 @@ export default function StoreIdeaGeneratorPage() {
   if (!storeId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+        <MorphingLoader size="small" showThemeText={false} />
         <span className="ml-2">Loading...</span>
       </div>
     );

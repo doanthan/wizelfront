@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -19,7 +20,6 @@ import {
   Edit,
   Trash2,
   Copy,
-  Loader2,
   Image,
   LayoutGrid,
   List,
@@ -303,7 +303,7 @@ export default function ProductsPage() {
                 >
                   {connectingProducts ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <MorphingLoader size="small" showThemeText={false} />
                       Importing...
                     </>
                   ) : (
@@ -439,7 +439,7 @@ export default function ProductsPage() {
                       >
                         {connectingProducts ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <MorphingLoader size="small" showThemeText={false} />
                             Importing...
                           </>
                         ) : (

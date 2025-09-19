@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -19,7 +20,6 @@ import {
   Edit,
   Trash2,
   Copy,
-  Loader2,
   BarChart,
   Eye,
   LayoutGrid,

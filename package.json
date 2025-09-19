@@ -48,6 +48,7 @@
     "nanoid": "^5.1.5",
     "next": "15.5.2",
     "next-auth": "^4.24.11",
+    "node-cache": "^5.1.2",
     "node-fetch": "^3.3.2",
     "playwright": "^1.55.0",
     "postcss": "^8.5.6",

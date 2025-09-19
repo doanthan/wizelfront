@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { Card } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
@@ -18,7 +19,6 @@ import {
   Bug,
   Lightbulb,
   Paperclip,
-  Loader2,
   Check,
   ChevronDown,
   Sparkles,
@@ -28,8 +28,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/app/hooks/use-toast";
 import { useAI } from "@/app/contexts/ai-context";
+import { useChat } from "@/app/contexts/chat-context";
 
 export default function ChatWidget() {
+  const { isChatOpen, setIsChatOpen, activeTab: contextActiveTab, setActiveTab: setContextActiveTab } = useChat();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("ai");
   const [isMinimized, setIsMinimized] = useState(false);
@@ -43,7 +45,7 @@ export default function ChatWidget() {
   const [aiLoading, setAiLoading] = useState(false);
   
   // Support Form State
-  const [supportType, setSupportType] = useState("bug");
+  const [supportType, setSupportType] = useState("question");
   const [supportMessage, setSupportMessage] = useState("");
   const [supportAttachments, setSupportAttachments] = useState([]);
   const [supportLoading, setSupportLoading] = useState(false);
@@ -53,6 +55,23 @@ export default function ChatWidget() {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const { toast } = useToast();
+
+  // Sync with context
+  useEffect(() => {
+    setIsOpen(isChatOpen);
+  }, [isChatOpen]);
+
+  useEffect(() => {
+    setActiveTab(contextActiveTab);
+  }, [contextActiveTab]);
+
+  useEffect(() => {
+    setIsChatOpen(isOpen);
+  }, [isOpen, setIsChatOpen]);
+
+  useEffect(() => {
+    setContextActiveTab(activeTab);
+  }, [activeTab, setContextActiveTab]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -443,7 +462,7 @@ export default function ChatWidget() {
                           className="bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white transition-all duration-200 shadow-md hover:shadow-lg"
                         >
                           {aiLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <MorphingLoader size="small" showThemeText={false} />
                           ) : (
                             <Send className="h-4 w-4" />
                           )}
@@ -483,24 +502,24 @@ export default function ChatWidget() {
                             <div className="space-y-1">
                               <label className={cn(
                                 "flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all",
-                                supportType === "bug" 
-                                  ? "border-red-500 bg-red-50 dark:bg-red-900/20" 
+                                supportType === "question"
+                                  ? "border-sky-blue bg-blue-50 dark:bg-blue-900/20"
                                   : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                               )}>
-                                <RadioGroupItem value="bug" className="text-red-500" />
-                                <Bug className="h-4 w-4 text-red-500" />
+                                <RadioGroupItem value="question" className="text-sky-blue" />
+                                <HelpCircle className="h-4 w-4 text-sky-blue" />
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-slate-gray dark:text-white">Report a Bug</p>
+                                  <p className="text-sm font-medium text-slate-gray dark:text-white">Ask a Question</p>
                                   <p className="text-xs text-neutral-gray dark:text-gray-400">
-                                    Something isn't working right
+                                    Get help with something
                                   </p>
                                 </div>
                               </label>
-                              
+
                               <label className={cn(
                                 "flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all",
-                                supportType === "feature" 
-                                  ? "border-vivid-violet bg-purple-50 dark:bg-purple-900/20" 
+                                supportType === "feature"
+                                  ? "border-vivid-violet bg-purple-50 dark:bg-purple-900/20"
                                   : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                               )}>
                                 <RadioGroupItem value="feature" className="text-vivid-violet" />
@@ -512,19 +531,19 @@ export default function ChatWidget() {
                                   </p>
                                 </div>
                               </label>
-                              
+
                               <label className={cn(
                                 "flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all",
-                                supportType === "question" 
-                                  ? "border-sky-blue bg-blue-50 dark:bg-blue-900/20" 
+                                supportType === "bug"
+                                  ? "border-red-500 bg-red-50 dark:bg-red-900/20"
                                   : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                               )}>
-                                <RadioGroupItem value="question" className="text-sky-blue" />
-                                <HelpCircle className="h-4 w-4 text-sky-blue" />
+                                <RadioGroupItem value="bug" className="text-red-500" />
+                                <Bug className="h-4 w-4 text-red-500" />
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-slate-gray dark:text-white">Ask a Question</p>
+                                  <p className="text-sm font-medium text-slate-gray dark:text-white">Report a Bug</p>
                                   <p className="text-xs text-neutral-gray dark:text-gray-400">
-                                    Get help with something
+                                    Something isn't working right
                                   </p>
                                 </div>
                               </label>
@@ -610,7 +629,7 @@ export default function ChatWidget() {
                         >
                           {supportLoading ? (
                             <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              <MorphingLoader size="small" showThemeText={false} />
                               Sending...
                             </>
                           ) : (

@@ -78,64 +78,245 @@ export default function RevenueTab({
 
     const fetchRevenueData = async () => {
         setIsLoadingData(true)
-        
+
         try {
-            // Build query parameters
-            const params = new URLSearchParams()
-            
-            // Add date range parameters
+            // Prepare store IDs for the API
+            let storeIds = []
+            if (selectedAccounts?.some(acc => acc.value === 'all')) {
+                storeIds = ['all']
+            } else if (selectedAccounts?.length > 0) {
+                // Extract store IDs from selected accounts
+                storeIds = selectedAccounts.map(acc => acc.value)
+            }
+
+            // Format dates for API
+            const formatDate = (date) => {
+                if (!date) return null
+                return new Date(date).toISOString().split('T')[0]
+            }
+
+            // Prepare query params
+            const params = new URLSearchParams({
+                storeIds: storeIds.join(','),
+                comparisonType: dateRangeSelection?.comparisonType || 'previous-period'
+            })
+
+            // Add date range
             if (dateRangeSelection?.ranges?.main) {
-                params.append('startDate', dateRangeSelection.ranges.main.start)
-                params.append('endDate', dateRangeSelection.ranges.main.end)
+                params.append('startDate', formatDate(dateRangeSelection.ranges.main.start))
+                params.append('endDate', formatDate(dateRangeSelection.ranges.main.end))
             }
-            
-            // Add account filter if not "all"
-            if (selectedAccounts?.length > 0 && !selectedAccounts.some(acc => acc.value === 'all')) {
-                const accountIds = selectedAccounts.map(acc => acc.value).join(',')
-                params.append('accounts', accountIds)
+
+            // Add comparison range
+            if (dateRangeSelection?.ranges?.comparison) {
+                params.append('comparisonStartDate', formatDate(dateRangeSelection.ranges.comparison.start))
+                params.append('comparisonEndDate', formatDate(dateRangeSelection.ranges.comparison.end))
             }
-            
-            // Fetch campaign data
-            const campaignResponse = await fetch(`/api/report/campaigns?${params}`)
-            let campaignData = null
-            if (campaignResponse.ok) {
-                campaignData = await campaignResponse.json()
+
+            // Call the new multi-account revenue API
+            const response = await fetch(`/api/dashboard/multi-account-revenue?${params}`)
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`)
             }
-            
-            // Fetch flow data
-            const flowResponse = await fetch(`/api/report/flows?${params}`)
-            let flowData = null
-            if (flowResponse.ok) {
-                flowData = await flowResponse.json()
-            }
-            
-            if (campaignData?.success && flowData?.success) {
-                // Process and combine revenue data from campaigns and flows
-                const processedData = processRevenueData(campaignData.data, flowData.data)
-                setRevenueData(processedData)
-                setAccountComparison(processedData.accountComparison)
-                setChannelRevenue(processedData.channelRevenue)
-            } else {
-                console.log('API endpoints not available, using mock data')
-                // Fall back to mock data
-                const mockData = generateMockRevenueData()
-                setRevenueData(mockData)
-                setAccountComparison(mockData.accountComparison)
-                setChannelRevenue(mockData.channelRevenue)
-            }
+
+            const data = await response.json()
+
+            console.log('Multi-Account Revenue API Response:', data);
+
+            // Process the ClickHouse data for the revenue tab
+            const processedData = processClickHouseData(data, timeGranularity)
+            console.log('Processed Revenue Data:', processedData);
+
+            setRevenueData(processedData)
+            setAccountComparison(processedData.accountComparison)
+            setChannelRevenue(processedData.channelRevenue)
+
         } catch (error) {
             console.error('Error fetching revenue data:', error)
-            // Fall back to mock data
-            const mockData = generateMockRevenueData()
-            setRevenueData(mockData)
-            setAccountComparison(mockData.accountComparison)
-            setChannelRevenue(mockData.channelRevenue)
+            // Fall back to empty data structure
+            const emptyData = {
+                metrics: {
+                    totalRevenue: 0,
+                    attributedRevenue: 0,
+                    totalOrders: 0,
+                    totalRecipients: 0,
+                    totalEmailsSent: 0,
+                    totalSMSSent: 0,
+                    revenuePerEmail: 0,
+                    revenuePerSMS: 0,
+                    revenuePerRecipient: 0,
+                    averageOrderValue: 0,
+                    momGrowth: 0,
+                    yoyGrowth: 0
+                },
+                accountComparison: [],
+                channelRevenue: [],
+                trendData: []
+            }
+            setRevenueData(emptyData)
+            setAccountComparison(emptyData.accountComparison)
+            setChannelRevenue(emptyData.channelRevenue)
         } finally {
             setIsLoadingData(false)
         }
     }
     
-    // Process revenue data from API responses
+    // Process ClickHouse data for revenue tab display
+    const processClickHouseData = (data, granularity) => {
+        const { stats = {}, trend = {}, campaigns = [], metadata = {} } = data
+
+        console.log('Processing ClickHouse data:', {
+            stats,
+            trendDataCount: trend.current?.length || 0,
+            campaignsCount: campaigns.length,
+            metadata
+        });
+
+        // Extract metrics from stats
+        const totalRevenue = parseFloat(stats.current_revenue) || 0
+        const attributedRevenue = parseFloat(stats.current_campaign_revenue) + parseFloat(stats.current_flow_revenue) || 0
+        const emailRevenue = parseFloat(stats.current_email_revenue) || 0
+        const smsRevenue = parseFloat(stats.current_sms_revenue) || 0
+        const totalOrders = parseInt(stats.current_orders) || 0
+        const uniqueCustomers = parseInt(stats.current_customers) || 0
+        const aov = parseFloat(stats.current_aov) || 0
+
+        // Calculate total recipients from campaign data
+        const totalRecipients = campaigns.reduce((sum, day) => sum + (day.total_recipients || 0), 0)
+        const totalCampaigns = campaigns.reduce((sum, day) => sum + (day.total_campaigns || 0), 0)
+
+        // Process account comparison data
+        // Since we're aggregating multiple accounts, show aggregated data
+        const accountComparison = metadata.storeCount > 0 ? [{
+            account: metadata.storeCount > 1 ? `${metadata.storeCount} Accounts Combined` : 'Account',
+            accountId: 'aggregated',
+            totalRevenue: totalRevenue,
+            attributedRevenue: attributedRevenue,
+            orders: totalOrders,
+            recipients: totalRecipients,
+            emailsSent: Math.floor(totalRecipients * 0.8), // Estimate 80% email
+            smsSent: Math.floor(totalRecipients * 0.2), // Estimate 20% SMS
+            emailRevenue: emailRevenue,
+            smsRevenue: smsRevenue,
+            revenuePerEmail: totalRecipients > 0 ? emailRevenue / (totalRecipients * 0.8) : 0,
+            revenuePerSMS: totalRecipients > 0 ? smsRevenue / (totalRecipients * 0.2) : 0,
+            revenuePerRecipient: totalRecipients > 0 ? totalRevenue / totalRecipients : 0,
+            aov: aov,
+            conversionRate: campaigns.length > 0 ? campaigns.reduce((sum, c) => sum + (c.avg_conversion_rate || 0), 0) / campaigns.length : 0
+        }] : []
+
+        // Channel revenue breakdown
+        const channelRevenue = [
+            { channel: 'Email', revenue: emailRevenue, percentage: totalRevenue > 0 ? (emailRevenue / totalRevenue) * 100 : 0 },
+            { channel: 'SMS', revenue: smsRevenue, percentage: totalRevenue > 0 ? (smsRevenue / totalRevenue) * 100 : 0 },
+            { channel: 'Push', revenue: pushRevenue, percentage: totalRevenue > 0 ? (pushRevenue / totalRevenue) * 100 : 0 }
+        ].filter(channel => channel.revenue > 0)
+
+        // Process time series data based on granularity
+        const trendData = processTimeSeries(trend, campaigns, granularity)
+
+        console.log('Revenue Metrics Calculated:', {
+            totalRevenue: summary.totalRevenue,
+            attributedRevenue: summary.attributedRevenue,
+            emailsSent: summary.totalEmailsSent,
+            smsSent: summary.totalSMSSent,
+            accountCount: accountComparison.length,
+            trendDataCount: trendData.length
+        });
+
+        return {
+            metrics: {
+                totalRevenue: totalRevenue,
+                attributedRevenue: attributedRevenue,
+                totalOrders: totalOrders,
+                uniqueCustomers: uniqueCustomers,
+                totalRecipients: totalRecipients,
+                totalEmailsSent: Math.floor(totalRecipients * 0.8), // Estimate
+                totalSMSSent: Math.floor(totalRecipients * 0.2), // Estimate
+                revenuePerEmail: totalRecipients > 0 ? emailRevenue / (totalRecipients * 0.8) : 0,
+                revenuePerSMS: totalRecipients > 0 ? smsRevenue / (totalRecipients * 0.2) : 0,
+                revenuePerRecipient: totalRecipients > 0 ? totalRevenue / totalRecipients : 0,
+                averageOrderValue: aov,
+                momGrowth: parseFloat(stats.revenue_change) || 0,
+                yoyGrowth: parseFloat(stats.revenue_change) || 0, // Use same as mom for now
+                // Include comparison changes if available
+                revenueChange: parseFloat(stats.revenue_change) || 0,
+                attributedRevenueChange: 0, // TODO: Calculate separately
+                ordersChange: parseFloat(stats.order_change) || 0,
+                customersChange: parseFloat(stats.customer_change) || 0,
+                avgOrderValueChange: parseFloat(stats.aov_change) || 0,
+                newCustomersChange: 0 // TODO: Calculate separately
+            },
+            accountComparison,
+            channelRevenue,
+            trendData
+        }
+    }
+
+    // Process time series data based on granularity
+    const processTimeSeries = (trendData, campaignData, granularity) => {
+        const currentTrend = trendData.current || []
+        const comparisonTrend = trendData.comparison || []
+
+        if (!currentTrend || currentTrend.length === 0) return []
+
+        // Group time series by the selected granularity
+        const grouped = new Map()
+
+        currentTrend.forEach(point => {
+            const date = new Date(point.date)
+            let groupKey
+
+            if (granularity === 'daily') {
+                groupKey = `${date.getMonth() + 1}/${date.getDate()}`
+            } else if (granularity === 'weekly') {
+                // Get week start
+                const weekStart = new Date(date)
+                weekStart.setDate(date.getDate() - date.getDay())
+                const weekEnd = new Date(weekStart)
+                weekEnd.setDate(weekStart.getDate() + 6)
+                groupKey = `${weekStart.getMonth() + 1}/${weekStart.getDate()}-${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`
+            } else { // monthly
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                groupKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`
+            }
+
+            if (!grouped.has(groupKey)) {
+                grouped.set(groupKey, {
+                    date: groupKey,
+                    totalRevenue: 0,
+                    totalAttributed: 0,
+                    orders: 0,
+                    customers: 0
+                })
+            }
+
+            const group = grouped.get(groupKey)
+            group.totalRevenue += parseFloat(point.revenue) || 0
+            group.totalAttributed += (parseFloat(point.campaign_revenue) || 0) + (parseFloat(point.flow_revenue) || 0)
+            group.orders += parseInt(point.orders) || 0
+            group.customers += parseInt(point.customers) || 0
+        })
+
+        // Convert to array and format
+        const trendDataArray = Array.from(grouped.values()).map(group => {
+            const dataPoint = {
+                date: group.date,
+                totalRevenue: group.totalRevenue,
+                totalAttributed: group.totalAttributed,
+                totalPercent: group.totalRevenue > 0 ? (group.totalAttributed / group.totalRevenue) * 100 : 0,
+                orders: group.orders,
+                customers: group.customers
+            }
+
+            return dataPoint
+        })
+
+        return trendDataArray
+    }
+
+    // Process revenue data from API responses (OLD - keeping for reference)
     const processRevenueData = (campaignData, flowData) => {
         const campaigns = campaignData.items || []
         const flows = flowData.flows || []
@@ -502,10 +683,14 @@ export default function RevenueTab({
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.totalRevenue)}</div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                            <span className="text-green-600 flex items-center">
-                                <ArrowUp className="h-3 w-3 mr-1" />
-                                {formatPercentage(metrics.momGrowth)} MoM
-                            </span>
+                            {metrics.revenueChange !== undefined && metrics.revenueChange !== null ? (
+                                <span className={`flex items-center ${metrics.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {metrics.revenueChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                                    {formatPercentage(Math.abs(metrics.revenueChange))} vs {dateRangeSelection?.ranges?.comparison?.label || 'previous period'}
+                                </span>
+                            ) : (
+                                <span className="text-gray-500">No comparison data</span>
+                            )}
                         </p>
                     </CardContent>
                 </Card>
@@ -518,7 +703,14 @@ export default function RevenueTab({
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.attributedRevenue)}</div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {formatPercentage((metrics.attributedRevenue / metrics.totalRevenue) * 100)} of total
+                            {metrics.attributedRevenueChange !== undefined && metrics.attributedRevenueChange !== null ? (
+                                <span className={`flex items-center ${metrics.attributedRevenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {metrics.attributedRevenueChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                                    {formatPercentage(Math.abs(metrics.attributedRevenueChange))} vs {dateRangeSelection?.ranges?.comparison?.label || 'previous'}
+                                </span>
+                            ) : (
+                                <span>{formatPercentage((metrics.attributedRevenue / metrics.totalRevenue) * 100)} of total</span>
+                            )}
                         </p>
                     </CardContent>
                 </Card>
@@ -531,23 +723,36 @@ export default function RevenueTab({
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(metrics.totalOrders)}</div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                            AOV: {formatCurrency(metrics.averageOrderValue)}
+                            {metrics.ordersChange !== undefined && metrics.ordersChange !== null ? (
+                                <span className={`flex items-center ${metrics.ordersChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {metrics.ordersChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                                    {formatPercentage(Math.abs(metrics.ordersChange))} | AOV: {formatCurrency(metrics.averageOrderValue)}
+                                </span>
+                            ) : (
+                                <span>AOV: {formatCurrency(metrics.averageOrderValue)}</span>
+                            )}
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">YoY Growth</CardTitle>
-                        <Activity className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Unique Customers</CardTitle>
+                        <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                            <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
-                            {formatPercentage(metrics.yoyGrowth)}
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {formatNumber(metrics.uniqueCustomers || 0)}
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                            Year over year
+                            {metrics.customersChange !== undefined && metrics.customersChange !== null ? (
+                                <span className={`flex items-center ${metrics.customersChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {metrics.customersChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
+                                    {formatPercentage(Math.abs(metrics.customersChange))} vs {dateRangeSelection?.ranges?.comparison?.label || 'previous'}
+                                </span>
+                            ) : (
+                                <span>{formatNumber(metrics.newCustomersChange || 0)} new customers</span>
+                            )}
                         </p>
                     </CardContent>
                 </Card>

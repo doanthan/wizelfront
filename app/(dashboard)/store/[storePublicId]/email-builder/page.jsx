@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useParams, useRouter } from "next/navigation";
 import { useStores } from "@/app/contexts/store-context";
 import { useToast } from "@/app/hooks/use-toast";
 import { Card } from "@/app/components/ui/card";
-import { Store, Loader2 } from "lucide-react";
+import { Store } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
 
 export default function StoreEmailBuilderPage() {
@@ -27,12 +28,26 @@ export default function StoreEmailBuilderPage() {
 
       // Find the store
       const accessibleStores = getUserAccessibleStores();
+
+      console.log('🔍 Email Builder Page Debug:', {
+        storePublicId,
+        accessibleStoresCount: accessibleStores.length,
+        accessibleStoreIds: accessibleStores.map(s => s.public_id),
+        firstStore: accessibleStores[0],
+        lookingFor: storePublicId
+      });
+
       const store = accessibleStores.find(s => s.public_id === storePublicId);
-      
+
       if (!store) {
+        console.error('❌ Store not found:', {
+          requestedId: storePublicId,
+          availableIds: accessibleStores.map(s => s.public_id)
+        });
+
         toast({
           title: "Access denied",
-          description: "You don't have access to this store",
+          description: `Store ${storePublicId} not found in your accessible stores. You have access to: ${accessibleStores.map(s => s.public_id).join(', ')}`,
           variant: "destructive",
         });
         router.push('/email-builder');
@@ -49,7 +64,7 @@ export default function StoreEmailBuilderPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-blue" />
+        <MorphingLoader size="small" showThemeText={false} />
         <span className="ml-2">Loading store...</span>
       </div>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/app/components/ui/button";
@@ -30,7 +31,6 @@ import {
   ShoppingCart,
   Palette,
   Image,
-  Loader2,
   RefreshCw,
   Check,
   X
@@ -795,7 +795,7 @@ export default function StoreDetailsPage() {
                         className="bg-sky-blue hover:bg-royal-blue text-white"
                       >
                         {isAddingTag ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <MorphingLoader size="small" showThemeText={false} />
                         ) : (
                           <Plus className="h-4 w-4" />
                         )}
@@ -1049,7 +1049,7 @@ export default function StoreDetailsPage() {
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base text-slate-gray dark:text-white flex items-center gap-2">
                         {store.scrape_status === 'processing' || store.scrape_status === 'pending' ? (
-                          <Loader2 className="h-4 w-4 text-sky-blue animate-spin" />
+                          <MorphingLoader size="small" showThemeText={false} />
                         ) : store.scrape_status === 'completed' ? (
                           <Check className="h-4 w-4 text-green-600" />
                         ) : store.scrape_status === 'failed' ? (

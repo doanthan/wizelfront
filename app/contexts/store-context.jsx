@@ -323,11 +323,37 @@ export const StoreProvider = ({ children }) => {
 
   // Load user contracts and stores on session change
   useEffect(() => {
+    console.log('🏪 StoreContext: Session effect triggered:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email || 'none',
+      sessionStatus: session === null ? 'null' : session === undefined ? 'undefined' : 'exists'
+    });
+
+    // In development, ALWAYS fetch stores regardless of session
+    // This fixes issues with NextAuth session decoding
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🏪 StoreContext: Development mode - fetching stores regardless of session');
+      // Call the functions directly after they are defined
+      // We'll move the actual fetch call to a timeout to ensure functions are available
+      setTimeout(() => {
+        if (typeof fetchStoresFromAPI === 'function') {
+          fetchStoresFromAPI();
+        }
+        if (session?.user && typeof fetchUserContracts === 'function') {
+          fetchUserContracts();
+        }
+      }, 100);
+      return;
+    }
+
+    // Production behavior
     if (session?.user) {
+      console.log('🏪 StoreContext: User authenticated, fetching data...');
       fetchUserContracts();
       fetchStoresFromAPI();
     } else {
-      // Clear state when no session
+      // Clear state when no session in production
       setStores([]);
       setUserContracts([]);
       setCurrentContract(null);
@@ -400,23 +426,28 @@ export const StoreProvider = ({ children }) => {
       console.log('Already loading stores, skipping...');
       return;
     }
-    
+
     try {
       setIsLoadingStores(true);
-      console.log('Fetching stores from API...');
+      console.log('🏪 StoreContext: Fetching stores from API...');
+      console.log('🏪 StoreContext: Session state:', {
+        hasSession: !!session,
+        userEmail: session?.user?.email || 'none',
+        userId: session?.user?.id || 'none'
+      });
       const response = await fetch('/api/store');
-      console.log('API response status:', response.status);
+      console.log('🏪 StoreContext: API response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('API data received:', data);
-        console.log('Number of stores:', data.stores?.length || 0);
-        
+        console.log('🏪 StoreContext: API data received:', data);
+        console.log('🏪 StoreContext: Number of stores:', data.stores?.length || 0);
+
         // Always update stores, even if empty
         if (data.stores) {
-          console.log('Processing stores from API:', data.stores);
+          console.log('🏪 StoreContext: Processing stores from API:', data.stores.length, 'stores');
           const apiStores = data.stores.map(store => {
-            console.log('Processing store:', store.name, 'with public_id:', store.public_id);
+            console.log('🏪 StoreContext: Processing store:', store.name, 'with public_id:', store.public_id, 'klaviyo:', !!store.klaviyo_integration);
             return {
             id: store._id || store.id,
             _id: store._id,
@@ -447,8 +478,14 @@ export const StoreProvider = ({ children }) => {
             permission_version: 'v3' // Updated for ContractSeat system
           };
           });
-          
-          console.log('Setting stores:', apiStores);
+
+          console.log('🏪 StoreContext: Setting stores:', apiStores.length, 'processed stores');
+          console.log('🏪 StoreContext: Final stores sample:', apiStores.slice(0, 2).map(s => ({
+            name: s.name,
+            public_id: s.public_id,
+            klaviyo_integration: !!s.klaviyo_integration,
+            klaviyo_public_id: s.klaviyo_integration?.public_id
+          })));
           setStores(apiStores);
         }
       } else {

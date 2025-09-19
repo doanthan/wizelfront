@@ -100,7 +100,12 @@ export default function AnalyticsPage() {
             try {
                 const parsed = JSON.parse(savedAccounts)
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    setSelectedAccounts(parsed)
+                    // Remove duplicates based on value property
+                    const uniqueAccounts = parsed.filter((account, index, self) =>
+                        index === self.findIndex(a => a.value === account.value)
+                    )
+                    console.log('Parsed accounts:', parsed.length, 'Unique accounts:', uniqueAccounts.length)
+                    setSelectedAccounts(uniqueAccounts)
                 }
             } catch (e) {
                 console.error('Error parsing saved accounts:', e)
@@ -125,33 +130,41 @@ export default function AnalyticsPage() {
     
     const [isAccountsInitialized, setIsAccountsInitialized] = useState(false)
     
-    // Compute available accounts reactively from stores
+    // Compute available accounts reactively from stores - aligned with dashboard
     const availableAccounts = useMemo(() => {
         if (!stores || stores.length === 0) {
             return []
         }
-        
-        // Build current accounts from stores
-        const accountsMap = new Map()
-        stores
-            .filter(store => store.klaviyo_integration?.public_id || store.klaviyo_integration?.public_key)
-            .forEach(store => {
-                // Prioritize public_id over public_key (public_id is the correct field)
-                const value = store.klaviyo_integration?.public_id || store.klaviyo_integration?.public_key
-                const label = store.klaviyo_integration?.account?.data?.[0]?.attributes?.contact_information?.organization_name || 
-                            store.klaviyo_integration?.account_name || 
-                            store.name
-                if (!accountsMap.has(value)) {
-                    accountsMap.set(value, {
-                        value,
-                        label,
-                        klaviyo: store.klaviyo_integration?.account?.data?.[0]?.attributes?.contact_information?.organization_name || 
-                                store.klaviyo_integration?.account_name
-                    })
-                }
+
+        // Build accounts from stores - each store is an account (matching dashboard)
+        const accounts = []
+        const tagsSet = new Set()
+
+        stores.forEach(store => {
+            // Add store as an account using store's public_id (same as dashboard)
+            const hasKlaviyo = store.klaviyo_integration?.public_id
+            accounts.push({
+                value: store.public_id || store._id,
+                label: `${store.name}${hasKlaviyo ? '' : ' (No Klaviyo)'}`,
+                klaviyo: store.klaviyo_integration?.public_id,
+                storeTags: store.storeTags || [],
+                hasKlaviyo: !!hasKlaviyo
             })
-        
-        const currentAccounts = Array.from(accountsMap.values())
+
+            // Collect all unique tags
+            if (store.storeTags && Array.isArray(store.storeTags)) {
+                store.storeTags.forEach(tag => tagsSet.add(tag))
+            }
+        })
+
+        // Add tag groupings at the beginning
+        const tagAccounts = Array.from(tagsSet).map(tag => ({
+            value: `tag:${tag}`,
+            label: `${tag} (Tag)`,
+            isTag: true
+        }))
+
+        const currentAccounts = [...tagAccounts, ...accounts]
         
         // Update known accounts with any new ones
         const newKnownAccounts = { ...allKnownAccounts }
@@ -418,30 +431,36 @@ export default function AnalyticsPage() {
     
     
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex-1 space-y-4 p-4 pt-3">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Multi-Account Reporting</h2>
-                    <p className="text-gray-600 dark:text-gray-400">Cross-account analytics and performance insights</p>
+                <div className="flex items-baseline gap-3">
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">Multi-Account Reporting</h2>
+                    <p className="text-sm text-neutral-gray dark:text-gray-400">Cross-account analytics and performance insights</p>
                 </div>
                 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                     {/* Account Selector */}
-                    <AccountSelector
-                        accounts={availableAccounts}
-                        value={selectedAccounts}
-                        onChange={(newValue) => {
-                            console.log('Analytics account selection changed:', newValue)
-                            // Update state
-                            setSelectedAccounts(newValue)
-                            // Save to localStorage with analytics-specific key
-                            localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(newValue))
-                        }}
-                    />
-                    
+                    <div className="w-40">
+                        <AccountSelector
+                            accounts={availableAccounts}
+                            value={selectedAccounts}
+                            onChange={(newValue) => {
+                                console.log('Analytics account selection changed:', newValue)
+                                // Remove duplicates before saving
+                                const uniqueValue = newValue.filter((account, index, self) =>
+                                    index === self.findIndex(a => a.value === account.value)
+                                )
+                                // Update state
+                                setSelectedAccounts(uniqueValue)
+                                // Save to localStorage with analytics-specific key
+                                localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(uniqueValue))
+                            }}
+                        />
+                    </div>
+
                     {/* Date Range Selector */}
-                    <DateRangeSelector 
+                    <DateRangeSelector
                         onDateRangeChange={handleDateRangeChange}
                         storageKey="analyticsDateRange"
                         showComparison={true}

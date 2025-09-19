@@ -1,8 +1,8 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/app/components/ui/dialog';
 import { Badge } from '@/app/components/ui/badge';
-import { Mail, MessageSquare, Bell, Users, Eye, MousePointer, DollarSign } from 'lucide-react';
+import { Mail, MessageSquare, Bell, Users, Eye, MousePointer, DollarSign, Calendar, Target, Zap, X } from 'lucide-react';
 import { getCampaignMetrics } from '../utils/calendar-helpers';
 import { cn } from '@/lib/utils';
 import { EmailPreviewPanel } from './EmailPreviewPanel';
@@ -20,6 +20,38 @@ export default function CampaignComparisonModal({
   
   if (selectedCampaigns.length === 0) return null;
   
+  // Prepare data for each campaign
+  const campaignData = selectedCampaigns.map(campaign => {
+    const store = stores?.find(s => 
+      s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
+    );
+    const { openRate, clickRate, revenue } = getCampaignMetrics(campaign);
+    const recipients = campaign.performance?.recipients || campaign.recipients || 0;
+    const delivered = campaign.performance?.delivered || campaign.delivered || recipients;
+    const opensUnique = campaign.performance?.opensUnique || campaign.opensUnique || 0;
+    const clicksUnique = campaign.performance?.clicksUnique || campaign.clicksUnique || 0;
+    const conversions = campaign.performance?.conversions || campaign.conversions || 0;
+    const conversionRate = campaign.performance?.conversionRate || campaign.conversionRate || 0;
+    
+    return {
+      ...campaign,
+      store,
+      metrics: {
+        recipients,
+        delivered,
+        opensUnique,
+        clicksUnique,
+        conversions,
+        openRate,
+        clickRate,
+        conversionRate,
+        revenue,
+        ctor: openRate > 0 ? (clickRate / openRate) : 0,
+        revenuePerRecipient: recipients > 0 ? revenue / recipients : 0
+      }
+    };
+  });
+  
   // Determine grid columns based on number of campaigns
   const getGridCols = () => {
     switch(selectedCampaigns.length) {
@@ -34,209 +66,257 @@ export default function CampaignComparisonModal({
   
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[90vh] overflow-hidden bg-white dark:bg-gray-900 flex flex-col">
-        <DialogHeader className="border-b border-gray-200 dark:border-gray-700 pb-4 flex-shrink-0">
-          <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center justify-between">
-            <span>Campaign Comparison ({selectedCampaigns.length} campaigns)</span>
-            {selectedCampaigns.length === 5 && (
-              <Badge className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Max 5 campaigns</Badge>
-            )}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-[98vw] h-[95vh] p-0 overflow-hidden bg-gray-950">
+        {/* Hidden title for accessibility */}
+        <DialogTitle className="sr-only">
+          Campaign Comparison ({selectedCampaigns.length} campaigns)
+        </DialogTitle>
         
-        {/* Main content area - side by side previews with stats */}
-        <div className="flex-1 overflow-auto p-4">
-          <div className={cn("grid gap-4", getGridCols())}>
-            {selectedCampaigns.map(campaign => {
-              const store = stores?.find(s => 
-                s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
-              );
-              const { openRate, clickRate, revenue } = getCampaignMetrics(campaign);
-              const recipients = campaign.performance?.recipients || 0;
-              
-              return (
-                <div key={campaign.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col bg-white dark:bg-gray-900 h-full">
-                  {/* Campaign Header - Fixed height */}
-                  <div className="p-3 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700 h-[88px]">
-                    <div className="flex items-center gap-2 mb-1">
-                      {campaign.channel === 'email' && <Mail className="h-4 w-4 text-blue-600" />}
-                      {campaign.channel === 'sms' && <MessageSquare className="h-4 w-4 text-green-600" />}
-                      {campaign.channel === 'push-notification' && <Bell className="h-4 w-4 text-purple-600" />}
-                      <Badge className="text-xs" variant={campaign.channel === 'email' ? 'default' : 'secondary'}>
+        {/* Custom header bar */}
+        <div className="absolute top-0 left-0 right-0 z-20 bg-gray-900/90 backdrop-blur-sm border-b border-gray-800 px-4 py-2 flex items-center justify-between">
+          <div className="text-sm font-medium text-gray-200">
+            Campaign Comparison ({selectedCampaigns.length} campaigns)
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-1 hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <X className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
+        
+        {/* Main content area */}
+        <div className="h-full pt-10 bg-gray-950 overflow-hidden flex flex-col">
+          {/* Email/SMS Preview Section - Takes most of the space */}
+          <div className="flex-1 overflow-hidden">
+            <div className={cn("grid h-full", getGridCols())}>
+              {campaignData.map(campaign => (
+                <div key={campaign.id} className="border-r border-gray-800 last:border-r-0 flex flex-col h-full overflow-hidden">
+                  {/* Campaign Info Header - Ultra compact */}
+                  <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {campaign.channel === 'email' && <Mail className="h-3 w-3 text-blue-500 flex-shrink-0" />}
+                        {campaign.channel === 'sms' && <MessageSquare className="h-3 w-3 text-green-500 flex-shrink-0" />}
+                        {campaign.channel === 'push-notification' && <Bell className="h-3 w-3 text-purple-500 flex-shrink-0" />}
+                        <h4 className="text-sm text-gray-100 truncate" title={campaign.name}>
+                          {campaign.name}
+                        </h4>
+                      </div>
+                      <Badge className="text-xs flex-shrink-0" variant={campaign.channel === 'email' ? 'default' : 'secondary'}>
                         {campaign.channel?.toUpperCase()}
                       </Badge>
                     </div>
-                    <h4 className="font-semibold text-sm text-gray-900 dark:text-white truncate" title={campaign.name}>
-                      {campaign.name}
-                    </h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">{store?.name || 'Unknown Store'}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title={campaign.subject || 'No subject'}>
-                      {campaign.channel === 'email' ? `Subject: ${campaign.subject || 'No subject'}` : `${campaign.channel === 'sms' ? 'SMS Message' : 'Push Notification'}`}
-                    </p>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <p className="text-xs text-gray-400 truncate">
+                        {campaign.store?.name || 'Unknown Store'}
+                      </p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(campaign.date || campaign.send_date).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                   
-                  {/* Preview Area - Fixed height */}
-                  <div className="bg-gray-50 dark:bg-gray-950 h-[350px] overflow-hidden">
+                  {/* Email/SMS Preview - Individual scrollable containers */}
+                  <div className="flex-1 min-h-0 bg-white dark:bg-gray-950 overflow-y-auto">
                     <EmailPreviewPanel 
                       messageId={campaign.messageId} 
-                      storeId={campaign.klaviyo_public_id || store?.klaviyo_integration?.public_id || campaign.storeIds?.[0]}
+                      storeId={campaign.klaviyo_public_id || campaign.store?.klaviyo_integration?.public_id || campaign.storeIds?.[0]}
                       compact={true}
                     />
                   </div>
-                  
-                  {/* Detailed Stats Section - Fixed height structure */}
-                  <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-                    {/* Key Metrics Row */}
-                    <div className="grid grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
-                      <div className="bg-white dark:bg-gray-800 p-2 h-[60px] flex flex-col justify-center">
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                          <Users className="h-3 w-3" />
-                          Recipients
-                        </div>
-                        <p className="font-semibold text-gray-900 dark:text-white mt-1">
-                          {formatNumber(recipients)}
-                        </p>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-2 h-[60px] flex flex-col justify-center">
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                          <DollarSign className="h-3 w-3" />
-                          Revenue
-                        </div>
-                        <p className="font-semibold text-emerald-600 mt-1">
-                          {formatCurrency(revenue)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Performance Metrics */}
-                    <div className="grid grid-cols-3 gap-px bg-gray-200 dark:bg-gray-700">
-                      <div className="bg-white dark:bg-gray-800 p-2 text-center h-[65px] flex flex-col justify-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <Eye className="h-3 w-3" />
-                          Open
-                        </div>
-                        <div className="mt-1">
-                          <Badge 
-                            className={cn(
-                              "font-semibold text-xs",
-                              openRate > 0.2 
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
-                                : openRate > 0.1 
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                            )}
-                          >
-                            {formatPercentage(openRate * 100)}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-2 text-center h-[65px] flex flex-col justify-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <MousePointer className="h-3 w-3" />
-                          Click
-                        </div>
-                        <div className="mt-1">
-                          <Badge 
-                            className={cn(
-                              "font-semibold text-xs",
-                              clickRate > 0.05 
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
-                                : clickRate > 0.02 
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                            )}
-                          >
-                            {formatPercentage(clickRate * 100)}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-2 text-center h-[65px] flex flex-col justify-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          CTOR
-                        </div>
-                        <p className="font-semibold text-gray-900 dark:text-white text-sm mt-1">
-                          {openRate > 0 ? formatPercentage((clickRate / openRate) * 100) : '0%'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Additional Metrics */}
-                    <div className="grid grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
-                      <div className="bg-white dark:bg-gray-800 p-2 text-center h-[50px] flex flex-col justify-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Rev/Recipient</div>
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white mt-0.5">
-                          {recipients > 0 ? formatCurrency(revenue / recipients) : '$0.00'}
-                        </p>
-                      </div>
-                      <div className="bg-white dark:bg-gray-800 p-2 text-center h-[50px] flex flex-col justify-center">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Conv. Rate</div>
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white mt-0.5">
-                          {formatPercentage((campaign.performance?.conversionRate || 0) * 100)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
           
-          {/* Summary Statistics */}
-          {selectedCampaigns.length > 1 && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Average Performance</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Avg Recipients</div>
-                  <p className="font-semibold text-gray-900 dark:text-white">
-                    {formatNumber(
-                      selectedCampaigns.reduce((sum, c) => sum + (c.performance?.recipients || 0), 0) / 
-                      selectedCampaigns.length
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Avg Open Rate</div>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+          {/* Stats Section - Fixed height with unified scroll */}
+          <div className="flex-shrink-0 bg-gray-900/50 border-t border-gray-800 relative" style={{ height: '280px' }}>
+            <div className="h-full overflow-y-auto pb-12">
+              <div className={cn("grid", getGridCols())}>
+                {campaignData.map((campaign, idx) => (
+                  <div key={campaign.id} className={cn("border-r border-gray-800", idx === campaignData.length - 1 && "border-r-0")}>
+                    <table className="w-full text-xs">
+                      <tbody>
+                        {/* Recipients Row */}
+                        <tr className="border-b border-gray-800">
+                          <td className="px-3 py-2 text-gray-400 flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            Recipients
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-200 font-medium">
+                            {formatNumber(campaign.metrics.recipients)}
+                          </td>
+                        </tr>
+                      
+                      {/* Delivered Row */}
+                      <tr className="border-b border-gray-800 bg-gray-900/30">
+                        <td className="px-3 py-2 text-gray-400">Delivered</td>
+                        <td className="px-3 py-2 text-right text-gray-200">
+                          {formatNumber(campaign.metrics.delivered)}
+                        </td>
+                      </tr>
+                      
+                      {/* Opens Row */}
+                      <tr className="border-b border-gray-800">
+                        <td className="px-3 py-2 text-gray-400 flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          Opens
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-200">
+                          {formatNumber(campaign.metrics.opensUnique)}
+                        </td>
+                      </tr>
+                      
+                      {/* Open Rate Row */}
+                      <tr className="border-b border-gray-800 bg-gray-900/30">
+                        <td className="px-3 py-2 text-gray-400">Open Rate</td>
+                        <td className={cn(
+                          "px-3 py-2 text-right font-semibold",
+                          campaign.metrics.openRate > 0.2 ? 'text-green-500' : 
+                          campaign.metrics.openRate > 0.1 ? 'text-yellow-500' : 'text-red-500'
+                        )}>
+                          {formatPercentage(campaign.metrics.openRate * 100)}
+                        </td>
+                      </tr>
+                      
+                      {/* Clicks Row */}
+                      <tr className="border-b border-gray-800">
+                        <td className="px-3 py-2 text-gray-400 flex items-center gap-1">
+                          <MousePointer className="h-3 w-3" />
+                          Clicks
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-200">
+                          {formatNumber(campaign.metrics.clicksUnique)}
+                        </td>
+                      </tr>
+                      
+                      {/* Click Rate Row */}
+                      <tr className="border-b border-gray-800 bg-gray-900/30">
+                        <td className="px-3 py-2 text-gray-400">Click Rate</td>
+                        <td className={cn(
+                          "px-3 py-2 text-right font-semibold",
+                          campaign.metrics.clickRate > 0.05 ? 'text-green-500' : 
+                          campaign.metrics.clickRate > 0.02 ? 'text-yellow-500' : 'text-red-500'
+                        )}>
+                          {formatPercentage(campaign.metrics.clickRate * 100)}
+                        </td>
+                      </tr>
+                      
+                      {/* CTOR Row */}
+                      <tr className="border-b border-gray-800">
+                        <td className="px-3 py-2 text-gray-400 flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          CTOR
+                        </td>
+                        <td className={cn(
+                          "px-3 py-2 text-right font-semibold",
+                          campaign.metrics.ctor > 0.25 ? 'text-green-500' : 
+                          campaign.metrics.ctor > 0.15 ? 'text-yellow-500' : 'text-red-500'
+                        )}>
+                          {formatPercentage(campaign.metrics.ctor * 100)}
+                        </td>
+                      </tr>
+                      
+                      {/* Conversions Row */}
+                      <tr className="border-b border-gray-800 bg-gray-900/30">
+                        <td className="px-3 py-2 text-gray-400 flex items-center gap-1">
+                          <Target className="h-3 w-3" />
+                          Conversions
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-200">
+                          {formatNumber(campaign.metrics.conversions)}
+                        </td>
+                      </tr>
+                      
+                      {/* Conversion Rate Row */}
+                      <tr className="border-b border-gray-800">
+                        <td className="px-3 py-2 text-gray-400">Conv. Rate</td>
+                        <td className={cn(
+                          "px-3 py-2 text-right font-semibold",
+                          campaign.metrics.conversionRate > 0.05 ? 'text-green-500' : 
+                          campaign.metrics.conversionRate > 0.02 ? 'text-yellow-500' : 'text-red-500'
+                        )}>
+                          {formatPercentage(campaign.metrics.conversionRate * 100)}
+                        </td>
+                      </tr>
+                      
+                      {/* Revenue Row */}
+                      <tr className="border-b border-gray-800 bg-gray-900/30">
+                        <td className="px-3 py-2 text-gray-400 flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          Revenue
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-emerald-500">
+                          {formatCurrency(campaign.metrics.revenue)}
+                        </td>
+                      </tr>
+                      
+                      {/* Rev/Recipient Row */}
+                      <tr className="border-b border-gray-800">
+                        <td className="px-3 py-2 text-gray-400">Rev/Recipient</td>
+                        <td className="px-3 py-2 text-right text-gray-200">
+                          {formatCurrency(campaign.metrics.revenuePerRecipient)}
+                        </td>
+                      </tr>
+                      
+                        {/* Average Order Value */}
+                        <tr className="border-b border-gray-800 bg-gray-900/30">
+                          <td className="px-3 py-2 text-gray-400">AOV</td>
+                          <td className="px-3 py-2 text-right text-gray-200">
+                            {campaign.metrics.conversions > 0 
+                              ? formatCurrency(campaign.metrics.revenue / campaign.metrics.conversions)
+                              : '$0.00'
+                            }
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+            {/* Summary Statistics - Positioned at bottom of stats section */}
+            {selectedCampaigns.length > 1 && (
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-gray-900/95 backdrop-blur-sm border border-gray-800 rounded-t-lg px-6 py-2 shadow-lg z-10">
+                <div className="flex items-center gap-6 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">Avg Open Rate:</span>
+                  <span className="font-medium text-gray-200">
                     {formatPercentage(
-                      selectedCampaigns.reduce((sum, c) => sum + (c.performance?.openRate || 0), 0) / 
-                      selectedCampaigns.length * 100
+                      campaignData.reduce((sum, c) => sum + c.metrics.openRate, 0) / 
+                      campaignData.length * 100
                     )}
-                  </p>
+                  </span>
                 </div>
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Avg Click Rate</div>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">Avg Click Rate:</span>
+                  <span className="font-medium text-gray-200">
                     {formatPercentage(
-                      selectedCampaigns.reduce((sum, c) => sum + (c.performance?.clickRate || 0), 0) / 
-                      selectedCampaigns.length * 100
+                      campaignData.reduce((sum, c) => sum + c.metrics.clickRate, 0) / 
+                      campaignData.length * 100
                     )}
-                  </p>
+                  </span>
                 </div>
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Avg Revenue</div>
-                  <p className="font-semibold text-emerald-600">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">Avg CTOR:</span>
+                  <span className="font-medium text-gray-200">
+                    {formatPercentage(
+                      campaignData.reduce((sum, c) => sum + c.metrics.ctor, 0) / 
+                      campaignData.length * 100
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 border-l border-gray-700 pl-6">
+                  <span className="text-gray-400">Total Revenue:</span>
+                  <span className="font-medium text-emerald-500">
                     {formatCurrency(
-                      selectedCampaigns.reduce((sum, c) => sum + (c.performance?.revenue || 0), 0) / 
-                      selectedCampaigns.length
+                      campaignData.reduce((sum, c) => sum + c.metrics.revenue, 0)
                     )}
-                  </p>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Total Revenue</div>
-                  <p className="font-semibold text-emerald-600">
-                    {formatCurrency(
-                      selectedCampaigns.reduce((sum, c) => sum + (c.performance?.revenue || 0), 0)
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Total Recipients</div>
-                  <p className="font-semibold text-gray-900 dark:text-white">
-                    {formatNumber(
-                      selectedCampaigns.reduce((sum, c) => sum + (c.performance?.recipients || 0), 0)
-                    )}
-                  </p>
+                  </span>
                 </div>
               </div>
             </div>

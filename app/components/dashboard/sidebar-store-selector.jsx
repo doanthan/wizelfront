@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter, usePathname } from "next/navigation";
 import { 
   Store,
-  Loader2,
   CheckCircle,
   Search,
   ChevronRight
@@ -60,7 +60,7 @@ export default function SidebarStoreSelector({
   if (isLoadingStores) {
     return (
       <div className="px-4 py-4 text-center">
-        <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-gray-400" />
+        <MorphingLoader size="small" showThemeText={false} />
         <p className="text-xs text-gray-500">Loading stores...</p>
       </div>
     );
