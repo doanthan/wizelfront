@@ -321,92 +321,19 @@ export const StoreProvider = ({ children }) => {
     return stores.slice(0, limit);
   };
 
-  // Load user contracts and stores on session change
-  useEffect(() => {
-    console.log('🏪 StoreContext: Session effect triggered:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userEmail: session?.user?.email || 'none',
-      sessionStatus: session === null ? 'null' : session === undefined ? 'undefined' : 'exists'
-    });
-
-    // In development, ALWAYS fetch stores regardless of session
-    // This fixes issues with NextAuth session decoding
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🏪 StoreContext: Development mode - fetching stores regardless of session');
-      // Call the functions directly after they are defined
-      // We'll move the actual fetch call to a timeout to ensure functions are available
-      setTimeout(() => {
-        if (typeof fetchStoresFromAPI === 'function') {
-          fetchStoresFromAPI();
-        }
-        if (session?.user && typeof fetchUserContracts === 'function') {
-          fetchUserContracts();
-        }
-      }, 100);
-      return;
-    }
-
-    // Production behavior
-    if (session?.user) {
-      console.log('🏪 StoreContext: User authenticated, fetching data...');
-      fetchUserContracts();
-      fetchStoresFromAPI();
-    } else {
-      // Clear state when no session in production
-      setStores([]);
-      setUserContracts([]);
-      setCurrentContract(null);
-    }
-  }, [session]);
-  
-  // Load saved data from localStorage on mount
-  useEffect(() => {
-    // Clear old mock data from localStorage
-    localStorage.removeItem("stores");
-    
-    // Load tags and permissions from localStorage if they exist
-    const savedTags = localStorage.getItem("tags");
-    const savedPermissions = localStorage.getItem("userPermissions");
-    const savedContract = localStorage.getItem("currentContract");
-    const savedRecentStores = localStorage.getItem("recentStoreIds");
-    const savedSelectedStore = localStorage.getItem("selectedStoreId");
-
-    if (savedTags) setTags(JSON.parse(savedTags));
-    if (savedPermissions) setUserPermissions(JSON.parse(savedPermissions));
-    if (savedContract) {
-      try {
-        const contract = JSON.parse(savedContract);
-        setCurrentContract(contract);
-      } catch (error) {
-        console.error('Error parsing saved contract:', error);
-      }
-    }
-    if (savedRecentStores) {
-      try {
-        setRecentStoreIds(JSON.parse(savedRecentStores));
-      } catch (error) {
-        console.error('Error parsing saved recent stores:', error);
-      }
-    }
-    if (savedSelectedStore) {
-      setSelectedStoreId(savedSelectedStore);
-    }
-  }, []);
-
-  // Fetch user's contracts from API
+  // Fetch user's contracts from API - defined first as a const
   const fetchUserContracts = async () => {
     try {
       console.log('Fetching user contracts...');
       const response = await fetch('/api/contract');
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('User contracts received:', data);
-        
+
         if (data.contracts) {
           setUserContracts(data.contracts);
-          
+
           // Set current contract if none is set
           if (!currentContract && data.contracts.length > 0) {
             setCurrentContract(data.contracts[0]);
@@ -419,8 +346,8 @@ export const StoreProvider = ({ children }) => {
       console.error('Error fetching user contracts:', error);
     }
   };
-  
-  // Fetch stores from API
+
+  // Fetch stores from API - defined as a const
   const fetchStoresFromAPI = async () => {
     if (isLoadingStores) {
       console.log('Already loading stores, skipping...');
@@ -437,7 +364,7 @@ export const StoreProvider = ({ children }) => {
       });
       const response = await fetch('/api/store');
       console.log('🏪 StoreContext: API response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('🏪 StoreContext: API data received:', data);
@@ -499,6 +426,60 @@ export const StoreProvider = ({ children }) => {
       setIsLoadingStores(false);
     }
   };
+
+  // Load user contracts and stores on session change
+  useEffect(() => {
+    console.log('🏪 StoreContext: Session effect triggered:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email || 'none',
+      sessionStatus: session === null ? 'null' : session === undefined ? 'undefined' : 'exists'
+    });
+
+    // Always try to fetch stores after a short delay
+    // This handles both development and production scenarios
+    const timeoutId = setTimeout(() => {
+      console.log('🏪 StoreContext: Attempting to fetch stores and contracts...');
+      fetchStoresFromAPI();
+      fetchUserContracts();
+    }, 500); // Small delay to ensure component is mounted
+
+    return () => clearTimeout(timeoutId);
+  }, [session]);
+  
+  // Load saved data from localStorage on mount
+  useEffect(() => {
+    // Clear old mock data from localStorage
+    localStorage.removeItem("stores");
+    
+    // Load tags and permissions from localStorage if they exist
+    const savedTags = localStorage.getItem("tags");
+    const savedPermissions = localStorage.getItem("userPermissions");
+    const savedContract = localStorage.getItem("currentContract");
+    const savedRecentStores = localStorage.getItem("recentStoreIds");
+    const savedSelectedStore = localStorage.getItem("selectedStoreId");
+
+    if (savedTags) setTags(JSON.parse(savedTags));
+    if (savedPermissions) setUserPermissions(JSON.parse(savedPermissions));
+    if (savedContract) {
+      try {
+        const contract = JSON.parse(savedContract);
+        setCurrentContract(contract);
+      } catch (error) {
+        console.error('Error parsing saved contract:', error);
+      }
+    }
+    if (savedRecentStores) {
+      try {
+        setRecentStoreIds(JSON.parse(savedRecentStores));
+      } catch (error) {
+        console.error('Error parsing saved recent stores:', error);
+      }
+    }
+    if (savedSelectedStore) {
+      setSelectedStoreId(savedSelectedStore);
+    }
+  }, []);
 
   // Don't save stores to localStorage - fetch from API instead
   // useEffect(() => {

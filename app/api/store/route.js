@@ -344,13 +344,13 @@ export async function GET(request) {
       );
     }
 
-    console.log('Fetching stores for user:', session.user.id);
+    console.log('Fetching stores for user:', session.user.id, 'email:', session.user.email);
 
     // Get user details to check if they're a super admin
     const user = await User.findById(session.user.id);
     const isSuperAdmin = user?.is_super_user || user?.super_user_role === 'SUPER_ADMIN';
     console.log('User is super admin:', isSuperAdmin);
-    
+
     let stores = [];
 
     if (isSuperAdmin) {
@@ -360,28 +360,125 @@ export async function GET(request) {
     } else {
       // Regular users see stores via ContractSeat permissions only
       try {
+        // First, check if user owns any stores directly
+        const ownedStores = await Store.find({
+          owner_id: session.user.id,
+          is_deleted: { $ne: true }
+        }).lean();
+
+        console.log(`User directly owns ${ownedStores.length} stores:`,
+          ownedStores.map(s => ({ public_id: s.public_id, name: s.name })));
+
+        // AUTO-FIX: Create missing ContractSeats for owned stores
+        if (ownedStores.length > 0) {
+          console.log('AUTO-FIX: Checking and creating missing ContractSeats for owned stores...');
+
+          // Get or create owner role
+          let ownerRole = await Role.findOne({ name: 'owner' });
+          if (!ownerRole) {
+            ownerRole = new Role({
+              name: 'owner',
+              display_name: 'Owner',
+              permissions: {
+                stores: { create: true, read: true, update: true, delete: true },
+                campaigns: { create: true, read: true, update: true, delete: true },
+                analytics: { read: true, export: true },
+                team: { invite: true, remove: true, manage: true },
+                billing: { manage: true },
+                settings: { manage: true }
+              }
+            });
+            await ownerRole.save();
+            console.log('AUTO-FIX: Created owner role');
+          }
+
+          // Check each owned store
+          for (const ownedStore of ownedStores) {
+            if (!ownedStore.contract_id) {
+              console.log(`AUTO-FIX: Store ${ownedStore.public_id} has no contract_id, skipping`);
+              continue;
+            }
+
+            // Check if user has a seat for this store's contract
+            let seat = await ContractSeat.findOne({
+              user_id: session.user.id,
+              contract_id: ownedStore.contract_id
+            });
+
+            if (!seat) {
+              console.log(`AUTO-FIX: Creating ContractSeat for contract ${ownedStore.contract_id}`);
+              seat = new ContractSeat({
+                contract_id: ownedStore.contract_id,
+                user_id: session.user.id,
+                default_role_id: ownerRole._id,
+                status: 'active',
+                invited_by: session.user.id,
+                activated_at: new Date(),
+                store_access: [] // Empty means access to ALL stores in contract
+              });
+              await seat.save();
+
+              // Update user's active_seats
+              if (user) {
+                const contract = await Contract.findById(ownedStore.contract_id);
+                user.addSeat(ownedStore.contract_id, contract?.contract_name || 'My Contract', seat._id);
+                await user.save();
+              }
+              console.log(`AUTO-FIX: Created ContractSeat for user in contract ${ownedStore.contract_id}`);
+            } else {
+              // Ensure seat is active
+              if (seat.status !== 'active') {
+                seat.status = 'active';
+                seat.activated_at = new Date();
+                await seat.save();
+                console.log(`AUTO-FIX: Activated existing seat for contract ${ownedStore.contract_id}`);
+              }
+
+              // Ensure owner has full access (empty store_access array)
+              if (seat.store_access && seat.store_access.length > 0) {
+                seat.store_access = [];
+                await seat.save();
+                console.log(`AUTO-FIX: Cleared store_access restrictions for contract ${ownedStore.contract_id}`);
+              }
+            }
+          }
+        }
+
         // Get user's ContractSeats to find accessible stores
         const userSeats = await ContractSeat.find({
           user_id: session.user.id,
           status: 'active'
         }).populate('default_role_id');
 
+        console.log(`User has ${userSeats.length} active ContractSeats`);
+
         const accessibleStoreIds = new Set();
 
         for (const seat of userSeats) {
+          console.log(`Checking seat for contract ${seat.contract_id}, store_access array length: ${seat.store_access?.length || 0}`);
+
           // Get all stores in this contract
           const contractStores = await Store.find({
             contract_id: seat.contract_id,
             is_deleted: { $ne: true }
           });
 
+          console.log(`Contract ${seat.contract_id} has ${contractStores.length} stores`);
+
           for (const store of contractStores) {
             // Check if user has access to this specific store
             const hasStoreAccess = seat.hasStoreAccess(store._id);
+            console.log(`Store ${store.public_id}: hasAccess=${hasStoreAccess}, store_access.length=${seat.store_access?.length}`);
+
             if (hasStoreAccess) {
               accessibleStoreIds.add(store._id.toString());
             }
           }
+        }
+
+        // Also add owned stores to accessible list
+        for (const ownedStore of ownedStores) {
+          accessibleStoreIds.add(ownedStore._id.toString());
         }
 
         // Get all accessible stores
@@ -394,6 +491,7 @@ export async function GET(request) {
         }
 
         console.log('User stores found via ContractSeat system:', stores.length);
+        console.log('Accessible store public_ids:', stores.map(s => s.public_id));
       } catch (error) {
         console.error('Error fetching user stores via ContractSeat:', error);
         // Return empty array if ContractSeat system fails

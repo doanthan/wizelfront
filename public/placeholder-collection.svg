@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <g transform="translate(200, 200)">
+    <!-- Collection icon (folder/grid) -->
+    <rect x="-60" y="-60" width="50" height="50" fill="#d1d5db" rx="4"/>
+    <rect x="10" y="-60" width="50" height="50" fill="#d1d5db" rx="4"/>
+    <rect x="-60" y="10" width="50" height="50" fill="#d1d5db" rx="4"/>
+    <rect x="10" y="10" width="50" height="50" fill="#d1d5db" rx="4"/>
+  </g>
+  <text x="200" y="320" font-family="Arial, sans-serif" font-size="18" fill="#6b7280" text-anchor="middle">Collection</text>
+</svg>
