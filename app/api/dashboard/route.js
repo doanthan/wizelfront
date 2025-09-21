@@ -64,19 +64,11 @@ const shouldRefreshData = async (klaviyoPublicIds) => {
 
 // Fetch marketing channel metrics from ClickHouse
 const fetchMarketingMetrics = async (klaviyoPublicIds, dateRange) => {
-  // Return empty data for now to avoid enum errors
-  // Silently skip marketing metrics due to ClickHouse enum issue
-  return {
-    emailMetrics: { sent: 0, revenue: 0, delivered: 0, opens: 0, clicks: 0, conversions: 0 },
-    smsMetrics: { sent: 0, revenue: 0, delivered: 0, opens: 0, clicks: 0, conversions: 0 },
-    channelBreakdown: []
-  };
-
   // Return empty data if no klaviyo IDs
   if (!klaviyoPublicIds || klaviyoPublicIds.length === 0) {
     return {
-      emailMetrics: { sent: 0, revenue: 0 },
-      smsMetrics: { sent: 0, revenue: 0 },
+      emailMetrics: { sent: 0, revenue: 0, delivered: 0, opens: 0, clicks: 0, conversions: 0 },
+      smsMetrics: { sent: 0, revenue: 0, delivered: 0, opens: 0, clicks: 0, conversions: 0 },
       channelBreakdown: []
     };
   }
@@ -94,10 +86,10 @@ const fetchMarketingMetrics = async (klaviyoPublicIds, dateRange) => {
     : 'AND date >= today() - INTERVAL 90 DAY';
 
   try {
-    // Query for campaign channel metrics
+    // Query for campaign channel metrics - simplified to avoid enum issues
     const campaignChannelQuery = `
       SELECT
-        COALESCE(send_channel, 'unknown') as send_channel,
+        'email' as send_channel,
         SUM(recipients) as total_sent,
         SUM(delivered) as total_delivered,
         SUM(opens_unique) as total_opens,
@@ -107,13 +99,28 @@ const fetchMarketingMetrics = async (klaviyoPublicIds, dateRange) => {
       FROM campaign_statistics FINAL
       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
         ${dateFilter}
-      GROUP BY COALESCE(send_channel, 'unknown')
+        AND lower(campaign_name) NOT LIKE '%sms%'
+
+      UNION ALL
+
+      SELECT
+        'sms' as send_channel,
+        SUM(recipients) as total_sent,
+        SUM(delivered) as total_delivered,
+        SUM(opens_unique) as total_opens,
+        SUM(clicks_unique) as total_clicks,
+        SUM(conversions) as total_conversions,
+        SUM(conversion_value) as total_revenue
+      FROM campaign_statistics FINAL
+      WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
+        ${dateFilter}
+        AND lower(campaign_name) LIKE '%sms%'
     `;
 
-    // Query for flow channel metrics
+    // Query for flow channel metrics - simplified
     const flowChannelQuery = `
       SELECT
-        COALESCE(send_channel, 'unknown') as send_channel,
+        'email' as send_channel,
         SUM(recipients) as total_sent,
         SUM(delivered) as total_delivered,
         SUM(opens_unique) as total_opens,
@@ -123,7 +130,6 @@ const fetchMarketingMetrics = async (klaviyoPublicIds, dateRange) => {
       FROM flow_statistics FINAL
       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
         ${dateFilter}
-      GROUP BY COALESCE(send_channel, 'unknown')
     `;
 
     const [campaignResult, flowResult] = await Promise.all([
@@ -218,36 +224,50 @@ const fetchRevenueMetrics = async (klaviyoPublicIds, dateRange) => {
   const endDate = dateRange?.end ? new Date(dateRange.end) :
                    dateRange?.to ? new Date(dateRange.to) : null;
   
-  // Build date filter - ClickHouse expects DateTime format as 'YYYY-MM-DD HH:MM:SS'
-  const formatDateTimeForClickHouse = (date, isEndDate = false) => {
-    // For end dates, set to end of day (23:59:59)
-    if (isEndDate) {
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-      return endOfDay.toISOString().replace('T', ' ').split('.')[0];
-    }
-    // For start dates, set to beginning of day (00:00:00)
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    return startOfDay.toISOString().replace('T', ' ').split('.')[0];
-  };
-
-  const dateFilter = startDate && endDate
-    ? `AND order_timestamp >= '${formatDateTimeForClickHouse(startDate)}'
-       AND order_timestamp <= '${formatDateTimeForClickHouse(endDate, true)}'`
-    : 'AND order_timestamp >= today() - 90'; // Default to last 90 days
+  // Build date filter for date columns (not datetime)
+  const dateFilterStart = startDate ? startDate.toISOString().split('T')[0] : null;
+  const dateFilterEnd = endDate ? endDate.toISOString().split('T')[0] : null;
 
   // Debug logging
   console.log('Fetching revenue metrics for:', {
     klaviyoPublicIds,
-    dateFilter,
-    startDate: startDate ? formatDateTimeForClickHouse(startDate) : 'default',
-    endDate: endDate ? formatDateTimeForClickHouse(endDate, true) : 'default',
-    clickHouseDateRange: {
-      start: startDate ? startDate.toISOString().split('T')[0] : 'default',
-      end: endDate ? endDate.toISOString().split('T')[0] : 'default'
-    }
+    dateFilterStart,
+    dateFilterEnd,
+    hasDateRange: !!(startDate && endDate)
   });
+
+  // Debug: Check if we have data in the table
+  try {
+    const testQuery = `
+      SELECT
+        COUNT(*) as total_rows,
+        MIN(date) as earliest_date,
+        MAX(date) as latest_date,
+        SUM(total_revenue) as sample_revenue,
+        SUM(total_orders) as sample_orders
+      FROM account_metrics_daily FINAL
+      WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
+    `;
+    const testResult = await client.query({ query: testQuery, format: 'JSONEachRow' });
+    const testData = await testResult.json();
+    console.log('DEBUG - account_metrics_daily data check:', testData);
+
+    // Also check campaign_statistics
+    const campaignTestQuery = `
+      SELECT
+        COUNT(*) as total_rows,
+        MIN(date) as earliest_date,
+        MAX(date) as latest_date,
+        SUM(conversion_value) as sample_revenue
+      FROM campaign_statistics FINAL
+      WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
+    `;
+    const campaignTestResult = await client.query({ query: campaignTestQuery, format: 'JSONEachRow' });
+    const campaignTestData = await campaignTestResult.json();
+    console.log('DEBUG - campaign_statistics data check:', campaignTestData);
+  } catch (debugError) {
+    console.error('DEBUG - Error checking tables:', debugError);
+  }
 
   try {
     // Direct aggregation query - no CTEs to avoid ILLEGAL_AGGREGATION
@@ -264,25 +284,29 @@ const fetchRevenueMetrics = async (klaviyoPublicIds, dateRange) => {
         SUM(returning_customers) as returning_customers_sum
       FROM account_metrics_daily FINAL
       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
-        AND date >= ${startDate ? `'${startDate.toISOString().split('T')[0]}'` : 'today() - INTERVAL 90 DAY'}
-        AND date <= ${endDate ? `'${endDate.toISOString().split('T')[0]}'` : 'today()'}
+        AND date >= ${dateFilterStart ? `'${dateFilterStart}'` : 'today() - INTERVAL 90 DAY'}
+        AND date <= ${dateFilterEnd ? `'${dateFilterEnd}'` : 'today()'}
     `;
 
     // Simplified attribution query - direct calculation without CTEs to avoid ILLEGAL_AGGREGATION
     const attributionQuery = `
       SELECT
-        (
-          SELECT SUM(conversion_value)
-          FROM campaign_statistics FINAL
-          WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
-            AND date >= ${startDate ? `'${startDate.toISOString().split('T')[0]}'` : 'today() - INTERVAL 90 DAY'}
-            AND date <= ${endDate ? `'${endDate.toISOString().split('T')[0]}'` : 'today()'}
-        ) + (
-          SELECT SUM(conversion_value)
-          FROM flow_statistics FINAL
-          WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
-            AND date >= ${startDate ? `'${startDate.toISOString().split('T')[0]}'` : 'today() - INTERVAL 90 DAY'}
-            AND date <= ${endDate ? `'${endDate.toISOString().split('T')[0]}'` : 'today()'}
+        COALESCE(
+          (
+            SELECT SUM(conversion_value)
+            FROM campaign_statistics FINAL
+            WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
+              AND date >= ${dateFilterStart ? `'${dateFilterStart}'` : 'today() - INTERVAL 90 DAY'}
+              AND date <= ${dateFilterEnd ? `'${dateFilterEnd}'` : 'today()'}
+          ), 0
+        ) + COALESCE(
+          (
+            SELECT SUM(conversion_value)
+            FROM flow_statistics FINAL
+            WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
+              AND date >= ${dateFilterStart ? `'${dateFilterStart}'` : 'today() - INTERVAL 90 DAY'}
+              AND date <= ${dateFilterEnd ? `'${dateFilterEnd}'` : 'today()'}
+          ), 0
         ) as attributed_revenue
     `;
 
@@ -299,8 +323,8 @@ const fetchRevenueMetrics = async (klaviyoPublicIds, dateRange) => {
         END as aov
       FROM account_metrics_daily FINAL
       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
-        AND date >= ${startDate ? `'${startDate.toISOString().split('T')[0]}'` : 'today() - INTERVAL 90 DAY'}
-        AND date <= ${endDate ? `'${endDate.toISOString().split('T')[0]}'` : 'today()'}
+        AND date >= ${dateFilterStart ? `'${dateFilterStart}'` : 'today() - INTERVAL 90 DAY'}
+        AND date <= ${dateFilterEnd ? `'${dateFilterEnd}'` : 'today()'}
       GROUP BY klaviyo_public_id
       ORDER BY revenue DESC
     `;
@@ -340,8 +364,8 @@ const fetchRevenueMetrics = async (klaviyoPublicIds, dateRange) => {
         0 as revenuePerRecipient
       FROM account_metrics_daily FINAL
       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
-        AND date >= ${startDate ? `'${startDate.toISOString().split('T')[0]}'` : 'today() - INTERVAL 90 DAY'}
-        AND date <= ${endDate ? `'${endDate.toISOString().split('T')[0]}'` : 'today()'}
+        AND date >= ${dateFilterStart ? `'${dateFilterStart}'` : 'today() - INTERVAL 90 DAY'}
+        AND date <= ${dateFilterEnd ? `'${dateFilterEnd}'` : 'today()'}
       GROUP BY date
       ORDER BY date ASC
     `;
@@ -534,17 +558,17 @@ const fetchPerformanceMetrics = async (klaviyoPublicIds, dateRange) => {
       SELECT
         date,
 
-        -- Revenue Metrics (confirmed available in account_metrics_daily)
+        -- Revenue Metrics (simplified - only columns that exist)
         SUM(total_revenue) as revenue,
-        SUM(campaign_revenue) as campaignRevenue,
-        SUM(total_revenue - campaign_revenue) as flowRevenue, -- Calculate flow revenue as difference
-        SUM(email_revenue) as emailRevenue,
-        SUM(sms_revenue) as smsRevenue,
+        SUM(COALESCE(campaign_revenue, 0)) as campaignRevenue,
+        SUM(total_revenue - COALESCE(campaign_revenue, 0)) as flowRevenue,
+        0 as emailRevenue,  -- These columns don't exist
+        0 as smsRevenue,    -- These columns don't exist
 
         -- Order Metrics
         SUM(total_orders) as orders,
-        SUM(email_orders) as emailOrders,
-        SUM(sms_orders) as smsOrders,
+        0 as emailOrders,  -- Column doesn't exist
+        0 as smsOrders,    -- Column doesn't exist
         CASE
           WHEN SUM(total_orders) > 0 THEN SUM(total_revenue) / SUM(total_orders)
           ELSE 0
@@ -553,39 +577,25 @@ const fetchPerformanceMetrics = async (klaviyoPublicIds, dateRange) => {
         -- Customer Metrics
         SUM(unique_customers) as customers,
         SUM(new_customers) as newCustomers,
-        SUM(repeat_customers) as returningCustomers,
+        SUM(returning_customers) as returningCustomers,
 
-        -- Engagement Volume Metrics
-        SUM(total_emails_sent) as emailsSent,
-        SUM(total_sms_sent) as smsSent,
-        SUM(total_emails_sent + total_sms_sent) as recipients,
-        SUM(total_emails_sent + total_sms_sent) as delivered,
-        SUM(total_opens) as opens,
-        SUM(total_clicks) as clicks,
+        -- Engagement Volume Metrics (these columns don't exist in account_metrics_daily)
+        0 as emailsSent,
+        0 as smsSent,
+        0 as recipients,
+        0 as delivered,
+        0 as opens,
+        0 as clicks,
 
-        -- Revenue Efficiency Metrics
-        AVG(revenue_per_email) as revenuePerEmail,
-        AVG(revenue_per_sms) as revenuePerSms,
-        AVG(revenue_per_recipient) as revenuePerRecipient,
+        -- Revenue Efficiency Metrics (these columns don't exist)
+        0 as revenuePerEmail,
+        0 as revenuePerSms,
+        0 as revenuePerRecipient,
 
-        -- Calculate rates based on available data
-        CASE
-          WHEN SUM(total_emails_sent + total_sms_sent) > 0
-          THEN (SUM(total_opens) * 100.0) / SUM(total_emails_sent + total_sms_sent)
-          ELSE 0
-        END as openRate,
-
-        CASE
-          WHEN SUM(total_emails_sent + total_sms_sent) > 0
-          THEN (SUM(total_clicks) * 100.0) / SUM(total_emails_sent + total_sms_sent)
-          ELSE 0
-        END as clickRate,
-
-        CASE
-          WHEN SUM(total_opens) > 0
-          THEN (SUM(total_clicks) * 100.0) / SUM(total_opens)
-          ELSE 0
-        END as ctor,
+        -- Calculate rates (set to 0 since we don't have the columns)
+        0 as openRate,
+        0 as clickRate,
+        0 as ctor,
 
         -- Placeholder for metrics not in account_metrics_daily
         0 as campaignsSent,
@@ -641,14 +651,29 @@ const fetchPerformanceMetrics = async (klaviyoPublicIds, dateRange) => {
         SELECT
           date,
           SUM(total_revenue) as revenue,
-          SUM(campaign_revenue) as campaignRevenue,
-          SUM(total_revenue - campaign_revenue) as flowRevenue,
+          SUM(COALESCE(campaign_revenue, 0)) as campaignRevenue,
+          SUM(total_revenue - COALESCE(campaign_revenue, 0)) as flowRevenue,
           SUM(total_orders) as orders,
           SUM(unique_customers) as customers,
+          SUM(new_customers) as newCustomers,
+          SUM(returning_customers) as returningCustomers,
           CASE
             WHEN SUM(total_orders) > 0 THEN SUM(total_revenue) / SUM(total_orders)
             ELSE 0
-          END as aov
+          END as aov,
+          0 as emailRevenue,
+          0 as smsRevenue,
+          0 as emailOrders,
+          0 as smsOrders,
+          0 as emailsSent,
+          0 as smsSent,
+          0 as recipients,
+          0 as delivered,
+          0 as opens,
+          0 as clicks,
+          0 as openRate,
+          0 as clickRate,
+          0 as ctor
         FROM account_metrics_daily FINAL
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${dateFilter}
@@ -718,10 +743,11 @@ export async function POST(request) {
       });
     }
 
-    // Get stores using ContractSeat permission system (simplified)
+    // Get stores using ContractSeat permission system with fallback to user.store_ids
     let accessibleStores = [];
+    let uniqueStoreIds = [];
 
-    // Get user's ContractSeat to find accessible stores
+    // First try ContractSeat system
     const userSeats = await ContractSeat.find({
       user_id: session.user.id,
       status: 'active'
@@ -733,57 +759,85 @@ export async function POST(request) {
       total_store_access: userSeats.reduce((sum, seat) => sum + seat.store_access.length, 0)
     });
 
-    if (userSeats.length === 0) {
-      console.log('Dashboard API - No ContractSeats found for user');
-      return NextResponse.json({
-        summary: {
-          totalRevenue: 0,
-          attributedRevenue: 0,
-          totalOrders: 0,
-          uniqueCustomers: 0,
-          avgOrderValue: 0,
-          newCustomers: 0,
-          returningCustomers: 0
-        },
-        campaigns: [],
-        performanceOverTime: [],
-        byAccount: [],
-        timeSeries: [],
-        lastUpdated: new Date().toISOString(),
-        warning: "No store access found"
-      });
-    }
+    if (userSeats.length > 0) {
+      // Collect all store IDs from ContractSeats
+      const allAccessibleStoreIds = [];
+      for (const seat of userSeats) {
+        const storeAccessIds = seat.store_access.map(access => access.store_id);
+        allAccessibleStoreIds.push(...storeAccessIds);
+      }
+      uniqueStoreIds = [...new Set(allAccessibleStoreIds.map(id => id.toString()))];
+      console.log('Dashboard API - Using ContractSeat store access:', uniqueStoreIds.length, 'stores');
+    } else {
+      // Fallback to user.store_ids if no ContractSeats
+      console.log('Dashboard API - No ContractSeats, checking user.store_ids');
 
-    // Collect all store IDs user has access to
-    const allAccessibleStoreIds = [];
-    for (const seat of userSeats) {
-      const storeAccessIds = seat.store_access.map(access => access.store_id);
-      allAccessibleStoreIds.push(...storeAccessIds);
+      if (user.store_ids && user.store_ids.length > 0) {
+        uniqueStoreIds = user.store_ids.map(id => id.toString());
+        console.log('Dashboard API - Using user.store_ids fallback:', uniqueStoreIds.length, 'stores');
+      } else if (user.is_super_user) {
+        // Super users can see all stores
+        console.log('Dashboard API - Super user detected, granting access to all stores');
+        uniqueStoreIds = ['all']; // Will be handled differently below
+      } else {
+        console.log('Dashboard API - No store access found for user');
+        return NextResponse.json({
+          summary: {
+            totalRevenue: 0,
+            attributedRevenue: 0,
+            totalOrders: 0,
+            uniqueCustomers: 0,
+            avgOrderValue: 0,
+            newCustomers: 0,
+            returningCustomers: 0
+          },
+          campaigns: [],
+          performanceOverTime: [],
+          byAccount: [],
+          timeSeries: [],
+          lastUpdated: new Date().toISOString(),
+          warning: "No store access configured. Please contact your administrator."
+        });
+      }
     }
-
-    // Remove duplicates
-    const uniqueStoreIds = [...new Set(allAccessibleStoreIds.map(id => id.toString()))];
 
     console.log('Dashboard API - User has access to stores:', uniqueStoreIds.length);
 
     // Build query based on requested stores
     let storeQuery = {
       is_deleted: { $ne: true },
-      'klaviyo_integration.public_id': { $exists: true, $ne: null },
-      _id: { $in: uniqueStoreIds }
+      'klaviyo_integration.public_id': { $exists: true, $ne: null }
     };
 
+    // Handle super user with 'all' access
+    if (uniqueStoreIds.includes('all')) {
+      // No additional filter needed - super user can see all stores
+      console.log('Dashboard API - Super user access, fetching all stores with Klaviyo');
+    } else {
+      // Regular user - filter by their accessible store IDs
+      storeQuery._id = { $in: uniqueStoreIds };
+    }
+
+    // Further filter by requested stores if not requesting all
     if (!storeIds.includes('all')) {
-      // Filter to specific requested stores
-      storeQuery.$and = [
-        { _id: { $in: uniqueStoreIds } },
-        {
-          $or: [
-            { public_id: { $in: storeIds } },
-            { 'klaviyo_integration.public_id': { $in: storeIds } }
-          ]
-        }
-      ];
+      if (uniqueStoreIds.includes('all')) {
+        // Super user but specific stores requested
+        storeQuery.$or = [
+          { public_id: { $in: storeIds } },
+          { 'klaviyo_integration.public_id': { $in: storeIds } }
+        ];
+      } else {
+        // Regular user with specific stores requested
+        storeQuery.$and = [
+          { _id: { $in: uniqueStoreIds } },
+          {
+            $or: [
+              { public_id: { $in: storeIds } },
+              { 'klaviyo_integration.public_id': { $in: storeIds } }
+            ]
+          }
+        ];
+      }
     }
 
     accessibleStores = await Store.find(storeQuery)
@@ -811,6 +865,10 @@ export async function POST(request) {
       public_id: s.public_id,
       klaviyo_public_id: s.klaviyo_integration?.public_id
     })));
+
+    // Debug: Log the actual klaviyo IDs being used
+    console.log('🔍 Klaviyo Public IDs extracted:', klaviyoPublicIds);
+    console.log('🔍 Number of stores with Klaviyo:', klaviyoPublicIds.length, 'out of', stores.length, 'total stores');
 
     if (!klaviyoPublicIds.length) {
       console.log('No Klaviyo integrations found for stores:', stores.map(s => s.name));

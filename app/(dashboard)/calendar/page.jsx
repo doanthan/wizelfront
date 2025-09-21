@@ -34,6 +34,7 @@ const EmailPreviewPanel = dynamic(
 
 // Import modals from shared location
 const CampaignDetailsModal = dynamic(() => import('@/app/components/campaigns/CampaignDetailsModal'), { ssr: false });
+const ScheduledCampaignModal = dynamic(() => import('./components/ScheduledCampaignModal'), { ssr: false });
 const DayCampaignsModal = dynamic(() => import('./components/DayCampaignsModal'), { ssr: false });
 const CampaignComparisonModal = dynamic(() => import('./components/CampaignComparisonModal'), { ssr: false });
 const NewCampaignModal = dynamic(() => import('./components/NewCampaignModal'), { ssr: false });
@@ -101,26 +102,96 @@ export default function CalendarPage() {
     campaigns: new Map(), // Map<campaignId, campaignData> for efficient lookups
     lastUpdated: null
   });
-  const [audienceCache, setAudienceCache] = useState({});
+
+  // Cache for all audiences (segments and lists) across all stores
+  const [audienceCache, setAudienceCache] = useState({
+    byStore: {},      // Organized by klaviyo_public_id
+    audienceIndex: {},        // Flat index for quick lookups
+    loading: false,
+    loaded: false
+  });
+
+  // Function to update audience cache with profile counts
+  const updateAudienceCache = useCallback((audienceId, klaviyoPublicId, audienceData) => {
+    setAudienceCache(prev => {
+      const newCache = { ...prev };
+
+      // Determine the type and create the key
+      const key = `${klaviyoPublicId}:${audienceData.type}:${audienceId}`;
+
+      // Update the index with the new/updated audience data
+      newCache.audienceIndex = {
+        ...newCache.audienceIndex,
+        [key]: {
+          ...newCache.audienceIndex[key],
+          ...audienceData,
+          profileCount: audienceData.profileCount || audienceData.profile_count || 0,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+
+      // Also update in byStore if it exists
+      if (newCache.byStore[klaviyoPublicId]) {
+        const storeData = newCache.byStore[klaviyoPublicId];
+        const audienceArray = audienceData.type === 'segment' ? 'segments' : 'lists';
+
+        if (storeData[audienceArray]) {
+          const existingIndex = storeData[audienceArray].findIndex(a => a.id === audienceId);
+          if (existingIndex >= 0) {
+            storeData[audienceArray][existingIndex] = {
+              ...storeData[audienceArray][existingIndex],
+              ...audienceData,
+              profileCount: audienceData.profileCount || audienceData.profile_count || 0
+            };
+          }
+        }
+      }
+
+      console.log('📊 Updated audience cache with profile count:', {
+        audienceId,
+        name: audienceData.name,
+        profileCount: audienceData.profileCount || audienceData.profile_count || 0
+      });
+
+      return newCache;
+    });
+  }, []);
   
-  // Fetch audiences for a store
-  const fetchAudiences = useCallback(async (klaviyoPublicId) => {
-    if (!klaviyoPublicId || audienceCache[klaviyoPublicId]) return;
-    
+  // Fetch all audiences for all stores at once
+  const fetchAllAudiences = useCallback(async () => {
+    // Only fetch if not already loaded or loading
+    if (audienceCache.loaded || audienceCache.loading) return;
+
+    setAudienceCache(prev => ({ ...prev, loading: true }));
+
     try {
-      const response = await fetch(`/api/klaviyo/audiences?storeId=${klaviyoPublicId}`);
+      // Get klaviyo IDs from all stores
+      const klaviyoIds = stores
+        .filter(s => s.klaviyo_integration?.public_id)
+        .map(s => s.klaviyo_integration.public_id);
+
+      if (klaviyoIds.length === 0) return;
+
+      // Fetch all audiences in bulk
+      const response = await fetch(`/api/klaviyo/audiences/bulk?storeIds=${klaviyoIds.join(',')}`);
       if (response.ok) {
         const result = await response.json();
-        setAudienceCache(prev => ({
-          ...prev,
-          [klaviyoPublicId]: result.data
-        }));
-        console.log('✅ Fetched audiences for store:', klaviyoPublicId);
+        setAudienceCache({
+          byStore: result.audiencesByStore || {},
+          audienceIndex: result.audienceIndex || {},
+          loading: false,
+          loaded: true
+        });
+        console.log('✅ Loaded audience cache:', {
+          stores: Object.keys(result.audiencesByStore || {}).length,
+          totalAudiences: Object.keys(result.audienceIndex || {}).length
+        });
       }
     } catch (error) {
-      console.error('Error fetching audiences:', error);
+      console.error('Error fetching all audiences:', error);
+      setAudienceCache(prev => ({ ...prev, loading: false }));
     }
-  }, [audienceCache]);
+  }, [stores, audienceCache.loaded, audienceCache.loading]);
   
   // Extract unique tags from campaigns
   const availableTags = useMemo(() => {
@@ -413,13 +484,20 @@ export default function CalendarPage() {
   useEffect(() => {
     fetchStores();
   }, [fetchStores]);
-  
+
   // Load campaigns initially when stores are available
   useEffect(() => {
     if (stores.length > 0) {
       loadAllCampaigns();
     }
   }, [stores, loadAllCampaigns]);
+
+  // Load all audiences when stores are available
+  useEffect(() => {
+    if (stores.length > 0 && !audienceCache.loaded && !audienceCache.loading) {
+      fetchAllAudiences();
+    }
+  }, [stores, audienceCache.loaded, audienceCache.loading, fetchAllAudiences]);
   
   // Update visible campaigns when date/view changes (but don't re-fetch)
   useEffect(() => {
@@ -879,22 +957,60 @@ export default function CalendarPage() {
       
       {/* Modals */}
       {selectedCampaign && (
-        <CampaignDetailsModal
-          campaign={selectedCampaign}
-          isOpen={showCampaignDetails}
-          onClose={() => {
-            setShowCampaignDetails(false);
-            setSelectedCampaign(null);
-          }}
-          stores={stores}
-          audienceCache={audienceCache}
-          onBackToDay={() => {
-            // Re-open the day campaigns modal if we came from there
-            if (selectedCampaign?.navigationSource === 'dayModal' && selectedDayCampaigns.length > 0) {
-              setShowDayCampaigns(true);
-            }
-          }}
-        />
+        selectedCampaign.isScheduled === true ? (
+          <ScheduledCampaignModal
+            key={`scheduled-modal-${selectedCampaign?.id}`}
+            campaign={selectedCampaign}
+            isOpen={showCampaignDetails}
+            onClose={() => {
+              setShowCampaignDetails(false);
+              setSelectedCampaign(null);
+            }}
+            stores={stores}
+            onCampaignDeleted={(campaignId) => {
+              // Remove the deleted campaign from the state
+              setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+              setFutureCampaigns(prev => prev.filter(c => c.id !== campaignId));
+              // Clear the cache
+              if (campaignCacheRef.current) {
+                delete campaignCacheRef.current[campaignId];
+              }
+            }}
+            onCampaignUpdated={(updatedCampaign) => {
+              // Update the campaign in the state
+              const updateCampaignInList = (list) =>
+                list.map(c => c.id === updatedCampaign.id ? { ...c, ...updatedCampaign } : c);
+
+              setCampaigns(prev => updateCampaignInList(prev));
+              setFutureCampaigns(prev => updateCampaignInList(prev));
+              // Don't update selectedCampaign here as it will cause re-render
+              // The modal will handle its own state
+
+              // Update the cache
+              if (campaignCacheRef.current && updatedCampaign.id) {
+                campaignCacheRef.current[updatedCampaign.id] = { ...selectedCampaign, ...updatedCampaign };
+              }
+            }}
+          />
+        ) : (
+          <CampaignDetailsModal
+            key={`campaign-modal-${selectedCampaign?.id}`}
+            campaign={selectedCampaign}
+            isOpen={showCampaignDetails}
+            onClose={() => {
+              setShowCampaignDetails(false);
+              setSelectedCampaign(null);
+            }}
+            stores={stores}
+            audienceCache={audienceCache}
+            onBackToDay={() => {
+              // Re-open the day campaigns modal if we came from there
+              if (selectedCampaign?.navigationSource === 'dayModal' && selectedDayCampaigns.length > 0) {
+                setShowDayCampaigns(true);
+              }
+            }}
+          />
+        )
       )}
       
       {showDayCampaigns && (

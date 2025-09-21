@@ -26,7 +26,14 @@ import {
     Smartphone,
     MessageSquare,
     Info,
-    ArrowLeft
+    ArrowLeft,
+    Clock,
+    Send,
+    UserCheck,
+    Settings,
+    ToggleLeft,
+    ToggleRight,
+    Link2
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
 import { Progress } from '@/app/components/ui/progress'
@@ -45,27 +52,55 @@ const EmailPreviewPanel = dynamic(
 )
 
 export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores, onBackToDay }) {
+    // Immediate debug logging
+    console.log('🎯 CampaignDetailsModal Rendered, isOpen:', isOpen, 'campaign:', campaign);
+
     const [activeTab, setActiveTab] = useState('overview')
     const [campaignData, setCampaignData] = useState(null)
     const [previewMode, setPreviewMode] = useState('desktop')
+
+    // Check if campaign is scheduled (not sent yet)
+    // Prioritize the isScheduled flag from the API
+    const isScheduled = campaign?.isScheduled === true
+
+    // Debug logging - always log when modal opens
+    React.useEffect(() => {
+        if (isOpen && campaign) {
+            console.log('🚀 =================================');
+            console.log('🚀 CampaignDetailsModal OPENED');
+            console.log('🚀 Campaign Name:', campaign?.name);
+            console.log('🚀 Campaign Status:', campaign?.status);
+            console.log('🚀 isScheduled flag from API:', campaign?.isScheduled);
+            console.log('🚀 Calculated isScheduled:', isScheduled);
+            console.log('🚀 Has send_strategy?:', !!campaign?.send_strategy);
+            console.log('🚀 Has send_options?:', !!campaign?.send_options);
+            console.log('🚀 Has tracking_options?:', !!campaign?.tracking_options);
+            console.log('🚀 Campaign ID:', campaign?.id);
+            console.log('🚀 All Keys:', campaign ? Object.keys(campaign) : []);
+            console.log('🚀 Full Campaign Object:', campaign);
+            console.log('🚀 =================================');
+        }
+    }, [isOpen, campaign, isScheduled])
 
     // Fetch campaign data when modal opens
     useEffect(() => {
         if (isOpen && campaign) {
             console.log('🔍 CampaignDetailsModal: Received campaign data:', campaign);
-            
+
             // Always use the campaign data directly since it should contain all metrics
             // The campaign object passed from calendar should already have the stats
             setCampaignData(campaign);
-            
-            // Reset tab based on context
-            if (campaign?.showDeliveryFocus) {
+
+            // For scheduled campaigns, always show overview
+            if (isScheduled) {
+                setActiveTab('overview')
+            } else if (campaign?.showDeliveryFocus) {
                 setActiveTab('deliverability')
             } else {
                 setActiveTab('overview')
             }
         }
-    }, [isOpen, campaign])
+    }, [isOpen, campaign, isScheduled])
     
     if (!campaign) return null
     
@@ -358,27 +393,39 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                     
                     {/* Right Column - Tab Content with Header */}
                     <div className="w-1/2 flex flex-col overflow-hidden">
-                        {/* Elegant Tab Header */}
-                        <div className="border-b dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
-                            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                                <TabsList className="grid w-full grid-cols-2 bg-transparent border-0 rounded-none h-14">
-                                    <TabsTrigger 
-                                        value="overview" 
-                                        className="flex items-center gap-3 px-6 py-4 text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm rounded-none border-0 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
-                                    >
-                                        <BarChart3 className="w-5 h-5" />
-                                        Overview
-                                    </TabsTrigger>
-                                    <TabsTrigger 
-                                        value="deliverability" 
-                                        className="flex items-center gap-3 px-6 py-4 text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm rounded-none border-0 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
-                                    >
-                                        <Mail className="w-5 h-5" />
-                                        Deliverability
-                                    </TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </div>
+                        {/* Elegant Tab Header - Only show tabs for sent campaigns */}
+                        {!isScheduled && (
+                            <div className="border-b dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                                    <TabsList className="grid w-full grid-cols-2 bg-transparent border-0 rounded-none h-14">
+                                        <TabsTrigger
+                                            value="overview"
+                                            className="flex items-center gap-3 px-6 py-4 text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm rounded-none border-0 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
+                                        >
+                                            <BarChart3 className="w-5 h-5" />
+                                            Overview
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="deliverability"
+                                            className="flex items-center gap-3 px-6 py-4 text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm rounded-none border-0 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
+                                        >
+                                            <Mail className="w-5 h-5" />
+                                            Deliverability
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </div>
+                        )}
+
+                        {/* Header for scheduled campaigns */}
+                        {isScheduled && (
+                            <div className="border-b dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 px-6 py-4">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Clock className="w-5 h-5" />
+                                    Scheduled Campaign
+                                </h3>
+                            </div>
+                        )}
                         
                         {/* Tab Content */}
                         <div className="flex-1 overflow-hidden">
@@ -609,7 +656,180 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                             <div className="flex-1 overflow-hidden">
                             <div className="h-full overflow-y-auto">
                                 <div className="p-6 space-y-6">
-                                    {/* Key Performance Metrics Grid */}
+                                    {/* Scheduled Campaign Details */}
+                                    {isScheduled ? (
+                                        <>
+                                            {/* Scheduled Send Information */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center gap-2">
+                                                        <Send className="w-5 h-5" />
+                                                        Send Information
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {/* Scheduled Time */}
+                                                    <div className="flex items-start gap-3">
+                                                        <Clock className="w-5 h-5 text-gray-500 mt-0.5" />
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled Send Time</p>
+                                                            <p className="text-base text-gray-900 dark:text-white">
+                                                                {data.send_strategy?.options_static?.datetime ?
+                                                                    formatDate(data.send_strategy.options_static.datetime) :
+                                                                    data.scheduled_at ? formatDate(data.scheduled_at) :
+                                                                    'Not scheduled yet'
+                                                                }
+                                                            </p>
+                                                            {data.send_strategy?.options_static?.is_local && (
+                                                                <p className="text-xs text-gray-500 mt-1">Sending in recipient's local timezone</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Send Strategy */}
+                                                    <div className="flex items-start gap-3">
+                                                        <Settings className="w-5 h-5 text-gray-500 mt-0.5" />
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Send Strategy</p>
+                                                            <p className="text-base text-gray-900 dark:text-white capitalize">
+                                                                {data.send_strategy?.method || 'Static'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Status */}
+                                                    <div className="flex items-start gap-3">
+                                                        <Activity className="w-5 h-5 text-gray-500 mt-0.5" />
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Campaign Status</p>
+                                                            <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">
+                                                                {data.status || 'Scheduled'}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* Audience Information */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center gap-2">
+                                                        <Users className="w-5 h-5" />
+                                                        Audience & Targeting
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {/* Included Segments/Lists */}
+                                                    {data.audiences?.included?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Included Segments</p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {data.audiences.included.map((segmentId) => (
+                                                                    <Badge key={segmentId} variant="secondary" className="bg-green-100 text-green-800 border-green-300">
+                                                                        <UserCheck className="w-3 h-3 mr-1" />
+                                                                        {segmentId}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Excluded Segments/Lists */}
+                                                    {data.audiences?.excluded?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Excluded Segments</p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {data.audiences.excluded.map((segmentId) => (
+                                                                    <Badge key={segmentId} variant="secondary" className="bg-red-100 text-red-800 border-red-300">
+                                                                        <XCircle className="w-3 h-3 mr-1" />
+                                                                        {segmentId}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Estimated Recipients */}
+                                                    <div className="pt-3 border-t dark:border-gray-700">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Estimated Recipients</span>
+                                                            <span className="text-lg font-bold text-gray-900 dark:text-white">
+                                                                {formatNumber(data.recipients || data.estimated_recipients || 0)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* Campaign Settings */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center gap-2">
+                                                        <Settings className="w-5 h-5" />
+                                                        Campaign Settings
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-3">
+                                                    {/* Send Options */}
+                                                    <div className="space-y-2">
+                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send Options</p>
+                                                        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                                            <span className="text-sm text-gray-600 dark:text-gray-400">Smart Sending</span>
+                                                            {data.send_options?.use_smart_sending ? (
+                                                                <ToggleRight className="w-5 h-5 text-green-600" />
+                                                            ) : (
+                                                                <ToggleLeft className="w-5 h-5 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                                            <span className="text-sm text-gray-600 dark:text-gray-400">Ignore Unsubscribes</span>
+                                                            {data.send_options?.ignore_unsubscribes ? (
+                                                                <ToggleRight className="w-5 h-5 text-yellow-600" />
+                                                            ) : (
+                                                                <ToggleLeft className="w-5 h-5 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Tracking Options */}
+                                                    <div className="space-y-2 pt-3 border-t dark:border-gray-700">
+                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tracking Options</p>
+                                                        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                                            <span className="text-sm text-gray-600 dark:text-gray-400">Track Opens</span>
+                                                            {data.tracking_options?.is_tracking_opens !== false ? (
+                                                                <ToggleRight className="w-5 h-5 text-green-600" />
+                                                            ) : (
+                                                                <ToggleLeft className="w-5 h-5 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                                            <span className="text-sm text-gray-600 dark:text-gray-400">Track Clicks</span>
+                                                            {data.tracking_options?.is_tracking_clicks !== false ? (
+                                                                <ToggleRight className="w-5 h-5 text-green-600" />
+                                                            ) : (
+                                                                <ToggleLeft className="w-5 h-5 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                        {data.tracking_options?.is_add_utm && (
+                                                            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Link2 className="w-4 h-4 text-blue-600" />
+                                                                    <span className="text-sm text-blue-700 dark:text-blue-300">UTM tracking enabled</span>
+                                                                </div>
+                                                                {data.tracking_options?.utm_params?.length > 0 && (
+                                                                    <div className="mt-1 text-xs text-blue-600">
+                                                                        {data.tracking_options.utm_params.map(param => `${param.name}=${param.value}`).join(', ')}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Key Performance Metrics Grid */}
                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                         {data.type === 'sms' || data.channel === 'sms' ? (
                                             // SMS-focused metrics
@@ -905,7 +1125,8 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                 </span>
                                             </div>
                                         </div>
-                                    </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                             </div>

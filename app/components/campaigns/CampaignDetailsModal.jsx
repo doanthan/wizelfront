@@ -53,12 +53,10 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
     // Fetch campaign data when modal opens
     useEffect(() => {
         if (isOpen && campaign) {
-            console.log('🔍 CampaignDetailsModal: Received campaign data:', campaign);
-            
             // Always use the campaign data directly since it should contain all metrics
             // The campaign object passed from calendar should already have the stats
             setCampaignData(campaign);
-            
+
             // Reset tab based on context
             if (campaign?.showDeliveryFocus) {
                 setActiveTab('deliverability')
@@ -72,50 +70,16 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
     
     // Use campaignData if available, otherwise fall back to campaign prop
     const data = campaignData || campaign
-    
-    // Debug logging
-    console.log('📊 CampaignDetailsModal: Final data being used:', {
-        opensUnique: data.opensUnique,
-        clicksUnique: data.clicksUnique,
-        revenue: data.revenue,
-        recipients: data.recipients,
-        delivered: data.delivered,
-        openRate: data.openRate,
-        clickRate: data.clickRate,
-        conversionRate: data.conversionRate,
-        fullData: data
-    });
 
     // Get store info for the campaign
-    const campaignStore = stores?.find(s => 
-        s.public_id === campaign?.store_public_id || 
+    const campaignStore = stores?.find(s =>
+        s.public_id === campaign?.store_public_id ||
         s.klaviyo_integration?.public_id === campaign?.klaviyo_public_id ||
         campaign?.store_public_ids?.includes(s.public_id) ||
         // Handle case where data uses different field names
         s.public_id === data?.store_public_id ||
         s.klaviyo_integration?.public_id === data?.klaviyo_public_id
     )
-    
-    console.log('🔍 Store lookup debug:', {
-        availableStores: stores?.length,
-        campaign: {
-            store_public_id: campaign?.store_public_id,
-            klaviyo_public_id: campaign?.klaviyo_public_id,
-            store_public_ids: campaign?.store_public_ids
-        },
-        data: {
-            store_public_id: data?.store_public_id,
-            klaviyo_public_id: data?.klaviyo_public_id
-        },
-        foundStore: campaignStore ? {
-            name: campaignStore.name,
-            public_id: campaignStore.public_id,
-            klaviyo_public_id: campaignStore.klaviyo_integration?.public_id
-        } : null
-    })
-    
-    console.log('🔍 Full campaign data structure:', JSON.stringify(campaign, null, 2))
-    console.log('🔍 Full data structure:', JSON.stringify(data, null, 2))
 
     // Format numbers
     const formatNumber = (num) => {

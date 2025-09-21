@@ -1,5 +1,11 @@
 # AI Assistant Instructions
 
+## Project Overview - Multi-Account Klaviyo Reporting Platform
+
+This is a **multi-account Klaviyo reporting tool** that hosts and manages multiple Klaviyo account API keys. Key characteristics:
+
+- **Multi-Account Architecture**: The platform manages multiple Klaviyo accounts, each with their own API keys
+
 ## MongoDB Connection Method
 
 ### IMPORTANT: Correct MongoDB Connection
@@ -136,7 +142,47 @@ const campaignStats = await CampaignStat.find({
 - MongoDB store/user collections use `store_public_id`
 - Always check which ID type to use before querying!
 
+## 🔐 CRITICAL: Klaviyo API Configuration
+
+### **IMPORTANT: Klaviyo API Revision**
+
+**ALWAYS use `process.env.KLAVIYO_REVISION` for ALL Klaviyo API calls**
+
+The application MUST use the KLAVIYO_REVISION environment variable for all Klaviyo API calls:
+- **Required**: Always use `process.env.KLAVIYO_REVISION`
+- **Never hardcode revision values** - the revision must come from the environment variable
+- The revision header must be included in ALL Klaviyo API requests
+- The revision is required for features like `additional-fields[segment]=profile_count`
+- The current value in .env is `2025-07-15` but this should never be hardcoded
+
+```javascript
+// ✅ CORRECT - Using the environment variable
+const API_REVISION = process.env.KLAVIYO_REVISION;
+
+// ✅ CORRECT - With a fallback that matches .env
+const API_REVISION = process.env.KLAVIYO_REVISION || '2025-07-15';
+
+// ❌ WRONG - Don't hardcode revision dates
+const API_REVISION = '2025-07-15'; // WRONG - use process.env!
+const API_REVISION = '2024-10-15'; // WRONG - use process.env!
+const API_REVISION = '2023-10-15'; // WRONG - use process.env!
+```
+
 ## 🔐 CRITICAL: Klaviyo OAuth-First Authentication
+
+### **IMPORTANT: Klaviyo API Revision Header**
+
+**All Klaviyo API calls MUST include the revision header. Use the environment variable:**
+```javascript
+// Use NEXT_PUBLIC_KLAVIYO_REVISION for client/server compatibility
+const API_REVISION = process.env.NEXT_PUBLIC_KLAVIYO_REVISION || '2025-07-15';
+```
+
+**Environment Variable Configuration:**
+```bash
+# In .env file
+NEXT_PUBLIC_KLAVIYO_REVISION=2025-07-15
+```
 
 ### **IMPORTANT: Always Use OAuth-First with Automatic Fallback**
 

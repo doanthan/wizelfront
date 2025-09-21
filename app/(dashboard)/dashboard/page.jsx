@@ -216,7 +216,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
           <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">Dashboard</h2>
-          <p className="text-sm text-neutral-gray dark:text-gray-400">Cross-account analytics and performance insights</p>
+          <p className="text-sm text-slate-gray dark:text-gray-400">Cross-account analytics and performance insights</p>
         </div>
         
         <div className="flex items-center gap-2">

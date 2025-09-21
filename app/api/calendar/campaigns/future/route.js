@@ -60,15 +60,6 @@ export async function GET(request) {
     const klaviyoStartDate = requestedStartDate;
     
     try {
-      console.log('Fetching draft/scheduled campaigns from Klaviyo API (including past drafts)...');
-      console.log('Date range:', {
-        requested: { start: requestedStartDate, end: requestedEndDate },
-        adjusted: { start: klaviyoStartDate, end: requestedEndDate }
-      });
-      console.log('Stores with API keys:', storesWithApiKeys.map(s => ({ 
-        name: s.name, 
-        klaviyoId: s.klaviyo_integration?.public_id 
-      })));
       
       // Set timeout for API calls (20 seconds for sequential calls)
       const timeoutPromise = new Promise((_, reject) => 
@@ -85,11 +76,6 @@ export async function GET(request) {
       
       // Format future campaigns for calendar display
       const formattedCampaigns = futureCampaigns.map(campaign => {
-        console.log(`Processing campaign: ${campaign.attributes?.name}`);
-        console.log(`Campaign has _included:`, campaign._included ? 'Yes' : 'No');
-        if (campaign._included) {
-          console.log(`_included has ${campaign._included.length} items`);
-        }
         
         // Extract channel - use _channel field added during fetch
         let channel = campaign._channel || 'email';
@@ -119,21 +105,13 @@ export async function GET(request) {
         const storePublicId = campaign.storeInfo?.publicId;
         const klaviyoPublicId = campaign.storeInfo?.klaviyoPublicId;
         
-        console.log(`Formatting campaign: ${campaign.attributes?.name}, date: ${displayDate}, store: ${klaviyoPublicId}`);
-        
         // Extract from_email from campaign message if available
         // The included data is attached as _included from the fetchFutureCampaigns function
         const messageId = campaign.relationships?.['campaign-messages']?.data?.[0]?.id;
-        const messageData = campaign._included?.find(item => 
-          item.type === 'campaign-message' && 
+        const messageData = campaign._included?.find(item =>
+          item.type === 'campaign-message' &&
           item.id === messageId
         );
-        
-        console.log(`Looking for message ${messageId} in included data for campaign: ${campaign.attributes?.name}`);
-        console.log(`Found message data:`, messageData ? 'Yes' : 'No');
-        if (messageData) {
-          console.log(`Message data attributes:`, JSON.stringify(messageData.attributes, null, 2).substring(0, 500));
-        }
         
         // Try multiple possible locations for from_email - matching what works in campaign-message route
         const fromEmail = messageData?.attributes?.definition?.content?.from_email ||
@@ -148,8 +126,6 @@ export async function GET(request) {
                          messageData?.attributes?.from_label ||
                          campaign.attributes?.from_label ||
                          '';
-        
-        console.log(`Campaign ${campaign.attributes?.name} - fromEmail: ${fromEmail}, fromLabel: ${fromLabel}`);
         
         return {
           id: `future-${campaign.id}`,
@@ -190,18 +166,21 @@ export async function GET(request) {
           klaviyo_public_id: klaviyoPublicId,
           fromAddress: fromEmail,
           fromLabel: fromLabel,
-          audiences: {
-            included: campaign.attributes?.audiences?.included || [],
-            excluded: campaign.attributes?.audiences?.excluded || []
-          }
+          audiences: campaign.attributes?.audiences || {
+            included: [],
+            excluded: []
+          },
+          // Add Klaviyo campaign fields for scheduled campaigns
+          scheduled_at: campaign.attributes?.scheduled_at,
+          send_time: campaign.attributes?.send_time,
+          send_strategy: campaign.attributes?.send_strategy,
+          send_options: campaign.attributes?.send_options,
+          tracking_options: campaign.attributes?.tracking_options,
+          estimated_recipients: campaign.attributes?.estimated_recipients,
+          recipients: campaign.attributes?.estimated_recipients || 0 // For display
         };
       });
 
-      console.log('Future campaigns summary:', {
-        total: formattedCampaigns.length,
-        dateRange: { startDate: klaviyoStartDate, endDate: requestedEndDate },
-        stores: storesWithApiKeys.length
-      });
 
       return NextResponse.json({
         campaigns: formattedCampaigns,

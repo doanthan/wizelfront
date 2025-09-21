@@ -5,15 +5,15 @@ import MorphingLoader from "@/app/components/ui/loading";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Users, 
-  TrendingUp, 
-  Mail, 
-  Zap, 
-  BarChart3, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  TrendingUp,
+  Mail,
+  Zap,
+  BarChart3,
+  FileText,
   Settings,
   ChevronDown,
   ChevronRight,
@@ -33,7 +33,8 @@ import {
   Rss,
   Lightbulb,
   CheckCircle,
-  LayoutGrid
+  LayoutGrid,
+  ShoppingBag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/app/contexts/theme-context";
@@ -142,45 +143,52 @@ const sidebarItemsConfig = [
     feature: FEATURES.REPORTS,
     action: ACTIONS.VIEW,
     children: [
-      { 
-        title: "Revenue", 
-        icon: TrendingUp, 
-        href: "/dashboard/reports/revenue",
+      {
+        title: "Revenue",
+        icon: TrendingUp,
+        href: "/account-report",
         feature: FEATURES.REPORTS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Campaigns", 
-        icon: Mail, 
-        href: "/dashboard/reports/campaigns",
+      {
+        title: "Campaigns",
+        icon: Mail,
+        href: "/account-report/campaigns",
         feature: FEATURES.REPORTS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Flows", 
-        icon: Zap, 
-        href: "/dashboard/reports/flows",
+      {
+        title: "Flows",
+        icon: Zap,
+        href: "/account-report/flows",
         feature: FEATURES.REPORTS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Forms", 
-        icon: FileText, 
-        href: "/dashboard/reports/forms",
+      {
+        title: "Forms",
+        icon: FileText,
+        href: "/account-report/forms",
         feature: FEATURES.REPORTS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Segments", 
-        icon: Users, 
-        href: "/dashboard/reports/segments",
+      {
+        title: "Segments",
+        icon: Users,
+        href: "/account-report/segments",
         feature: FEATURES.REPORTS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Report", 
-        icon: PieChart, 
-        href: "/dashboard/reports/report",
+      {
+        title: "Products",
+        icon: ShoppingBag,
+        href: "/account-report/products",
+        feature: FEATURES.REPORTS,
+        action: ACTIONS.VIEW,
+      },
+      {
+        title: "Customers",
+        icon: Users,
+        href: "/account-report/customers",
         feature: FEATURES.REPORTS,
         action: ACTIONS.VIEW,
       },

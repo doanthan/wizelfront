@@ -256,10 +256,17 @@ export async function GET(request) {
         storeName: campaign.storeInfo?.name || 'Unknown Store',
         klaviyo_public_id: campaign.storeInfo?.klaviyoPublicId, // Match historical format
         fromAddress: campaign.attributes?.from_email || '',
-        audiences: {
-          included: campaign.attributes?.audiences?.included || [],
-          excluded: campaign.attributes?.audiences?.excluded || []
-        }
+        audiences: campaign.attributes?.audiences || {
+          included: [],
+          excluded: []
+        },
+        // Add Klaviyo campaign fields for scheduled campaigns
+        scheduled_at: campaign.attributes?.scheduled_at,
+        send_time: campaign.attributes?.send_time,
+        send_strategy: campaign.attributes?.send_strategy,
+        send_options: campaign.attributes?.send_options,
+        tracking_options: campaign.attributes?.tracking_options,
+        estimated_recipients: campaign.attributes?.estimated_recipients
       };
     });
 

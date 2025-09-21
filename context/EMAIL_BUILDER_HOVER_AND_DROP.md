@@ -718,11 +718,8 @@ const DropZone = ({ index, onDrop, isDragging }) => {
 
 ---
 
-## 10. Future Enhancements
 
-### Planned Features
 1. **Magnetic snapping** - Elements snap to grid
-2. **Multi-select** - Select multiple sections
 3. **Keyboard shortcuts** - Copy/paste sections
 4. **Undo/redo** - Full history management
 5. **Nested drop zones** - Drop within columns

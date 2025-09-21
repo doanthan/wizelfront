@@ -443,7 +443,7 @@ Required environment variables for Klaviyo integration:
 
 ```env
 # Klaviyo API Configuration
-KLAVIYO_REVISION=2025-07-15
+NEXT_PUBLIC_KLAVIYO_REVISION=2025-07-15
 
 # OAuth Configuration (if using OAuth)
 NEXT_PUBLIC_KLAVIYO_CLIENT_ID=your_client_id
