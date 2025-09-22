@@ -1,18 +1,7 @@
-"use client"
-
-import { useState, useEffect } from "react"
 import { ArrowRight, Zap, Star, Check, ShoppingBag, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-// Force dynamic rendering to avoid Next.js static generation issues
-export const dynamic = 'force-dynamic'
-
 export default function LandingPage() {
-    const [isVisible, setIsVisible] = useState(false)
-
-    useEffect(() => {
-        setIsVisible(true)
-    }, [])
 
     return (
         <div className="min-h-screen bg-white">
@@ -26,9 +15,7 @@ export default function LandingPage() {
                 />
 
                 <div className="relative z-10 max-w-4xl mx-auto text-center">
-                    <div
-                        className={`transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-                    >
+                    <div className="opacity-100 translate-y-0">
                         {/* Integration Badges */}
                         <div className="flex justify-center items-center gap-4 mb-8">
                             <div className="flex items-center bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm">
