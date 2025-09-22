@@ -1,7 +1,8 @@
 import { ArrowRight, Zap, Star, Check, ShoppingBag, BarChart3 } from "lucide-react"
 
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
+// Opt out of static generation to avoid build issues
+export const dynamic = 'error'
+export const revalidate = 0
 
 export default function LandingPage() {
 

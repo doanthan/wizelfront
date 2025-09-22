@@ -879,7 +879,7 @@ export function getPermissionDescription(permission) {
 }
 
 // Export everything
-export default {
+const permissionsExport = {
     PERMISSIONS,
     ORGANIZATION_TYPES,
     ROLES,
@@ -901,3 +901,5 @@ export default {
     getAnalyticsAggregationLevel,
     applyScopeToQuery,
 }
+
+export default permissionsExport
