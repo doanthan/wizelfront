@@ -366,7 +366,23 @@ export const StoreProvider = ({ children }) => {
       console.log('🏪 StoreContext: API response status:', response.status);
 
       if (response.ok) {
-        const data = await response.json();
+        let data;
+        try {
+          const responseText = await response.text();
+          console.log('🏪 StoreContext: Raw response length:', responseText.length);
+
+          // Check if response is empty or invalid
+          if (!responseText || responseText.trim() === '') {
+            console.error('🏪 StoreContext: Empty response from API');
+            data = { stores: [] };
+          } else {
+            data = JSON.parse(responseText);
+          }
+        } catch (parseError) {
+          console.error('🏪 StoreContext: Failed to parse response as JSON:', parseError);
+          data = { stores: [] };
+        }
+
         console.log('🏪 StoreContext: API data received:', data);
         console.log('🏪 StoreContext: Number of stores:', data.stores?.length || 0);
 

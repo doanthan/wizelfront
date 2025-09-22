@@ -500,11 +500,25 @@ export async function GET(request) {
     }
 
     console.log('Returning stores:', stores?.length || 0);
-    return NextResponse.json({ stores: stores || [] });
+
+    // Ensure stores is a valid array before returning
+    const validStores = Array.isArray(stores) ? stores : [];
+
+    // Clean up any undefined or null values in the stores array
+    const cleanStores = validStores.filter(store => store != null);
+
+    return NextResponse.json({ stores: cleanStores });
   } catch (error) {
     console.error('Failed to fetch stores:', error);
+    console.error('Error stack:', error.stack);
+
+    // Return a valid JSON response even on error
     return NextResponse.json(
-      { error: 'Failed to fetch stores' },
+      {
+        error: 'Failed to fetch stores',
+        details: error.message,
+        stores: []
+      },
       { status: 500 }
     );
   }

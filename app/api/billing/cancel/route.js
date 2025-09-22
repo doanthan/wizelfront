@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import User from "@/models/User";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16"
-});
+}) : null;
 
 export async function POST(request) {
   try {
@@ -34,6 +34,13 @@ export async function POST(request) {
       return NextResponse.json(
         { error: "No active subscription" },
         { status: 400 }
+      );
+    }
+
+    if (!stripe) {
+      return NextResponse.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
       );
     }
 

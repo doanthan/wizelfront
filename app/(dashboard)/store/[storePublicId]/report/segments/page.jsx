@@ -242,10 +242,10 @@ export default function StoreSegmentsReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Segments Report
           </h2>
-          <p className="text-sm text-slate-gray dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Customer segmentation insights for {currentStore?.name || 'store'}
           </p>
         </div>
@@ -298,7 +298,7 @@ export default function StoreSegmentsReportPage() {
             <Layers className="h-4 w-4 text-sky-blue" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.summary.total_segments}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.total_segments}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               +{data.summary.total_segments - data.previousPeriod.total_segments} from last period
@@ -312,7 +312,7 @@ export default function StoreSegmentsReportPage() {
             <Users className="h-4 w-4 text-vivid-violet" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data.summary.total_profiles)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_profiles)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_profiles, data.previousPeriod.total_profiles))} from last period
@@ -326,8 +326,8 @@ export default function StoreSegmentsReportPage() {
             <Activity className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(data.summary.avg_engagement_rate)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.avg_engagement_rate)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Across all segments
             </p>
           </CardContent>
@@ -339,8 +339,8 @@ export default function StoreSegmentsReportPage() {
             <DollarSign className="h-4 w-4 text-deep-purple" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.summary.total_revenue_attributed)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.total_revenue_attributed)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Total attributed revenue
             </p>
           </CardContent>
@@ -508,8 +508,8 @@ export default function StoreSegmentsReportPage() {
             <CardTitle className="text-sm">Most Valuable Segment</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">{data.summary.most_valuable_segment}</div>
-            <p className="text-sm text-muted-foreground">{formatCurrency(125000)} revenue</p>
+            <div className="text-lg font-bold text-gray-900 dark:text-white">{data.summary.most_valuable_segment}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{formatCurrency(125000)} revenue</p>
             <p className="text-sm text-green-600">78.5% engagement rate</p>
           </CardContent>
         </Card>
@@ -519,9 +519,9 @@ export default function StoreSegmentsReportPage() {
             <CardTitle className="text-sm">Fastest Growing</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">New Subscribers</div>
+            <div className="text-lg font-bold text-gray-900 dark:text-white">New Subscribers</div>
             <p className="text-sm text-green-600">+25.8% growth</p>
-            <p className="text-sm text-muted-foreground">18,500 profiles</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">18,500 profiles</p>
           </CardContent>
         </Card>
 
@@ -530,9 +530,9 @@ export default function StoreSegmentsReportPage() {
             <CardTitle className="text-sm">Needs Attention</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">Win-Back Targets</div>
+            <div className="text-lg font-bold text-gray-900 dark:text-white">Win-Back Targets</div>
             <p className="text-sm text-red-600">-12.3% decline</p>
-            <p className="text-sm text-muted-foreground">15.2% engagement</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">15.2% engagement</p>
           </CardContent>
         </Card>
       </div>

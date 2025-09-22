@@ -231,10 +231,10 @@ export default function StoreFlowsReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Flows Report
           </h2>
-          <p className="text-sm text-slate-gray dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Automated flow performance for {currentStore?.name || 'store'}
           </p>
         </div>
@@ -287,7 +287,7 @@ export default function StoreFlowsReportPage() {
             <Zap className="h-4 w-4 text-sky-blue" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.summary.active_flows}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.active_flows}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               +{data.summary.active_flows - data.previousPeriod.active_flows} from last period
@@ -301,7 +301,7 @@ export default function StoreFlowsReportPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.summary.total_revenue)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.total_revenue)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_revenue, data.previousPeriod.total_revenue))} from last period
@@ -315,7 +315,7 @@ export default function StoreFlowsReportPage() {
             <CheckCircle className="h-4 w-4 text-vivid-violet" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(data.summary.completion_rate)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.completion_rate)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {(data.summary.completion_rate - data.previousPeriod.completion_rate).toFixed(1)}pp from last period
@@ -329,7 +329,7 @@ export default function StoreFlowsReportPage() {
             <Activity className="h-4 w-4 text-deep-purple" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data.summary.total_triggered)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_triggered)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_triggered, data.previousPeriod.total_triggered))} from last period
@@ -422,7 +422,7 @@ export default function StoreFlowsReportPage() {
                   <TableCell className="text-right">{formatNumber(flow.conversions)}</TableCell>
                   <TableCell className="text-right">{flow.conversion_rate}%</TableCell>
                   <TableCell className="text-right">{formatCurrency(flow.revenue)}</TableCell>
-                  <TableCell className="text-muted-foreground">{flow.avg_time_to_complete}</TableCell>
+                  <TableCell className="text-gray-600 dark:text-gray-400">{flow.avg_time_to_complete}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -458,8 +458,8 @@ export default function StoreFlowsReportPage() {
             <CardTitle className="text-sm">Best Performing Flow</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">Welcome Series</div>
-            <p className="text-sm text-muted-foreground">75% completion rate</p>
+            <div className="text-lg font-bold text-gray-900 dark:text-white">Welcome Series</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">75% completion rate</p>
             <p className="text-sm text-green-600">{formatCurrency(67500)} revenue</p>
           </CardContent>
         </Card>
@@ -469,8 +469,8 @@ export default function StoreFlowsReportPage() {
             <CardTitle className="text-sm">Highest Revenue Flow</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">Abandoned Cart</div>
-            <p className="text-sm text-muted-foreground">10% conversion rate</p>
+            <div className="text-lg font-bold text-gray-900 dark:text-white">Abandoned Cart</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">10% conversion rate</p>
             <p className="text-sm text-green-600">{formatCurrency(89000)} revenue</p>
           </CardContent>
         </Card>
@@ -480,8 +480,8 @@ export default function StoreFlowsReportPage() {
             <CardTitle className="text-sm">Flow Efficiency</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">{formatCurrency(data.summary.avg_revenue_per_flow)}</div>
-            <p className="text-sm text-muted-foreground">Average revenue per flow recipient</p>
+            <div className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.avg_revenue_per_flow)}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Average revenue per flow recipient</p>
           </CardContent>
         </Card>
       </div>

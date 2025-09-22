@@ -235,10 +235,10 @@ export default function StoreFormsReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Forms Report
           </h2>
-          <p className="text-sm text-slate-gray dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Signup form performance for {currentStore?.name || 'store'}
           </p>
         </div>
@@ -291,7 +291,7 @@ export default function StoreFormsReportPage() {
             <FileText className="h-4 w-4 text-sky-blue" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.summary.active_forms}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.active_forms}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               +{data.summary.active_forms - data.previousPeriod.active_forms} from last period
@@ -305,7 +305,7 @@ export default function StoreFormsReportPage() {
             <MousePointer className="h-4 w-4 text-vivid-violet" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(data.summary.conversion_rate)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.conversion_rate)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {(data.summary.conversion_rate - data.previousPeriod.conversion_rate).toFixed(1)}pp from last period
@@ -319,7 +319,7 @@ export default function StoreFormsReportPage() {
             <UserPlus className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data.summary.new_subscribers)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.new_subscribers)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.new_subscribers, data.previousPeriod.new_subscribers))} from last period
@@ -333,7 +333,7 @@ export default function StoreFormsReportPage() {
             <Eye className="h-4 w-4 text-deep-purple" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data.summary.total_views)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_views)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_views, data.previousPeriod.total_views))} from last period
@@ -349,8 +349,8 @@ export default function StoreFormsReportPage() {
             <CardTitle className="text-sm">Bounce Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{data.summary.bounce_rate}%</div>
-            <p className="text-xs text-muted-foreground">Visitors who left immediately</p>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{data.summary.bounce_rate}%</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Visitors who left immediately</p>
           </CardContent>
         </Card>
 
@@ -359,8 +359,8 @@ export default function StoreFormsReportPage() {
             <CardTitle className="text-sm">Avg Time on Form</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{data.summary.avg_time_on_form}s</div>
-            <p className="text-xs text-muted-foreground">Average engagement time</p>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{data.summary.avg_time_on_form}s</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Average engagement time</p>
           </CardContent>
         </Card>
 
@@ -369,8 +369,8 @@ export default function StoreFormsReportPage() {
             <CardTitle className="text-sm">Unique Visitors</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatNumber(data.summary.total_unique_visitors)}</div>
-            <p className="text-xs text-muted-foreground">Individual form viewers</p>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_unique_visitors)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Individual form viewers</p>
           </CardContent>
         </Card>
 
@@ -379,8 +379,8 @@ export default function StoreFormsReportPage() {
             <CardTitle className="text-sm">Total Submissions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatNumber(data.summary.total_submissions)}</div>
-            <p className="text-xs text-muted-foreground">Form completions</p>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_submissions)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Form completions</p>
           </CardContent>
         </Card>
       </div>
@@ -405,7 +405,7 @@ export default function StoreFormsReportPage() {
                     </div>
                     <div className="text-right">
                       <div className="font-medium">{formatNumber(device.submissions)} submissions</div>
-                      <div className="text-sm text-muted-foreground">{formatPercentage(device.rate)} conversion</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{formatPercentage(device.rate)} conversion</div>
                     </div>
                   </div>
                   <Progress value={(device.views / data.summary.total_views) * 100} className="h-2" />
@@ -489,7 +489,7 @@ export default function StoreFormsReportPage() {
                   </TableCell>
                   <TableCell className="text-right">{formatNumber(form.new_subscribers)}</TableCell>
                   <TableCell>{form.avg_time}</TableCell>
-                  <TableCell className="text-muted-foreground">{form.placement}</TableCell>
+                  <TableCell className="text-gray-600 dark:text-gray-400">{form.placement}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

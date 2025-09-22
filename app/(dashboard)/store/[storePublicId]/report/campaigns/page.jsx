@@ -236,10 +236,10 @@ export default function StoreCampaignsReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Campaigns Report
           </h2>
-          <p className="text-sm text-slate-gray dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Email & SMS campaign performance for {currentStore?.name || 'store'}
           </p>
         </div>
@@ -292,7 +292,7 @@ export default function StoreCampaignsReportPage() {
             <Mail className="h-4 w-4 text-sky-blue" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.summary.total_campaigns}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.total_campaigns}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_campaigns, data.previousPeriod.total_campaigns))} from last period
@@ -306,7 +306,7 @@ export default function StoreCampaignsReportPage() {
             <Eye className="h-4 w-4 text-vivid-violet" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(data.summary.avg_open_rate)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.avg_open_rate)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {(data.summary.avg_open_rate - data.previousPeriod.avg_open_rate).toFixed(1)}pp from last period
@@ -320,7 +320,7 @@ export default function StoreCampaignsReportPage() {
             <MousePointer className="h-4 w-4 text-deep-purple" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(data.summary.avg_click_rate)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.avg_click_rate)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {(data.summary.avg_click_rate - data.previousPeriod.avg_click_rate).toFixed(1)}pp from last period
@@ -334,7 +334,7 @@ export default function StoreCampaignsReportPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.summary.total_revenue)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.total_revenue)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_revenue, data.previousPeriod.total_revenue))} from last period
@@ -350,7 +350,7 @@ export default function StoreCampaignsReportPage() {
             <CardTitle className="text-sm">Total Sent</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatNumber(data.summary.total_sent)}</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_sent)}</div>
           </CardContent>
         </Card>
 
@@ -359,7 +359,7 @@ export default function StoreCampaignsReportPage() {
             <CardTitle className="text-sm">Total Opens</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatNumber(data.summary.total_opens)}</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_opens)}</div>
           </CardContent>
         </Card>
 
@@ -368,7 +368,7 @@ export default function StoreCampaignsReportPage() {
             <CardTitle className="text-sm">Total Clicks</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatNumber(data.summary.total_clicks)}</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_clicks)}</div>
           </CardContent>
         </Card>
 
@@ -377,7 +377,7 @@ export default function StoreCampaignsReportPage() {
             <CardTitle className="text-sm">Total Conversions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatNumber(data.summary.total_conversions)}</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_conversions)}</div>
           </CardContent>
         </Card>
       </div>
@@ -486,7 +486,7 @@ export default function StoreCampaignsReportPage() {
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600 dark:text-gray-400" />
                 <Input
                   placeholder="Search campaigns..."
                   value={searchQuery}
@@ -529,7 +529,7 @@ export default function StoreCampaignsReportPage() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{campaign.name}</div>
-                      <div className="text-xs text-muted-foreground">{campaign.send_date}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">{campaign.send_date}</div>
                     </div>
                   </TableCell>
                   <TableCell>

@@ -1,11 +1,27 @@
 # ClickHouse Tables Complete Reference - 100% ReplacingMergeTree Architecture
 
-**Last Updated**: 2025-09-18
+**Last Updated**: 2025-09-22
 **Database**: `default` @ kis8xv8y1f.us-east-1.aws.clickhouse.cloud
 **API Endpoint**: `/api/v2/reports/full_sync`
 **Total Tables**: 12 production tables (**ALL ReplacingMergeTree**)
 **Query Performance**: <100ms for aggregated data, <500ms for raw queries
 **Critical**: **ALWAYS use `FINAL` modifier in ALL queries**
+
+## 🆕 Recent Updates (September 2025)
+
+### Channel Revenue Tracking (Added to `account_metrics_daily`)
+- ✅ **Email revenue breakdown**: `email_revenue`, `campaign_email_revenue`, `flow_email_revenue`
+- ✅ **SMS revenue breakdown**: `sms_revenue`, `campaign_sms_revenue`, `flow_sms_revenue`
+- ✅ **Push revenue breakdown**: `push_revenue`, `campaign_push_revenue`, `flow_push_revenue`
+- ✅ **Channel performance metrics**: Recipients, delivered, clicks per channel
+
+### Product Categorization (Added to `klaviyo_order_line_items`)
+- ✅ **Product categories**: `product_categories` Array(String) - Supports multiple categories per product
+- ✅ **Product brand**: `product_brand` String - Brand tracking for analysis
+
+### Critical Fix: Column Order in INSERT Statements
+- ⚠️ **Always use explicit column names** in INSERT statements to prevent data corruption
+- ⚠️ **Without explicit columns**, values can end up in wrong columns (e.g., email revenue as SMS)
 
 ## 🚀 Migration Complete (2025-09-18)
 **ALL TABLES ARE NOW ReplacingMergeTree (RMT)**
@@ -24,8 +40,8 @@ As confirmed in ClickHouse Cloud console, every table in the system now uses Rep
 
 | Table | Engine | Version Column | Purpose |
 |-------|--------|----------------|----------|
-| `account_metrics_daily` | RMT | `timestamp` | Daily account-level aggregations |
-| `campaign_daily_aggregates` | RMT | `processed_at` | Pre-computed campaign metrics |
+| `account_metrics_daily` | RMT | `updated_at` | Daily account-level aggregations |
+| `campaign_daily_aggregates` | RMT | `updated_at` | Pre-computed campaign metrics |
 | `campaign_statistics` | RMT | `updated_at` | 15-min campaign performance updates |
 | `customer_profiles` | RMT | Various | Customer LTV and RFM analysis |
 | `flow_statistics` | RMT | `updated_at` | 15-min flow performance updates |
@@ -306,26 +322,79 @@ GROUP BY customer_type;
 
 ### 2. `klaviyo_order_line_items`
 **Engine**: ReplacingMergeTree (version: `inserted_at`)
-**Purpose**: Product-level order details
+**Purpose**: Product-level order details with category and brand tracking
 **Update Frequency**: Synced with orders
 **Row Count**: ~6,500+ line items
 **Primary Key**: `(klaviyo_public_id, order_id, product_id)`
 
+#### Key Fields for Frontend (UPDATED):
+```javascript
+// OrderLineItem object structure
+{
+  klaviyo_public_id: '',     // Store identifier
+  order_id: '',              // Parent order ID
+  product_id: '',            // Product SKU/ID
+  product_name: '',          // Product display name
+  quantity: 0,               // Units ordered
+  unit_price: 0,             // Price per unit
+  line_total: 0,             // quantity * unit_price
+  discount_amount: 0,        // Line item discount
+
+  // 🚨 NEW: Category and Brand Fields (added 2025-09)
+  product_categories: [],    // Array of category strings (e.g., ['Electronics', 'Phones'])
+  product_brand: '',         // Brand name (e.g., 'Apple', 'Samsung')
+
+  order_timestamp: new Date(), // When order was placed
+  inserted_at: new Date()     // Version timestamp for RMT
+}
+```
+
 #### Common Queries:
 ```sql
--- Top Selling Products
+-- Top Selling Products with Brand
 SELECT
   product_name,
+  product_brand,
   SUM(quantity) as units_sold,
   SUM(line_total) as revenue,
   COUNT(DISTINCT order_id) as order_count,
   AVG(unit_price) as avg_price
-FROM klaviyo_order_line_items
+FROM klaviyo_order_line_items FINAL
 WHERE klaviyo_public_id = {storeId:String}
   AND inserted_at >= today() - 30
-GROUP BY product_name
+GROUP BY product_name, product_brand
 ORDER BY revenue DESC
 LIMIT 10;
+
+-- Category Performance Analysis
+SELECT
+  arrayJoin(product_categories) as category,
+  COUNT(DISTINCT order_id) as orders,
+  SUM(quantity) as units_sold,
+  SUM(line_total) as revenue,
+  AVG(unit_price) as avg_price
+FROM klaviyo_order_line_items FINAL
+WHERE klaviyo_public_id = {storeId:String}
+  AND inserted_at >= today() - 30
+  AND length(product_categories) > 0
+GROUP BY category
+ORDER BY revenue DESC;
+
+-- Brand Performance Comparison
+SELECT
+  product_brand,
+  COUNT(DISTINCT product_id) as unique_products,
+  COUNT(DISTINCT order_id) as order_count,
+  SUM(quantity) as units_sold,
+  SUM(line_total) as revenue,
+  AVG(line_total / quantity) as avg_selling_price
+FROM klaviyo_order_line_items FINAL
+WHERE klaviyo_public_id = {storeId:String}
+  AND inserted_at >= today() - 90
+  AND product_brand != ''
+GROUP BY product_brand
+ORDER BY revenue DESC
+LIMIT 20;
 ```
 
 ### 3. `refund_cancelled_orders`
@@ -1040,19 +1109,57 @@ ORDER BY best_performing_campaign_revenue DESC;
 
 #### Key Fields for Frontend:
 ```javascript
-// DailyMetrics object structure
+// DailyMetrics object structure - ACTUAL FIELDS IN TABLE
 {
   date: new Date(),               // Aggregation date
+  klaviyo_public_id: '',          // Store identifier
+  store_public_ids: [],           // Associated store IDs
   total_orders: 0,                // Daily order count
   total_revenue: 0,               // Daily revenue
+  avg_order_value: 0,             // Average order size (NOT 'average_order_value'!)
   unique_customers: 0,            // Unique buyers
+  unique_products_sold: 0,        // Distinct products sold
+  total_quantity_sold: 0,         // Total units sold
   new_customers: 0,               // First-time buyers
   returning_customers: 0,         // Repeat buyers
-  avg_order_value: 0,             // Average order size
+  revenue_7d_ago: 0,              // Revenue 7 days ago
+  revenue_30d_ago: 0,             // Revenue 30 days ago
+  orders_7d_ago: 0,               // Orders 7 days ago
+  orders_30d_ago: 0,              // Orders 30 days ago
   campaigns_sent: 0,              // Number of campaigns sent
   campaign_recipients: 0,         // Total campaign recipients
   campaign_revenue: 0,            // Total campaign revenue
-  updated_at: new Date()          // Last update timestamp
+  flow_revenue: 0,                // Total flow revenue
+
+  // 🚨 NEW: Channel Revenue Fields (now included in main table!)
+  // Channel-specific campaign revenue
+  campaign_email_revenue: 0,      // Revenue from email campaigns
+  campaign_sms_revenue: 0,        // Revenue from SMS campaigns
+  campaign_push_revenue: 0,       // Revenue from push campaigns
+
+  // Channel-specific flow revenue
+  flow_email_revenue: 0,          // Revenue from email flows/automations
+  flow_sms_revenue: 0,            // Revenue from SMS flows
+  flow_push_revenue: 0,           // Revenue from push flows
+
+  // Combined channel totals
+  email_revenue: 0,               // Total email revenue (campaigns + flows)
+  sms_revenue: 0,                 // Total SMS revenue (campaigns + flows)
+  push_revenue: 0,                // Total push revenue (campaigns + flows)
+
+  // Channel performance metrics
+  email_recipients: 0,            // Total email recipients
+  sms_recipients: 0,              // Total SMS recipients
+  push_recipients: 0,             // Total push recipients
+  email_delivered: 0,             // Total emails delivered
+  sms_delivered: 0,               // Total SMS delivered
+  push_delivered: 0,              // Total push delivered
+  email_clicks: 0,                // Total email clicks
+  sms_clicks: 0,                  // Total SMS clicks
+  push_clicks: 0,                 // Total push clicks
+
+  last_updated: new Date(),       // Last update timestamp
+  updated_at: new Date()          // Version timestamp for RMT
 }
 ```
 
@@ -1064,22 +1171,71 @@ FROM account_metrics_daily FINAL
 WHERE klaviyo_public_id = {storeId:String}
   AND date = today();
 
--- Account Metrics Trend
+-- Account Metrics Trend (CORRECTED FIELD NAMES)
 SELECT
     date,
     total_revenue,
     total_orders,
+    avg_order_value,  -- NOT 'average_order_value' or 'aov'!
     unique_customers,
+    unique_products_sold,
+    total_quantity_sold,
+    new_customers,
+    returning_customers,
     campaigns_sent,
     campaign_recipients,
     campaign_revenue,
-    new_customer_revenue,
-    repeat_customer_revenue,
-    aov
+    flow_revenue
 FROM account_metrics_daily FINAL
 WHERE klaviyo_public_id = {storeId:String}
   AND date >= today() - 30
 ORDER BY date ASC;
+
+-- 🚨 NEW: Channel Revenue Queries (now in main table!)
+-- Channel Revenue Breakdown for Dashboard
+SELECT
+    date,
+    total_revenue,
+    email_revenue,
+    sms_revenue,
+    push_revenue,
+    campaign_email_revenue,
+    flow_email_revenue,
+    campaign_sms_revenue,
+    flow_sms_revenue,
+    -- Calculate channel percentages
+    if(total_revenue > 0, email_revenue * 100 / total_revenue, 0) as email_pct,
+    if(total_revenue > 0, sms_revenue * 100 / total_revenue, 0) as sms_pct,
+    if(total_revenue > 0, push_revenue * 100 / total_revenue, 0) as push_pct
+FROM account_metrics_daily FINAL
+WHERE klaviyo_public_id = {storeId:String}
+  AND date >= today() - 30
+ORDER BY date ASC;
+
+-- Channel Performance Metrics
+SELECT
+    date,
+    -- Email metrics
+    email_recipients,
+    email_delivered,
+    email_clicks,
+    if(email_recipients > 0, email_revenue / email_recipients, 0) as email_revenue_per_recipient,
+    if(email_delivered > 0, email_clicks * 100 / email_delivered, 0) as email_click_rate,
+
+    -- SMS metrics
+    sms_recipients,
+    sms_delivered,
+    sms_clicks,
+    if(sms_recipients > 0, sms_revenue / sms_recipients, 0) as sms_revenue_per_recipient,
+    if(sms_delivered > 0, sms_clicks * 100 / sms_delivered, 0) as sms_click_rate,
+
+    -- Channel efficiency comparison
+    if(email_recipients > 0 AND sms_recipients > 0,
+       (sms_revenue / sms_recipients) / (email_revenue / email_recipients), 0) as sms_vs_email_efficiency
+FROM account_metrics_daily FINAL
+WHERE klaviyo_public_id = {storeId:String}
+  AND date >= today() - 7
+ORDER BY date DESC;
 
 -- KPI Cards with Comparisons
 WITH current_period AS (
@@ -1087,7 +1243,7 @@ WITH current_period AS (
     SUM(total_revenue) as revenue,
     SUM(total_orders) as orders,
     SUM(unique_customers) as customers,
-    AVG(aov) as aov
+    AVG(avg_order_value) as aov  -- CORRECT: avg_order_value NOT 'average_order_value'!
   FROM account_metrics_daily FINAL
   WHERE klaviyo_public_id = {storeId:String}
     AND date >= today() - 7
@@ -1098,7 +1254,7 @@ previous_period AS (
     SUM(total_revenue) as revenue,
     SUM(total_orders) as orders,
     SUM(unique_customers) as customers,
-    AVG(aov) as aov
+    AVG(avg_order_value) as aov  -- CORRECT: avg_order_value
   FROM account_metrics_daily FINAL
   WHERE klaviyo_public_id = {storeId:String}
     AND date >= today() - 14
@@ -1570,6 +1726,83 @@ WHERE date = today();
 
 ---
 
+## 🚨 CORRECT FIELD NAMES - FRONTEND MUST USE THESE
+
+### ⚠️ Common Field Name Errors to Avoid:
+
+| Table | WRONG (causes error) | CORRECT (use this!) | Notes |
+|-------|---------------------|---------------------|-------|
+| `account_metrics_daily` | `average_order_value` | `avg_order_value` | Frontend error fixed |
+| `account_metrics_daily` | `aov` | `avg_order_value` | No 'aov' column exists |
+| `account_metrics_daily` | `new_customer_revenue` | (doesn't exist) | Use `new_customers` count instead |
+| `account_metrics_daily` | `repeat_customer_revenue` | (doesn't exist) | Use `returning_customers` count |
+| `segment_statistics` | `profile_count` | `total_members` | Frontend error fixed |
+| `segment_statistics` | `members_count` | `total_members` | Use consistent naming |
+
+### ✅ Correct Query Examples for Frontend
+
+#### Get Account Metrics (WORKING):
+```sql
+-- CORRECT - Uses actual field names
+SELECT
+    sum(total_orders) as total_orders,
+    sum(total_revenue) as total_revenue,
+    avg(avg_order_value) as avg_order_value,  -- NOT 'average_order_value'!
+    sum(unique_customers) as unique_customers,
+    sum(new_customers) as new_customers_count,
+    sum(returning_customers) as returning_customers_count
+FROM account_metrics_daily FINAL
+WHERE klaviyo_public_id = {storeId:String}
+  AND date >= today() - {days:UInt32}
+```
+
+#### Get Segment Statistics (WORKING):
+```sql
+-- CORRECT - Uses 'total_members' not 'profile_count'
+SELECT
+    countDistinct(segment_id) as total_segments,
+    sum(total_members) as total_profiles  -- NOT 'profile_count'!
+FROM segment_statistics FINAL
+WHERE klaviyo_public_id = {storeId:String}
+  AND date = (
+    SELECT max(date)
+    FROM segment_statistics FINAL
+    WHERE klaviyo_public_id = {storeId:String}
+  )
+```
+
+#### Get Today's Complete Metrics:
+```sql
+-- All fields that actually exist
+SELECT
+    date,
+    klaviyo_public_id,
+    store_public_ids,
+    total_orders,
+    total_revenue,
+    avg_order_value,      -- NOT 'average_order_value' or 'aov'
+    unique_customers,
+    unique_products_sold,
+    total_quantity_sold,
+    new_customers,
+    returning_customers,
+    revenue_7d_ago,
+    revenue_30d_ago,
+    orders_7d_ago,
+    orders_30d_ago,
+    campaigns_sent,
+    campaign_recipients,
+    campaign_revenue,
+    flow_revenue,
+    last_updated,
+    updated_at
+FROM account_metrics_daily FINAL
+WHERE klaviyo_public_id = {storeId:String}
+  AND date = today()
+```
+
+---
+
 **Implementation Status**: ALL 12 tables are now **ReplacingMergeTree** with automatic deduplication.
 
 ## 🔴 CRITICAL REMINDERS:
@@ -1591,6 +1824,83 @@ SELECT * FROM any_table FINAL WHERE ...;
 - Subqueries/CTEs: Use `FINAL` inside them too
 - Performance: Filter by partition keys when possible
 
+## 🚨 CRITICAL: Column Order in INSERT Statements
+
+### The Problem
+ClickHouse uses **positional insertion** when column names are not specified in INSERT statements. This can cause severe data corruption where values end up in wrong columns.
+
+### Common Symptoms of Column Mismatch
+- **Email revenue appearing as SMS revenue** or vice versa
+- **Push revenue showing non-zero values** when no push channel exists
+- **Email metrics (delivered, recipients, clicks) showing as 0** despite having data
+- **Channel metrics appearing in wrong columns**
+- **Flow revenue showing inflated values** (e.g., 175+ million instead of hundreds)
+
+### The Solution: ALWAYS Use Explicit Column Names
+
+```sql
+-- ✅ CORRECT: Explicit column names ensure data integrity
+INSERT INTO account_metrics_daily (
+    date, klaviyo_public_id, store_public_ids, total_orders, total_revenue,
+    avg_order_value, unique_customers, unique_products_sold, total_quantity_sold,
+    new_customers, returning_customers, revenue_7d_ago, revenue_30d_ago,
+    orders_7d_ago, orders_30d_ago, campaigns_sent, campaign_recipients,
+    campaign_revenue, flow_revenue, campaign_email_revenue, campaign_sms_revenue,
+    campaign_push_revenue, flow_email_revenue, flow_sms_revenue, flow_push_revenue,
+    email_revenue, sms_revenue, push_revenue, email_recipients, sms_recipients,
+    push_recipients, email_delivered, sms_delivered, push_delivered,
+    email_clicks, sms_clicks, push_clicks, last_updated, updated_at
+)
+SELECT
+    -- columns in EXACT same order as specified above
+    date, klaviyo_public_id, [], total_orders, total_revenue,
+    avg_order_value, unique_customers, unique_products_sold, total_quantity_sold,
+    new_customers, returning_customers, revenue_7d_ago, revenue_30d_ago,
+    orders_7d_ago, orders_30d_ago, campaigns_sent, campaign_recipients,
+    campaign_revenue, flow_revenue, campaign_email_revenue, campaign_sms_revenue,
+    campaign_push_revenue, flow_email_revenue, flow_sms_revenue, flow_push_revenue,
+    email_revenue, sms_revenue, push_revenue, email_recipients, sms_recipients,
+    push_recipients, email_delivered, sms_delivered, push_delivered,
+    email_clicks, sms_clicks, push_clicks, now64(), now()
+FROM ...
+
+-- ❌ WRONG: Positional insertion causes data corruption
+INSERT INTO account_metrics_daily
+SELECT ... -- Values can end up in wrong columns!
+```
+
+### Critical for These Tables
+This is especially important for tables with many columns:
+- `account_metrics_daily` (40+ columns including channel-specific metrics)
+- `campaign_daily_aggregates` (45+ columns with detailed performance metrics)
+- `customer_profiles` (30+ columns with LTV and RFM metrics)
+- `products_master` (25+ columns with product analytics)
+
+### Channel Revenue Column Structure in account_metrics_daily
+
+The `account_metrics_daily` table has specific columns for channel revenue tracking:
+
+| Column | Position | Purpose |
+|--------|----------|---------|
+| `campaign_revenue` | 18 | Total campaign revenue (all channels) |
+| `flow_revenue` | 19 | Total flow revenue (all channels) |
+| `campaign_email_revenue` | 20 | Campaign revenue from email channel |
+| `campaign_sms_revenue` | 21 | Campaign revenue from SMS channel |
+| `campaign_push_revenue` | 22 | Campaign revenue from push channel |
+| `flow_email_revenue` | 23 | Flow revenue from email channel |
+| `flow_sms_revenue` | 24 | Flow revenue from SMS channel |
+| `flow_push_revenue` | 25 | Flow revenue from push channel |
+| `email_revenue` | 26 | Combined email revenue (campaigns + flows) |
+| `sms_revenue` | 27 | Combined SMS revenue (campaigns + flows) |
+| `push_revenue` | 28 | Combined push revenue (campaigns + flows) |
+
+### Best Practices
+1. **ALWAYS specify column names** in INSERT statements
+2. **Match SELECT column order** exactly to the INSERT column list
+3. **Test with LIMIT 1** first when debugging column issues
+4. **Use DESCRIBE TABLE** to verify column order before INSERT
+5. **Add ALTER TABLE ADD COLUMN IF NOT EXISTS** for missing columns
+
 **Quick Reference**:
 ```sql
 -- SELECT template
@@ -1599,8 +1909,9 @@ SELECT ... FROM table FINAL WHERE ...;
 -- JOIN template
 FROM table1 FINAL t1 JOIN table2 FINAL t2 ON ...;
 
--- INSERT template
-INSERT INTO table (..., version_column) VALUES (..., now());
+-- INSERT template with explicit columns
+INSERT INTO table (col1, col2, col3, version_column)
+SELECT col1, col2, col3, now() FROM ...;
 
 -- Aggregation template
 SELECT ... FROM table FINAL GROUP BY ...;

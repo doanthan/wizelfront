@@ -206,32 +206,35 @@ export default function AnalyticsPage() {
             setCampaignsLoading(true)
         }
         setCampaignsError(null)
-        
+
         try {
-            // Get account IDs
+            // Get account IDs - IMPORTANT: Use store public_ids, not klaviyo_ids
+            // The API will convert store public_ids to klaviyo_public_ids
             let accountIds = []
             if (selectedAccounts && selectedAccounts.length > 0) {
                 if (selectedAccounts[0].value === 'all') {
-                    // Get all account IDs from stores
+                    // Get all store public IDs (not Klaviyo IDs)
                     accountIds = stores
-                        .filter(store => store.klaviyo_integration?.public_id)
-                        .map(store => store.klaviyo_integration.public_id)
+                        .filter(store => store.public_id)
+                        .map(store => store.public_id)
                 } else {
-                    // Use selected account IDs
+                    // Use selected account IDs (these are already store public_ids)
                     accountIds = selectedAccounts.map(acc => acc.value).filter(Boolean)
                 }
             }
-            
+
+            console.log('🔑 Fetching campaign data for store IDs:', accountIds)
+
             if (accountIds.length === 0) {
                 setCampaignsData({ campaigns: [], aggregateStats: null })
                 setCampaignsLoading(false)
                 return
             }
-            
+
             // Use date range from dateRangeSelection
             const endDate = dateRangeSelection.ranges?.main?.end || new Date()
             const startDate = dateRangeSelection.ranges?.main?.start || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-            
+
             // Use shared context to get campaign data with intelligent caching
             const data = await getCampaignData(
                 startDate.toISOString(),
@@ -239,7 +242,7 @@ export default function AnalyticsPage() {
                 accountIds,
                 { forceRefresh, prefetch: true, subscribe: true }
             )
-            
+
             console.log('📊 Using cached/fetched campaign data:', data)
             setCampaignsData(data)
         } catch (error) {
@@ -256,7 +259,8 @@ export default function AnalyticsPage() {
         if ((activeTab === 'campaigns' || activeTab === 'deliverability') && stores.length > 0) {
             // Check if we need to fetch (data not loaded yet)
             if (!campaignsData) {
-                fetchCampaignData()
+                // Force refresh on initial load to bypass stale cache
+                fetchCampaignData(true)
             }
         }
     }, [activeTab, stores, campaignsData, fetchCampaignData])

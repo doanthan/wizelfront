@@ -9,11 +9,19 @@ export async function GET(request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const storeIds = searchParams.get('storeIds')?.split(',').filter(Boolean) || [];
+    const useClickHouse = searchParams.get('useClickHouse') === 'true';
 
     if (!startDate || !endDate) {
-      return NextResponse.json({ 
-        error: 'Start date and end date are required' 
+      return NextResponse.json({
+        error: 'Start date and end date are required'
       }, { status: 400 });
+    }
+
+    // If useClickHouse flag is set, redirect to ClickHouse endpoint
+    if (useClickHouse) {
+      const clickHouseUrl = new URL('/api/analytics/campaigns-clickhouse', request.url);
+      clickHouseUrl.search = searchParams.toString();
+      return fetch(clickHouseUrl.toString());
     }
 
     await connectToDatabase();
@@ -27,9 +35,43 @@ export async function GET(request) {
       }
     };
 
-    // Add account filtering if specific accounts selected
+    // Convert store public IDs to Klaviyo IDs
+    // The frontend sends store public_ids, we need to convert them to klaviyo_public_ids for querying
     if (accountIds.length > 0 && !accountIds.includes('all')) {
-      query.klaviyo_public_id = { $in: accountIds };
+      console.log('Received store public IDs from frontend:', accountIds);
+
+      // Always try to find stores with these public IDs first
+      const stores = await db.collection('stores').find({
+        public_id: { $in: accountIds },
+        is_deleted: { $ne: true }
+      }).toArray();
+
+      if (stores.length > 0) {
+        // Extract Klaviyo IDs from the stores
+        const klaviyoIds = stores
+          .map(store => store.klaviyo_integration?.public_id)
+          .filter(Boolean);
+
+        console.log('Store ID conversion:');
+        stores.forEach(store => {
+          console.log(`  ${store.public_id} (${store.name}) → ${store.klaviyo_integration?.public_id || 'NO KLAVIYO ID'}`);
+        });
+
+        if (klaviyoIds.length > 0) {
+          query.klaviyo_public_id = { $in: klaviyoIds };
+          console.log('Using Klaviyo IDs for query:', klaviyoIds);
+        } else {
+          // Stores exist but have no Klaviyo integration
+          console.log('WARNING: Stores found but none have Klaviyo integration configured');
+
+          // Fallback: try using the store IDs as Klaviyo IDs (backwards compatibility)
+          query.klaviyo_public_id = { $in: accountIds };
+        }
+      } else {
+        // No stores found with these IDs, try using them as Klaviyo IDs directly
+        console.log('No stores found with these public_ids, trying as Klaviyo IDs:', accountIds);
+        query.klaviyo_public_id = { $in: accountIds };
+      }
     }
 
     // Add store filtering if provided

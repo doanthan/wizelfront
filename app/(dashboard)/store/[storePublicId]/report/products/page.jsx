@@ -268,10 +268,10 @@ export default function StoreProductsReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Products Report
           </h2>
-          <p className="text-sm text-slate-gray dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Product performance analytics for {currentStore?.name || 'store'}
           </p>
         </div>
@@ -324,7 +324,7 @@ export default function StoreProductsReportPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.summary.total_revenue)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.total_revenue)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_revenue, data.previousPeriod.total_revenue))} from last period
@@ -338,7 +338,7 @@ export default function StoreProductsReportPage() {
             <ShoppingCart className="h-4 w-4 text-sky-blue" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data.summary.total_units_sold)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_units_sold)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_units_sold, data.previousPeriod.total_units_sold))} from last period
@@ -352,8 +352,8 @@ export default function StoreProductsReportPage() {
             <Package className="h-4 w-4 text-vivid-violet" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.summary.products_sold}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.products_sold}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               of {data.summary.total_products} total products
             </p>
           </CardContent>
@@ -365,8 +365,8 @@ export default function StoreProductsReportPage() {
             <Repeat className="h-4 w-4 text-deep-purple" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(data.summary.repeat_purchase_rate)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.repeat_purchase_rate)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Customer retention rate
             </p>
           </CardContent>
@@ -434,7 +434,7 @@ export default function StoreProductsReportPage() {
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600 dark:text-gray-400" />
                 <Input
                   placeholder="Search products..."
                   value={searchQuery}
@@ -485,7 +485,7 @@ export default function StoreProductsReportPage() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{product.sku}</TableCell>
+                  <TableCell className="text-gray-600 dark:text-gray-400">{product.sku}</TableCell>
                   <TableCell>{product.category}</TableCell>
                   <TableCell className="text-right">{formatNumber(product.units_sold)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(product.revenue)}</TableCell>
@@ -495,7 +495,7 @@ export default function StoreProductsReportPage() {
                     <div className="flex items-center gap-1">
                       <Star className="h-3 w-3 text-yellow-500 fill-current" />
                       <span className="text-sm">{product.rating}</span>
-                      <span className="text-xs text-muted-foreground">({product.reviews})</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">({product.reviews})</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -549,7 +549,7 @@ export default function StoreProductsReportPage() {
                 <div className="flex items-center gap-3">
                   <div className="text-sm">
                     <span className="font-medium">{item.primary}</span>
-                    <span className="mx-2 text-muted-foreground">→</span>
+                    <span className="mx-2 text-gray-600 dark:text-gray-400">→</span>
                     <span className="font-medium">{item.secondary}</span>
                   </div>
                 </div>

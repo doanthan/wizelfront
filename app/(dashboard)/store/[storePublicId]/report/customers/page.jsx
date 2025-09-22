@@ -236,10 +236,10 @@ export default function StoreCustomersReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Customers Report
           </h2>
-          <p className="text-sm text-slate-gray dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Customer analytics and insights for {currentStore?.name || 'store'}
           </p>
         </div>
@@ -292,7 +292,7 @@ export default function StoreCustomersReportPage() {
             <Users className="h-4 w-4 text-sky-blue" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data.summary.total_customers)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_customers)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.total_customers, data.previousPeriod.total_customers))} from last period
@@ -306,7 +306,7 @@ export default function StoreCustomersReportPage() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(data.summary.avg_lifetime_value)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.avg_lifetime_value)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.avg_lifetime_value, data.previousPeriod.avg_lifetime_value))} from last period
@@ -320,7 +320,7 @@ export default function StoreCustomersReportPage() {
             <UserCheck className="h-4 w-4 text-vivid-violet" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercentage(data.summary.retention_rate)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.retention_rate)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {(data.summary.retention_rate - data.previousPeriod.retention_rate).toFixed(1)}pp from last period
@@ -334,7 +334,7 @@ export default function StoreCustomersReportPage() {
             <UserPlus className="h-4 w-4 text-deep-purple" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data.summary.new_customers)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.new_customers)}</div>
             <p className="text-xs flex items-center text-green-600">
               <ArrowUp className="h-3 w-3 mr-1" />
               {formatPercentage(getPercentageChange(data.summary.new_customers, data.previousPeriod.new_customers))} from last period
@@ -350,8 +350,8 @@ export default function StoreCustomersReportPage() {
             <CardTitle className="text-sm">Returning Customers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatNumber(data.summary.returning_customers)}</div>
-            <p className="text-xs text-slate-gray dark:text-gray-400">Active repeat buyers</p>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.returning_customers)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Active repeat buyers</p>
           </CardContent>
         </Card>
 
@@ -360,8 +360,8 @@ export default function StoreCustomersReportPage() {
             <CardTitle className="text-sm">Avg Order Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(data.summary.avg_order_value)}</div>
-            <p className="text-xs text-slate-gray dark:text-gray-400">Per transaction</p>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.avg_order_value)}</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Per transaction</p>
           </CardContent>
         </Card>
 
@@ -370,8 +370,8 @@ export default function StoreCustomersReportPage() {
             <CardTitle className="text-sm">Purchase Frequency</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{data.summary.avg_purchase_frequency}x</div>
-            <p className="text-xs text-slate-gray dark:text-gray-400">Average orders per customer</p>
+            <div className="text-xl font-bold text-gray-900 dark:text-white">{data.summary.avg_purchase_frequency}x</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Average orders per customer</p>
           </CardContent>
         </Card>
 
@@ -381,7 +381,7 @@ export default function StoreCustomersReportPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold text-red-600">{formatPercentage(data.summary.churn_rate)}</div>
-            <p className="text-xs text-slate-gray dark:text-gray-400">Customer loss rate</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Customer loss rate</p>
           </CardContent>
         </Card>
       </div>
@@ -404,7 +404,7 @@ export default function StoreCustomersReportPage() {
                       {segment.segment === 'Potential' && <TrendingUp className="h-4 w-4 text-blue-500" />}
                       {segment.segment === 'New' && <UserPlus className="h-4 w-4 text-green-500" />}
                       {segment.segment === 'At Risk' && <UserX className="h-4 w-4 text-orange-500" />}
-                      {segment.segment === 'Lost' && <UserX className="h-4 w-4 text-gray-500" />}
+                      {segment.segment === 'Lost' && <UserX className="h-4 w-4 text-gray-600" />}
                       <span className="font-medium">{segment.segment}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
@@ -579,7 +579,7 @@ export default function StoreCustomersReportPage() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{customer.name}</div>
-                      <div className="text-xs text-muted-foreground">{customer.email}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">{customer.email}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -591,7 +591,7 @@ export default function StoreCustomersReportPage() {
                   <TableCell className="text-right">{formatCurrency(customer.total_spent)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(customer.avg_order_value)}</TableCell>
                   <TableCell>{customer.last_order}</TableCell>
-                  <TableCell className="text-muted-foreground">{customer.customer_since}</TableCell>
+                  <TableCell className="text-gray-600 dark:text-gray-400">{customer.customer_since}</TableCell>
                   <TableCell className="text-right font-medium">{formatCurrency(customer.predicted_ltv)}</TableCell>
                 </TableRow>
               ))}

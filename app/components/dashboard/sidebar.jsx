@@ -146,7 +146,7 @@ const sidebarItemsConfig = [
       {
         title: "Revenue",
         icon: TrendingUp,
-        href: "/account-report",
+        href: "/account-report/revenue",
         feature: FEATURES.REPORTS,
         action: ACTIONS.VIEW,
       },
@@ -275,27 +275,70 @@ export default function Sidebar() {
     return null;
   };
 
-  const currentStoreId = getStoreIdFromPath();
+  // Use store from path or selected store from context
+  const currentStoreId = getStoreIdFromPath() || selectedStoreId;
 
   // Adjust href for store context
   const getAdjustedHref = (originalHref) => {
-    if (currentStoreId && (originalHref === '/idea-generator' || originalHref === '/email-builder')) {
-      return `/store/${currentStoreId}${originalHref}`;
+    // For account reports, always use store-specific paths if a store is selected
+    if (originalHref.startsWith('/account-report')) {
+      // Use current store from path or selected store from context
+      const storeId = currentStoreId;
+      if (storeId) {
+        return originalHref.replace('/account-report', `/store/${storeId}/report`);
+      }
+      // If no store selected, redirect to first store's report
+      if (stores && stores.length > 0) {
+        const firstStore = stores[0];
+        return originalHref.replace('/account-report', `/store/${firstStore.public_id}/report`);
+      }
     }
+
+    // Handle other store-specific pages
+    if (currentStoreId) {
+      if (originalHref === '/idea-generator' || originalHref === '/email-builder') {
+        return `/store/${currentStoreId}${originalHref}`;
+      }
+    }
+
     return originalHref;
   };
 
   const isActive = (href) => {
     const adjustedHref = getAdjustedHref(href);
+
+    // Special handling for account reports in store context
+    if (currentStoreId && href.startsWith('/account-report')) {
+      // Convert /account-report paths to store-specific paths
+      const reportPath = href.replace('/account-report', `/store/${currentStoreId}/report`);
+      if (pathname === reportPath) return true;
+    }
+
     return pathname === adjustedHref;
   };
   
   const isParentActive = (item) => {
     const adjustedHref = getAdjustedHref(item.href);
     if (pathname === adjustedHref) return true;
+
+    // Special handling for Account Reports parent
+    if (item.title === "Account Reports" && currentStoreId) {
+      // Check if we're in any store report page
+      if (pathname.includes(`/store/${currentStoreId}/report`)) {
+        return true;
+      }
+    }
+
     if (item.children) {
       return item.children.some(child => {
         const childAdjustedHref = getAdjustedHref(child.href);
+
+        // Check for store-specific report paths
+        if (currentStoreId && child.href.startsWith('/account-report')) {
+          const reportPath = child.href.replace('/account-report', `/store/${currentStoreId}/report`);
+          if (pathname === reportPath) return true;
+        }
+
         return pathname === childAdjustedHref;
       });
     }

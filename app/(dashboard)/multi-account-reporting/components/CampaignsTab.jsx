@@ -208,7 +208,7 @@ const EmailPreviewPanel = ({ messageId, storeId }) => {
   );
 };
 
-const CampaignsTab = ({ 
+const CampaignsTab = ({
   accountIds,
   selectedAccounts,
   dateRange,
@@ -217,7 +217,10 @@ const CampaignsTab = ({
   onAccountsChange,
   onDateRangeChange,
   stores,
-  availableAccounts
+  availableAccounts,
+  campaignsData,
+  campaignsLoading,
+  campaignsError
 }) => {
   // Handle both prop formats for backward compatibility
   const effectiveAccountIds = useMemo(() => {
@@ -264,11 +267,12 @@ const CampaignsTab = ({
     return null;
   }, [comparisonRange, dateRangeSelection]);
 
-  const [campaigns, setCampaigns] = useState([]);
-  const [aggregateStats, setAggregateStats] = useState(null);
-  const [chartData, setChartData] = useState([]);
+  // Use data from props instead of internal state
+  const campaigns = campaignsData?.campaigns || [];
+  const aggregateStats = campaignsData?.aggregateStats || null;
+  const chartData = campaignsData?.chartData || [];
   const [comparisonData, setComparisonData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const loading = campaignsLoading || false;
   const [chartGranularity, setChartGranularity] = useState('daily');
   const [selectedMetric, setSelectedMetric] = useState('recipients');
   const [chartViewMode, setChartViewMode] = useState('combined'); // 'combined' or 'separate'
@@ -296,7 +300,6 @@ const CampaignsTab = ({
   // Campaign list section (now uses main page selections automatically)
   
   const [comparisonChartType, setComparisonChartType] = useState('bar');
-  const [accountComparisonData, setAccountComparisonData] = useState([]);
   const [showAllAccounts, setShowAllAccounts] = useState(false);
   
   // Detailed account view state
@@ -1008,82 +1011,7 @@ const CampaignsTab = ({
     return `${accountIds.sort().join(',')}_${dateRange.from.toISOString()}_${dateRange.to.toISOString()}`;
   }, []);
 
-  // Fetch campaigns data with caching
-  const fetchCampaigns = useCallback(async (forceRefresh = false) => {
-    if (!effectiveAccountIds?.length || !effectiveDateRange?.from || !effectiveDateRange?.to) {
-      setCampaigns([]);
-      setAggregateStats(null);
-      setChartData([]);
-      setLoading(false);
-      return;
-    }
-
-    // Check if params have changed
-    const currentParams = JSON.stringify({
-      accountIds: effectiveAccountIds,
-      startDate: effectiveDateRange.from.toISOString(),
-      endDate: effectiveDateRange.to.toISOString()
-    });
-
-    if (!forceRefresh && lastFetchParams.current === currentParams) {
-      // Same params, don't refetch
-      setLoading(false);
-      return;
-    }
-
-    lastFetchParams.current = currentParams;
-
-    // Check cache first
-    const cacheKey = getCacheKey(effectiveAccountIds, effectiveDateRange);
-    if (!forceRefresh && campaignDataCache.has(cacheKey)) {
-      const cachedData = campaignDataCache.get(cacheKey);
-      setCampaigns(cachedData.campaigns);
-      setAggregateStats(cachedData.aggregateStats);
-      setChartData(cachedData.chartData);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        accountIds: effectiveAccountIds.join(','),
-        startDate: effectiveDateRange.from.toISOString(),
-        endDate: effectiveDateRange.to.toISOString(),
-      });
-
-      // Add store IDs if available
-      if (stores && stores.length > 0) {
-        const storeIds = stores.map(s => s.publicId).join(',');
-        params.append('storeIds', storeIds);
-      }
-
-      const response = await fetch(`/api/analytics/campaigns?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch campaigns');
-      
-      const data = await response.json();
-      
-      // Cache the data
-      campaignDataCache.set(cacheKey, {
-        campaigns: data.campaigns || [],
-        aggregateStats: data.aggregateStats || {},
-        chartData: data.chartData || [],
-        timestamp: Date.now()
-      });
-
-      setCampaigns(data.campaigns || []);
-      setAggregateStats(data.aggregateStats || {});
-      setChartData(data.chartData || []);
-      
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      setCampaigns([]);
-      setAggregateStats(null);
-      setChartData([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [effectiveAccountIds, effectiveDateRange, stores, getCacheKey]);
+  // Data is now passed from parent, no need to fetch internally
 
   // Fetch comparison data if comparison range exists
   const fetchComparisonData = useCallback(async () => {
@@ -1132,15 +1060,16 @@ const CampaignsTab = ({
   }, [effectiveAccountIds, effectiveComparisonRange, stores, getCacheKey]);
 
   // Initial data fetch and when key params change
+  // Log when data changes
   useEffect(() => {
-    console.log('CampaignsTab: Fetching campaigns due to dependency change', {
-      accountIds: effectiveAccountIds,
-      dateRange: effectiveDateRange,
-      hasAccountIds: !!effectiveAccountIds?.length,
-      hasDateRange: !!(effectiveDateRange?.from && effectiveDateRange?.to)
+    console.log('CampaignsTab: Received campaign data from parent', {
+      campaigns: campaigns?.length || 0,
+      hasAggregateStats: !!aggregateStats,
+      hasChartData: !!chartData?.length,
+      loading,
+      error: campaignsError
     });
-    fetchCampaigns();
-  }, [fetchCampaigns]);
+  }, [campaigns, aggregateStats, chartData, loading, campaignsError]);
 
   // Fetch comparison data when needed
   useEffect(() => {
@@ -1458,11 +1387,10 @@ const CampaignsTab = ({
     }
   }, [campaigns]);
 
-  // Compute account comparison data
-  useEffect(() => {
+  // Compute account comparison data using useMemo to avoid infinite loops
+  const accountComparisonData = useMemo(() => {
     if (!campaigns || campaigns.length === 0 || !availableAccounts) {
-      setAccountComparisonData([]);
-      return;
+      return [];
     }
 
     // Group campaigns by account
@@ -1679,7 +1607,7 @@ const CampaignsTab = ({
       }
     });
 
-    setAccountComparisonData(sortedData);
+    return sortedData;
   }, [campaigns, availableAccounts, sortBy, comparisonMetric]);
 
   if (loading) {

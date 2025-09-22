@@ -68,6 +68,44 @@ This is a modern web application built with Next.js, React, and Tailwind CSS. Th
 
 ## 🚨 CRITICAL: Store ID Usage Guidelines
 
+### Store ID vs Klaviyo ID Mapping
+
+**CRITICAL DISTINCTION**: The application uses two different ID systems:
+1. **`store.public_id`** (e.g., "XAeU8VL") - Internal store identifier used in the UI and MongoDB
+2. **`store.klaviyo_integration.public_id`** - Klaviyo account ID used in ClickHouse reporting tables
+
+**IMPORTANT**: When querying ClickHouse for reporting data:
+1. First get the store's `klaviyo_integration.public_id` from the Store document
+2. Use this Klaviyo ID (not the store's public_id) for all ClickHouse queries
+3. If `klaviyo_integration.public_id` is null, the store has no Klaviyo data
+
+**Example Store Structure**:
+```javascript
+{
+  "public_id": "XAeU8VL",           // Store's internal ID (used in UI)
+  "name": "My Store",
+  "klaviyo_integration": {
+    "public_id": "XqkVGb",          // Klaviyo account ID (used in ClickHouse)
+    "apiKey": "pk_xxxxx",
+    // ... other fields
+  }
+}
+```
+
+**Conversion Logic**:
+```javascript
+// When querying ClickHouse, always convert:
+const storePublicId = "XAeU8VL";  // From UI/request
+const store = await Store.findOne({ public_id: storePublicId });
+const klaviyoId = store.klaviyo_integration?.public_id;  // Use this for ClickHouse
+
+// ClickHouse query
+const query = `
+  SELECT * FROM campaign_statistics
+  WHERE klaviyo_public_id = '${klaviyoId}'  // NOT store.public_id!
+`;
+```
+
 ### ClickHouse Tables - Always Use `klaviyo_public_id`
 
 **IMPORTANT**: ALL ClickHouse tables use `klaviyo_public_id` (string) as the primary identifier:
@@ -957,7 +995,7 @@ import { ComponentDependencies } from "@/app/components/ui/...";
 
 ## Next.js Specific Guidelines
 
-### IMPORTANT: Always use `await` with params in Next.js 15+
+### IMPORTANT: Always use `await` with params for server components in Next.js 15+
 In Next.js 15 and later, route parameters are now asynchronous. Always await params before using them:
 
 ```javascript

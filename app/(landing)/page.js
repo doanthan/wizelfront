@@ -44,7 +44,7 @@ export default function LandingPage() {
                         </h1>
 
                         <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-2xl mx-auto font-light leading-relaxed">
-                            Transform your Shopify store's email marketing with AI that syncs with Klaviyo to create campaigns that
+                            Transform your Shopify store&apos;s email marketing with AI that syncs with Klaviyo to create campaigns that
                             convert customers automatically.
                         </p>
 
@@ -182,8 +182,8 @@ export default function LandingPage() {
                                 ))}
                             </div>
                             <blockquote className="text-lg text-gray-700 mb-6 font-light leading-relaxed">
-                                "Our Klaviyo email revenue increased by 340% in just three months. The AI creates campaigns that
-                                perfectly match our Shopify product catalog and customer segments."
+                                &quot;Our Klaviyo email revenue increased by 340% in just three months. The AI creates campaigns that
+                                perfectly match our Shopify product catalog and customer segments.&quot;
                             </blockquote>
                             <div className="flex items-center">
                                 <img
@@ -205,8 +205,8 @@ export default function LandingPage() {
                                 ))}
                             </div>
                             <blockquote className="text-lg text-gray-700 mb-6 font-light leading-relaxed">
-                                "Finally, email marketing that doesn't feel like work. It syncs perfectly with our Shopify store and
-                                creates Klaviyo campaigns that actually convert."
+                                &quot;Finally, email marketing that doesn&apos;t feel like work. It syncs perfectly with our Shopify store and
+                                creates Klaviyo campaigns that actually convert.&quot;
                             </blockquote>
                             <div className="flex items-center">
                                 <img

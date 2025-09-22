@@ -17,7 +17,8 @@ import {
     ArrowDown,
     BarChart2,
     Activity,
-    Target
+    Target,
+    ChevronsUpDown
 } from "lucide-react"
 import {
     LineChart,
@@ -49,8 +50,33 @@ export default function RevenueTab({
     const [revenueData, setRevenueData] = useState(null)
     const [accountComparison, setAccountComparison] = useState([])
     const [channelRevenue, setChannelRevenue] = useState([])
+    const [sortField, setSortField] = useState('totalRevenue')
+    const [sortDirection, setSortDirection] = useState('desc')
     const [isLoadingData, setIsLoadingData] = useState(true)
-    
+
+    // Get sorted account data - must be before any conditional returns
+    const sortedAccountComparison = useMemo(() => {
+        if (!accountComparison || accountComparison.length === 0) return []
+
+        return [...accountComparison].sort((a, b) => {
+            let aValue = a[sortField] || 0
+            let bValue = b[sortField] || 0
+
+            // Handle string fields
+            if (sortField === 'account') {
+                aValue = (a.account || '').toString().toLowerCase()
+                bValue = (b.account || '').toString().toLowerCase()
+                return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
+            }
+
+            // Handle numeric fields
+            aValue = parseFloat(aValue) || 0
+            bValue = parseFloat(bValue) || 0
+
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
+        })
+    }, [accountComparison, sortField, sortDirection])
+
     // Format helpers
     const formatCurrency = (value) => {
         return new Intl.NumberFormat('en-US', {
@@ -117,7 +143,9 @@ export default function RevenueTab({
             const response = await fetch(`/api/dashboard/multi-account-revenue?${params}`)
 
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`)
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                console.error('API Error Response:', errorData);
+                throw new Error(`API error: ${response.status} - ${errorData.error || errorData.details || 'Unknown error'}`)
             }
 
             const data = await response.json()
@@ -164,63 +192,132 @@ export default function RevenueTab({
     
     // Process ClickHouse data for revenue tab display
     const processClickHouseData = (data, granularity) => {
-        const { stats = {}, trend = {}, campaigns = [], metadata = {} } = data
+        const { stats = {}, trend = {}, campaigns = [], flows = [], byAccount = [], metadata = {} } = data
 
         console.log('Processing ClickHouse data:', {
             stats,
             trendDataCount: trend.current?.length || 0,
             campaignsCount: campaigns.length,
+            flowsCount: flows.length,
+            byAccountCount: byAccount.length,
             metadata
         });
 
+        console.log('Debug - Raw ClickHouse Stats:', {
+            current_revenue: stats.current_revenue,
+            current_campaign_revenue: stats.current_campaign_revenue,
+            current_flow_revenue: stats.current_flow_revenue,
+            current_orders: stats.current_orders,
+            current_customers: stats.current_customers,
+            current_new_customers: stats.current_new_customers,
+            current_returning_customers: stats.current_returning_customers
+        });
+
+        console.log('Debug - Sample Campaign Data:', campaigns.slice(0, 3).map(day => ({
+            date: day.date,
+            campaign_revenue: day.campaign_revenue,
+            email_revenue: day.email_revenue,
+            sms_revenue: day.sms_revenue,
+            email_recipients: day.email_recipients,
+            sms_recipients: day.sms_recipients
+        })));
+
         // Extract metrics from stats
         const totalRevenue = parseFloat(stats.current_revenue) || 0
-        const attributedRevenue = parseFloat(stats.current_campaign_revenue) + parseFloat(stats.current_flow_revenue) || 0
-        const emailRevenue = parseFloat(stats.current_email_revenue) || 0
-        const smsRevenue = parseFloat(stats.current_sms_revenue) || 0
+        const campaignRevenue = parseFloat(stats.current_campaign_revenue) || 0
+        const flowRevenue = parseFloat(stats.current_flow_revenue) || 0
+        // Attributed revenue is campaign + flow revenue (they're subsets of total)
+        const attributedRevenue = campaignRevenue + flowRevenue
         const totalOrders = parseInt(stats.current_orders) || 0
         const uniqueCustomers = parseInt(stats.current_customers) || 0
+        const newCustomers = parseInt(stats.current_new_customers) || 0
+        const returningCustomers = parseInt(stats.current_returning_customers) || 0
         const aov = parseFloat(stats.current_aov) || 0
 
-        // Calculate total recipients from campaign data
-        const totalRecipients = campaigns.reduce((sum, day) => sum + (day.total_recipients || 0), 0)
-        const totalCampaigns = campaigns.reduce((sum, day) => sum + (day.total_campaigns || 0), 0)
+        // Calculate email/SMS metrics from campaign data
+        let emailRevenue = 0
+        let smsRevenue = 0
+        let emailRecipients = 0
+        let smsRecipients = 0
+
+        // Sum up email and SMS metrics from campaigns
+        campaigns.forEach(day => {
+            emailRevenue += (parseFloat(day.email_revenue) || 0)
+            smsRevenue += (parseFloat(day.sms_revenue) || 0)
+            emailRecipients += (parseInt(day.email_recipients) || 0)
+            smsRecipients += (parseInt(day.sms_recipients) || 0)
+        })
+
+        const totalRecipients = emailRecipients + smsRecipients
 
         // Process account comparison data
-        // Since we're aggregating multiple accounts, show aggregated data
-        const accountComparison = metadata.storeCount > 0 ? [{
-            account: metadata.storeCount > 1 ? `${metadata.storeCount} Accounts Combined` : 'Account',
-            accountId: 'aggregated',
-            totalRevenue: totalRevenue,
-            attributedRevenue: attributedRevenue,
-            orders: totalOrders,
-            recipients: totalRecipients,
-            emailsSent: Math.floor(totalRecipients * 0.8), // Estimate 80% email
-            smsSent: Math.floor(totalRecipients * 0.2), // Estimate 20% SMS
-            emailRevenue: emailRevenue,
-            smsRevenue: smsRevenue,
-            revenuePerEmail: totalRecipients > 0 ? emailRevenue / (totalRecipients * 0.8) : 0,
-            revenuePerSMS: totalRecipients > 0 ? smsRevenue / (totalRecipients * 0.2) : 0,
-            revenuePerRecipient: totalRecipients > 0 ? totalRevenue / totalRecipients : 0,
-            aov: aov,
-            conversionRate: campaigns.length > 0 ? campaigns.reduce((sum, c) => sum + (c.avg_conversion_rate || 0), 0) / campaigns.length : 0
-        }] : []
+        let accountComparison = []
+
+        if (byAccount && byAccount.length > 0) {
+            // Use actual per-account data from API
+            accountComparison = byAccount.map(account => ({
+                account: account.storeName || account.storeId || 'Unknown',
+                accountId: account.storeId,
+                totalRevenue: parseFloat(account.totalRevenue) || 0,
+                attributedRevenue: (parseFloat(account.campaignRevenue) || 0) + (parseFloat(account.flowRevenue) || 0),
+                orders: parseInt(account.orders) || 0,
+                recipients: parseInt(account.recipients) || 0,
+                emailsSent: parseInt(account.emailRecipients) || 0,
+                smsSent: parseInt(account.smsRecipients) || 0,
+                emailRevenue: parseFloat(account.emailRevenue) || 0,
+                smsRevenue: parseFloat(account.smsRevenue) || 0,
+                revenuePerEmail: account.emailRecipients > 0 ? (account.emailRevenue / account.emailRecipients) : 0,
+                revenuePerSMS: account.smsRecipients > 0 ? (account.smsRevenue / account.smsRecipients) : 0,
+                revenuePerRecipient: account.recipients > 0 ? (account.totalRevenue / account.recipients) : 0,
+                aov: account.orders > 0 ? (account.totalRevenue / account.orders) : 0,
+                conversionRate: account.recipients > 0 ? ((account.orders / account.recipients) * 100) : 0
+            }))
+        } else if (metadata.storeCount > 0) {
+            // Fallback to aggregated data
+            accountComparison = [{
+                account: metadata.storeCount > 1 ? `${metadata.storeCount} Accounts Combined` : 'Account',
+                accountId: 'aggregated',
+                totalRevenue: totalRevenue,
+                attributedRevenue: attributedRevenue,
+                orders: totalOrders,
+                recipients: totalRecipients,
+                emailsSent: emailRecipients,
+                smsSent: smsRecipients,
+                emailRevenue: emailRevenue,
+                smsRevenue: smsRevenue,
+                revenuePerEmail: emailRecipients > 0 ? emailRevenue / emailRecipients : 0,
+                revenuePerSMS: smsRecipients > 0 ? smsRevenue / smsRecipients : 0,
+                revenuePerRecipient: totalRecipients > 0 ? attributedRevenue / totalRecipients : 0,
+                aov: aov,
+                conversionRate: totalRecipients > 0 ? ((totalOrders / totalRecipients) * 100) : 0
+            }]
+        }
 
         // Channel revenue breakdown
-        const channelRevenue = [
-            { channel: 'Email', revenue: emailRevenue, percentage: totalRevenue > 0 ? (emailRevenue / totalRevenue) * 100 : 0 },
-            { channel: 'SMS', revenue: smsRevenue, percentage: totalRevenue > 0 ? (smsRevenue / totalRevenue) * 100 : 0 },
-            { channel: 'Push', revenue: pushRevenue, percentage: totalRevenue > 0 ? (pushRevenue / totalRevenue) * 100 : 0 }
-        ].filter(channel => channel.revenue > 0)
+        const channelRevenue = []
+        if (emailRevenue > 0) {
+            channelRevenue.push({
+                channel: 'Email',
+                revenue: emailRevenue,
+                percentage: attributedRevenue > 0 ? (emailRevenue / attributedRevenue) * 100 : 0
+            })
+        }
+        if (smsRevenue > 0) {
+            channelRevenue.push({
+                channel: 'SMS',
+                revenue: smsRevenue,
+                percentage: attributedRevenue > 0 ? (smsRevenue / attributedRevenue) * 100 : 0
+            })
+        }
 
         // Process time series data based on granularity
         const trendData = processTimeSeries(trend, campaigns, granularity)
 
         console.log('Revenue Metrics Calculated:', {
-            totalRevenue: summary.totalRevenue,
-            attributedRevenue: summary.attributedRevenue,
-            emailsSent: summary.totalEmailsSent,
-            smsSent: summary.totalSMSSent,
+            totalRevenue,
+            attributedRevenue,
+            emailRecipients,
+            smsRecipients,
             accountCount: accountComparison.length,
             trendDataCount: trendData.length
         });
@@ -231,22 +328,24 @@ export default function RevenueTab({
                 attributedRevenue: attributedRevenue,
                 totalOrders: totalOrders,
                 uniqueCustomers: uniqueCustomers,
+                newCustomers: newCustomers,
+                returningCustomers: returningCustomers,
                 totalRecipients: totalRecipients,
-                totalEmailsSent: Math.floor(totalRecipients * 0.8), // Estimate
-                totalSMSSent: Math.floor(totalRecipients * 0.2), // Estimate
-                revenuePerEmail: totalRecipients > 0 ? emailRevenue / (totalRecipients * 0.8) : 0,
-                revenuePerSMS: totalRecipients > 0 ? smsRevenue / (totalRecipients * 0.2) : 0,
-                revenuePerRecipient: totalRecipients > 0 ? totalRevenue / totalRecipients : 0,
+                totalEmailsSent: emailRecipients,
+                totalSMSSent: smsRecipients,
+                revenuePerEmail: emailRecipients > 0 ? emailRevenue / emailRecipients : 0,
+                revenuePerSMS: smsRecipients > 0 ? smsRevenue / smsRecipients : 0,
+                revenuePerRecipient: totalRecipients > 0 ? attributedRevenue / totalRecipients : 0,
                 averageOrderValue: aov,
                 momGrowth: parseFloat(stats.revenue_change) || 0,
-                yoyGrowth: parseFloat(stats.revenue_change) || 0, // Use same as mom for now
+                yoyGrowth: parseFloat(stats.revenue_change) || 0,
                 // Include comparison changes if available
                 revenueChange: parseFloat(stats.revenue_change) || 0,
-                attributedRevenueChange: 0, // TODO: Calculate separately
+                attributedRevenueChange: parseFloat(stats.campaign_revenue_change) || 0,
                 ordersChange: parseFloat(stats.order_change) || 0,
                 customersChange: parseFloat(stats.customer_change) || 0,
                 avgOrderValueChange: parseFloat(stats.aov_change) || 0,
-                newCustomersChange: 0 // TODO: Calculate separately
+                newCustomersChange: parseFloat(stats.new_customer_change) || 0
             },
             accountComparison,
             channelRevenue,
@@ -263,55 +362,101 @@ export default function RevenueTab({
 
         // Group time series by the selected granularity
         const grouped = new Map()
+        const accountDataMap = new Map() // Track per-account data
 
         currentTrend.forEach(point => {
             const date = new Date(point.date)
             let groupKey
+            let dateObj = date
 
             if (granularity === 'daily') {
-                groupKey = `${date.getMonth() + 1}/${date.getDate()}`
+                groupKey = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             } else if (granularity === 'weekly') {
                 // Get week start
                 const weekStart = new Date(date)
                 weekStart.setDate(date.getDate() - date.getDay())
                 const weekEnd = new Date(weekStart)
                 weekEnd.setDate(weekStart.getDate() + 6)
-                groupKey = `${weekStart.getMonth() + 1}/${weekStart.getDate()}-${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`
+                groupKey = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                dateObj = weekStart
             } else { // monthly
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                groupKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`
+                groupKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                dateObj = new Date(date.getFullYear(), date.getMonth(), 1)
             }
+
 
             if (!grouped.has(groupKey)) {
                 grouped.set(groupKey, {
                     date: groupKey,
+                    dateObj: dateObj,
                     totalRevenue: 0,
                     totalAttributed: 0,
+                    campaignRevenue: 0,
+                    flowRevenue: 0,
                     orders: 0,
-                    customers: 0
+                    customers: 0,
+                    accountData: new Map()
                 })
             }
 
             const group = grouped.get(groupKey)
-            group.totalRevenue += parseFloat(point.revenue) || 0
-            group.totalAttributed += (parseFloat(point.campaign_revenue) || 0) + (parseFloat(point.flow_revenue) || 0)
+            // Use the actual point values
+            const revenue = parseFloat(point.revenue) || 0
+            const campaignRev = parseFloat(point.campaign_revenue) || 0
+            const flowRev = parseFloat(point.flow_revenue) || 0
+
+            // For monthly/weekly grouping, sum the daily values
+            group.totalRevenue += revenue
+            group.campaignRevenue += campaignRev
+            group.flowRevenue += flowRev
+            group.totalAttributed += campaignRev + flowRev
             group.orders += parseInt(point.orders) || 0
             group.customers += parseInt(point.customers) || 0
-        })
 
-        // Convert to array and format
-        const trendDataArray = Array.from(grouped.values()).map(group => {
-            const dataPoint = {
-                date: group.date,
-                totalRevenue: group.totalRevenue,
-                totalAttributed: group.totalAttributed,
-                totalPercent: group.totalRevenue > 0 ? (group.totalAttributed / group.totalRevenue) * 100 : 0,
-                orders: group.orders,
-                customers: group.customers
+            // Track per-account data if available
+            if (point.storeId || point.accountId) {
+                const accountKey = point.storeName || point.accountName || point.storeId || point.accountId
+                if (!group.accountData.has(accountKey)) {
+                    group.accountData.set(accountKey, {
+                        overall: 0,
+                        attributed: 0,
+                        campaign: 0,
+                        flow: 0
+                    })
+                }
+                const accountData = group.accountData.get(accountKey)
+                accountData.overall += revenue
+                accountData.campaign += campaignRev
+                accountData.flow += flowRev
+                accountData.attributed += campaignRev + flowRev
             }
-
-            return dataPoint
         })
+
+        // Convert to array and format, sorted by date
+        const trendDataArray = Array.from(grouped.values())
+            .sort((a, b) => a.dateObj - b.dateObj)
+            .map(group => {
+                const dataPoint = {
+                    date: group.date,
+                    totalRevenue: group.totalRevenue,
+                    totalAttributed: group.totalAttributed,
+                    campaignRevenue: group.campaignRevenue,
+                    flowRevenue: group.flowRevenue,
+                    totalPercent: group.totalRevenue > 0 ? (group.totalAttributed / group.totalRevenue) * 100 : 0,
+                    orders: group.orders,
+                    customers: group.customers
+                }
+
+                // Add per-account data for multi-account line charts
+                group.accountData.forEach((data, accountName) => {
+                    dataPoint[`${accountName}_overall`] = data.overall
+                    dataPoint[`${accountName}_attributed`] = data.attributed
+                    dataPoint[`${accountName}_percent`] = data.overall > 0 ? (data.attributed / data.overall) * 100 : 0
+                    dataPoint[accountName] = data.overall // Backward compatibility
+                })
+
+                return dataPoint
+            })
 
         return trendDataArray
     }
@@ -664,12 +809,28 @@ export default function RevenueTab({
     if (!revenueData) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <p className="text-gray-600 dark:text-gray-400">No revenue data available</p>
+                <p className="text-gray-600 dark:text-[#111827]">No revenue data available</p>
             </div>
         )
     }
 
     const { metrics, trendData } = revenueData
+
+    // Extract additional metrics for new cards
+    const totalRevenue = metrics?.totalRevenue || 0
+    const attributedRevenue = metrics?.attributedRevenue || 0
+    const totalRecipients = metrics?.totalRecipients || 0
+    const uniqueCustomers = metrics?.uniqueCustomers || 0
+
+    // Sort function for table
+    const handleSort = (field) => {
+        if (field === sortField) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+        } else {
+            setSortField(field)
+            setSortDirection('desc')
+        }
+    }
 
     return (
         <div className="space-y-4">
@@ -678,11 +839,11 @@ export default function RevenueTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Revenue</CardTitle>
-                        <DollarSign className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <DollarSign className="h-4 w-4 text-gray-600 dark:text-[#111827]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.totalRevenue)}</div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-[#111827]">
                             {metrics.revenueChange !== undefined && metrics.revenueChange !== null ? (
                                 <span className={`flex items-center ${metrics.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     {metrics.revenueChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
@@ -698,11 +859,11 @@ export default function RevenueTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Attributed Revenue</CardTitle>
-                        <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <Target className="h-4 w-4 text-gray-600 dark:text-[#111827]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.attributedRevenue)}</div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-[#111827]">
                             {metrics.attributedRevenueChange !== undefined && metrics.attributedRevenueChange !== null ? (
                                 <span className={`flex items-center ${metrics.attributedRevenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     {metrics.attributedRevenueChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
@@ -718,11 +879,11 @@ export default function RevenueTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Orders</CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <ShoppingCart className="h-4 w-4 text-gray-600 dark:text-[#111827]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(metrics.totalOrders)}</div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-[#111827]">
                             {metrics.ordersChange !== undefined && metrics.ordersChange !== null ? (
                                 <span className={`flex items-center ${metrics.ordersChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     {metrics.ordersChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
@@ -738,20 +899,20 @@ export default function RevenueTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Unique Customers</CardTitle>
-                        <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <Users className="h-4 w-4 text-gray-600 dark:text-[#111827]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">
                             {formatNumber(metrics.uniqueCustomers || 0)}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-[#111827]">
                             {metrics.customersChange !== undefined && metrics.customersChange !== null ? (
                                 <span className={`flex items-center ${metrics.customersChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     {metrics.customersChange >= 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
                                     {formatPercentage(Math.abs(metrics.customersChange))} vs {dateRangeSelection?.ranges?.comparison?.label || 'previous'}
                                 </span>
                             ) : (
-                                <span>{formatNumber(metrics.newCustomersChange || 0)} new customers</span>
+                                <span>{formatNumber(metrics.newCustomers || 0)} new, {formatNumber(metrics.returningCustomers || 0)} returning</span>
                             )}
                         </p>
                     </CardContent>
@@ -763,11 +924,11 @@ export default function RevenueTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Revenue per Email</CardTitle>
-                        <Mail className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <Mail className="h-4 w-4 text-gray-600 dark:text-[#111827]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.revenuePerEmail)}</div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-[#111827]">
                             {formatNumber(metrics.totalEmailsSent)} emails sent
                         </p>
                     </CardContent>
@@ -776,11 +937,11 @@ export default function RevenueTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Revenue per SMS</CardTitle>
-                        <MessageSquare className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <MessageSquare className="h-4 w-4 text-gray-600 dark:text-[#111827]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.revenuePerSMS)}</div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-[#111827]">
                             {formatNumber(metrics.totalSMSSent)} SMS sent
                         </p>
                     </CardContent>
@@ -789,11 +950,11 @@ export default function RevenueTab({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Revenue per Recipient</CardTitle>
-                        <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        <Users className="h-4 w-4 text-gray-600 dark:text-[#111827]" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.revenuePerRecipient)}</div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-[#111827]">
                             {formatNumber(metrics.totalRecipients)} total recipients
                         </p>
                     </CardContent>
@@ -850,76 +1011,149 @@ export default function RevenueTab({
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <ResponsiveContainer width="100%" height={350}>
-                        <LineChart data={trendData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis 
-                                dataKey="date" 
-                                tick={{ fontSize: 11 }}
-                                angle={trendData.length > 15 ? -45 : 0}
-                                textAnchor={trendData.length > 15 ? "end" : "middle"}
-                                height={trendData.length > 15 ? 70 : 30}
-                            />
-                            <YAxis 
-                                tickFormatter={(value) => {
-                                    if (revenueMetric === 'attributedPercent') {
-                                        return `${value.toFixed(0)}%`
-                                    }
-                                    return `${(value / 1000).toFixed(0)}k`
-                                }}
-                                domain={revenueMetric === 'attributedPercent' ? [0, 100] : undefined}
-                            />
-                            <Tooltip 
-                                formatter={(value) => {
-                                    if (revenueMetric === 'attributedPercent') {
-                                        return `${value.toFixed(1)}%`
-                                    }
-                                    return formatCurrency(value)
-                                }}
-                                labelFormatter={(label) => `Period: ${label}`}
-                            />
-                            <Legend />
-                            
-                            {/* Show total line if multiple accounts */}
-                            {accountComparison.length > 1 && (
-                                <Line 
-                                    type="monotone" 
-                                    dataKey={
-                                        revenueMetric === 'overall' ? 'totalRevenue' :
-                                        revenueMetric === 'attributed' ? 'totalAttributed' :
-                                        'totalPercent'
-                                    }
-                                    stroke="#8b5cf6" 
+                    <ResponsiveContainer width="100%" height={400}>
+                        {revenueMetric === 'overall' ? (
+                            // Show combined chart with overall and attributed revenue
+                            <ComposedChart data={trendData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 11 }}
+                                    angle={trendData.length > 15 ? -45 : 0}
+                                    textAnchor={trendData.length > 15 ? "end" : "middle"}
+                                    height={trendData.length > 15 ? 70 : 30}
+                                />
+                                <YAxis
+                                    tickFormatter={(value) => {
+                                        if (value >= 1000000) {
+                                            return `${(value / 1000000).toFixed(1)}M`
+                                        }
+                                        return `${(value / 1000).toFixed(0)}k`
+                                    }}
+                                    width={60}
+                                />
+                                <Tooltip
+                                    formatter={(value, name) => {
+                                        if (name === 'Attribution %') {
+                                            return `${value.toFixed(1)}%`
+                                        }
+                                        return formatCurrency(value)
+                                    }}
+                                    labelFormatter={(label) => `Period: ${label}`}
+                                />
+                                <Legend />
+
+                                {/* Attributed Revenue as Area (underneath) */}
+                                <Area
+                                    type="monotone"
+                                    dataKey="totalAttributed"
+                                    fill="#c4b5fd"
+                                    fillOpacity={0.3}
+                                    stroke="#8b5cf6"
+                                    strokeWidth={2}
+                                    name="Attributed Revenue"
+                                />
+
+                                {/* Overall Revenue as Line (on top) */}
+                                <Line
+                                    type="monotone"
+                                    dataKey="totalRevenue"
+                                    stroke="#2563eb"
                                     strokeWidth={3}
-                                    name="Total"
+                                    name="Overall Revenue"
                                     dot={false}
                                 />
-                            )}
-                            
-                            {/* Individual account lines */}
-                            {accountComparison.map((account, idx) => {
-                                const dataKey = revenueMetric === 'overall' ? 
-                                    `${account.account}_overall` :
-                                    revenueMetric === 'attributed' ?
-                                    `${account.account}_attributed` :
-                                    `${account.account}_percent`
-                                    
-                                return (
+
+                                {/* Attribution Percentage as secondary Y-axis */}
+                                <Line
+                                    type="monotone"
+                                    dataKey="totalPercent"
+                                    stroke="#f97316"
+                                    strokeWidth={1}
+                                    strokeDasharray="5 5"
+                                    name="Attribution %"
+                                    yAxisId="right"
+                                    dot={false}
+                                />
+
+                                <YAxis
+                                    yAxisId="right"
+                                    orientation="right"
+                                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                                    domain={[0, 100]}
+                                    width={50}
+                                />
+                            </ComposedChart>
+                        ) : (
+                            // Original line chart for other metrics
+                            <LineChart data={trendData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 11 }}
+                                    angle={trendData.length > 15 ? -45 : 0}
+                                    textAnchor={trendData.length > 15 ? "end" : "middle"}
+                                    height={trendData.length > 15 ? 70 : 30}
+                                />
+                                <YAxis
+                                    tickFormatter={(value) => {
+                                        if (revenueMetric === 'attributedPercent') {
+                                            return `${value.toFixed(0)}%`
+                                        }
+                                        return `${(value / 1000).toFixed(0)}k`
+                                    }}
+                                    domain={revenueMetric === 'attributedPercent' ? [0, 100] : undefined}
+                                />
+                                <Tooltip
+                                    formatter={(value) => {
+                                        if (revenueMetric === 'attributedPercent') {
+                                            return `${value.toFixed(1)}%`
+                                        }
+                                        return formatCurrency(value)
+                                    }}
+                                    labelFormatter={(label) => `Period: ${label}`}
+                                />
+                                <Legend />
+
+                                {/* Show total line if multiple accounts */}
+                                {accountComparison.length > 1 && (
                                     <Line
-                                        key={`${account.accountId}_${revenueMetric}`}
                                         type="monotone"
-                                        dataKey={dataKey}
-                                        stroke={COLORS[idx % COLORS.length]}
-                                        strokeWidth={2}
-                                        name={account.account}
+                                        dataKey={
+                                            revenueMetric === 'attributed' ? 'totalAttributed' :
+                                            'totalPercent'
+                                        }
+                                        stroke="#8b5cf6"
+                                        strokeWidth={3}
+                                        name="Total"
                                         dot={false}
                                     />
-                                )
-                            })}
-                        </LineChart>
+                                )}
+
+                                {/* Individual account lines */}
+                                {accountComparison.map((account, idx) => {
+                                    const dataKey = revenueMetric === 'attributed' ?
+                                        `${account.account}_attributed` :
+                                        `${account.account}_percent`
+
+                                    return (
+                                        <Line
+                                            key={`${account.accountId}_${revenueMetric}`}
+                                            type="monotone"
+                                            dataKey={dataKey}
+                                            stroke={COLORS[idx % COLORS.length]}
+                                            strokeWidth={2}
+                                            name={account.account}
+                                            dot={false}
+                                        />
+                                    )
+                                })}
+                            </LineChart>
+                        )}
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
+
 
             {/* Account Comparison Table */}
             <Card>
@@ -932,29 +1166,101 @@ export default function RevenueTab({
                         <table className="w-full text-sm">
                             <thead className="border-b">
                                 <tr className="text-left">
-                                    <th className="pb-2 font-medium">Account</th>
-                                    <th className="pb-2 font-medium text-right">Total Revenue</th>
-                                    <th className="pb-2 font-medium text-right">Attributed</th>
-                                    <th className="pb-2 font-medium text-right">Orders</th>
-                                    <th className="pb-2 font-medium text-right">AOV</th>
-                                    <th className="pb-2 font-medium text-right">Rev/Email</th>
-                                    <th className="pb-2 font-medium text-right">Rev/SMS</th>
-                                    <th className="pb-2 font-medium text-right">Rev/Recipient</th>
-                                    <th className="pb-2 font-medium text-right">Conv Rate</th>
+                                    <th
+                                        className="pb-2 font-medium cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('account')}
+                                    >
+                                        <div className="flex items-center gap-1 text-[#111827]">
+                                            Account
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('totalRevenue')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            Total Revenue
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('attributedRevenue')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            Attributed
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('orders')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            Orders
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('aov')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            AOV
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('revenuePerEmail')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            Rev/Email
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('revenuePerSMS')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            Rev/SMS
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('revenuePerRecipient')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            Rev/Recipient
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="pb-2 font-medium text-right cursor-pointer hover:bg-gray-50 px-2 py-1 rounded select-none"
+                                        onClick={() => handleSort('conversionRate')}
+                                    >
+                                        <div className="flex items-center justify-end gap-1 text-[#111827]">
+                                            Conv Rate
+                                            <ChevronsUpDown className="h-3 w-3 text-[#111827]" />
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {accountComparison.map((account, idx) => (
+                                {sortedAccountComparison.map((account, idx) => (
                                     <tr key={`${account.accountId}-${idx}`} className="border-b">
-                                        <td className="py-3 font-medium">{account.account}</td>
-                                        <td className="py-3 text-right">{formatCurrency(account.totalRevenue)}</td>
-                                        <td className="py-3 text-right">{formatCurrency(account.attributedRevenue)}</td>
-                                        <td className="py-3 text-right">{formatNumber(account.orders)}</td>
-                                        <td className="py-3 text-right">{formatCurrency(account.aov)}</td>
-                                        <td className="py-3 text-right">{formatCurrency(account.revenuePerEmail)}</td>
-                                        <td className="py-3 text-right">{formatCurrency(account.revenuePerSMS)}</td>
-                                        <td className="py-3 text-right">{formatCurrency(account.revenuePerRecipient)}</td>
-                                        <td className="py-3 text-right">{formatPercentage(account.conversionRate)}</td>
+                                        <td className="py-3 font-medium text-[#111827]">{account.account}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatCurrency(account.totalRevenue)}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatCurrency(account.attributedRevenue)}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatNumber(account.orders)}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatCurrency(account.aov)}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatCurrency(account.revenuePerEmail)}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatCurrency(account.revenuePerSMS)}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatCurrency(account.revenuePerRecipient)}</td>
+                                        <td className="py-3 text-right text-[#111827]">{formatPercentage(account.conversionRate)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -996,7 +1302,7 @@ export default function RevenueTab({
                                     </div>
                                     <div className="text-sm text-right">
                                         <span className="font-medium">{formatCurrency(channel.revenue)}</span>
-                                        <span className="text-gray-500 ml-2">({formatPercentage(channel.percentage)})</span>
+                                        <span className="text-[#111827] ml-2">({formatPercentage(channel.percentage)})</span>
                                     </div>
                                 </div>
                             ))}
