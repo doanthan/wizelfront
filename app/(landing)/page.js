@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { ArrowRight, Zap, Star, Check, ShoppingBag, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+// Force dynamic rendering to avoid Next.js static generation issues
+export const dynamic = 'force-dynamic'
+
 export default function LandingPage() {
     const [isVisible, setIsVisible] = useState(false)
 
