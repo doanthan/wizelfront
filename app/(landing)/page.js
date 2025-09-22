@@ -1,5 +1,7 @@
 import { ArrowRight, Zap, Star, Check, ShoppingBag, BarChart3 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
 
 export default function LandingPage() {
 
@@ -39,21 +41,14 @@ export default function LandingPage() {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                            <Button
-                                size="lg"
-                                className="bg-primary hover:bg-primary/90 text-white px-8 py-4 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105"
-                            >
+                            <button className="inline-flex items-center justify-center bg-sky-blue hover:bg-royal-blue text-white px-8 py-4 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg">
                                 Connect Your Shopify Store
                                 <ArrowRight className="ml-2 h-5 w-5" />
-                            </Button>
+                            </button>
 
-                            <Button
-                                variant="ghost"
-                                size="lg"
-                                className="text-gray-600 hover:text-gray-900 px-8 py-4 text-lg font-medium"
-                            >
+                            <button className="inline-flex items-center justify-center text-gray-600 hover:text-gray-900 px-8 py-4 text-lg font-medium rounded-lg transition-colors">
                                 Watch Demo
-                            </Button>
+                            </button>
                         </div>
 
                         <p className="text-sm text-gray-500 mt-6">
@@ -249,12 +244,9 @@ export default function LandingPage() {
                             </li>
                         </ul>
 
-                        <Button
-                            size="lg"
-                            className="bg-primary hover:bg-primary/90 text-white px-12 py-4 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105"
-                        >
+                        <button className="inline-flex items-center justify-center bg-sky-blue hover:bg-royal-blue text-white px-12 py-4 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg">
                             Connect Your Shopify Store
-                        </Button>
+                        </button>
                     </div>
 
                     <p className="text-sm text-gray-500">

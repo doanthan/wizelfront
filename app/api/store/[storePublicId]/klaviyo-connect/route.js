@@ -61,24 +61,29 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
       success: true
     });
     
-    // Trigger sync if we have a metric
+    // Check if it's Shopify Placed Order and store this information
+    let isShopifyPlacedOrder = false;
     if (metricId) {
-      // Check if it's Shopify Placed Order
-      let isShopifyPlacedOrder = false;
       try {
         const metrics = await klaviyoGetAll("metrics", { apiKey });
         const selectedMetric = metrics.data.find(m => m.id === metricId);
-        isShopifyPlacedOrder = selectedMetric && 
-                               selectedMetric.attributes.name === "Placed Order" && 
+        isShopifyPlacedOrder = selectedMetric &&
+                               selectedMetric.attributes.name === "Placed Order" &&
                                selectedMetric.attributes.integration?.key === "shopify";
       } catch (e) {
         console.error("Error checking metric type:", e);
       }
-      
+    }
+
+    // Add is_shopify_placed_order flag to klaviyo_integration
+    store.klaviyo_integration.is_shopify_placed_order = isShopifyPlacedOrder;
+
+    // Trigger sync if we have a metric
+    if (metricId) {
       // Trigger report server sync (fire-and-forget)
       const reportServerUrl = process.env.REPORT_SERVER || 'http://localhost:8001';
       const reportServerKey = process.env.REPORT_SERVER_KEY;
-      
+
       if (reportServerKey) {
         (async () => {
           try {
@@ -88,9 +93,9 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
               do_not_order_sync: !isShopifyPlacedOrder,
               env: process.env.NODE_ENV
             };
-            
+
             console.log("Triggering report server sync:", syncPayload);
-            
+
             await fetch(`${reportServerUrl}/api/v1/reports/full_sync`, {
               method: 'POST',
               headers: {
@@ -196,7 +201,8 @@ export async function GET(request, { params }) {
         status: "not_configured",
         connected_at: null,
         last_sync: null,
-        sync_status: null
+        sync_status: null,
+        is_shopify_placed_order: false
       }
     });
 
@@ -329,13 +335,31 @@ export async function POST(request, { params }) {
       
       // Check if store already has OAuth connection
       if (store.klaviyo_integration?.auth_type === 'oauth' && store.klaviyo_integration?.oauth_token) {
-        // Update only the metrics for OAuth connections
+        // Check if the selected metric is Shopify Placed Order for OAuth connections
+        let isShopifyPlacedOrderOAuth = false;
+        if (metricId) {
+          try {
+            // We need to get metrics using OAuth token - for now, we'll use the auth helper
+            const { buildKlaviyoAuthOptions } = require('@/lib/klaviyo-auth-helper');
+            const authOptions = buildKlaviyoAuthOptions(store);
+            const metrics = await klaviyoGetAll("metrics", authOptions);
+            const selectedMetric = metrics.data.find(m => m.id === metricId);
+            isShopifyPlacedOrderOAuth = selectedMetric &&
+                                      selectedMetric.attributes.name === "Placed Order" &&
+                                      selectedMetric.attributes.integration?.key === "shopify";
+          } catch (e) {
+            console.error("Error checking OAuth metric type:", e);
+          }
+        }
+
+        // Update metrics and is_shopify_placed_order flag for OAuth connections
         store.klaviyo_integration.conversion_metric_id = metricId;
         store.klaviyo_integration.reporting_metric_id = reporting_metric_id || null;
         store.klaviyo_integration.refund_metric_ids = refund_metric_ids || [];
         store.klaviyo_integration.conversion_type = conversion_type || 'value';
+        store.klaviyo_integration.is_shopify_placed_order = isShopifyPlacedOrderOAuth;
         await store.save();
-        
+
         return NextResponse.json({
           success: true,
           message: 'Klaviyo settings updated successfully',
@@ -362,12 +386,12 @@ export async function POST(request, { params }) {
       
       // Check if the selected metric is Shopify Placed Order
       const selectedMetric = metrics.data.find(m => m.id === conversion_metric_id);
-      isShopifyPlacedOrder = selectedMetric && 
-                             selectedMetric.attributes.name === "Placed Order" && 
+      isShopifyPlacedOrder = selectedMetric &&
+                             selectedMetric.attributes.name === "Placed Order" &&
                              selectedMetric.attributes.integration?.key === "shopify";
-      
+
       console.log(`Selected metric: ${selectedMetric?.attributes?.name}, Is Shopify Placed Order: ${isShopifyPlacedOrder}`);
-      
+
       // Update store with Klaviyo integration in the correct format (matching old code structure)
       store.klaviyo_integration = {
         status: 'connected',
@@ -381,6 +405,7 @@ export async function POST(request, { params }) {
         connected_at: new Date(),
         last_sync: new Date(),
         is_updating_dashboard: false,
+        is_shopify_placed_order: isShopifyPlacedOrder, // Add flag to track if using Shopify Placed Order
         campaign_values_last_update: null,
         segment_series_last_update: null,
         flow_series_last_update: null,
@@ -525,6 +550,7 @@ export async function DELETE(request, { params }) {
       apiKey: null,
       connected_at: null,
       is_updating_dashboard: false,
+      is_shopify_placed_order: false,
       campaign_values_last_update: null,
       segment_series_last_update: null,
       flow_series_last_update: null,
