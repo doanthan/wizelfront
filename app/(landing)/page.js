@@ -1,9 +1,5 @@
 import { ArrowRight, Zap, Star, Check, ShoppingBag, BarChart3 } from "lucide-react"
 
-// Opt out of static generation to avoid build issues
-export const dynamic = 'error'
-export const revalidate = 0
-
 export default function LandingPage() {
 
     return (
