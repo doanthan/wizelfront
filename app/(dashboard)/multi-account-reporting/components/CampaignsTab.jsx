@@ -267,10 +267,18 @@ const CampaignsTab = ({
     return null;
   }, [comparisonRange, dateRangeSelection]);
 
-  // Use data from props instead of internal state
-  const campaigns = campaignsData?.campaigns || [];
-  const aggregateStats = campaignsData?.aggregateStats || null;
-  const chartData = campaignsData?.chartData || [];
+  // Memoize data from props to prevent infinite loops
+  const campaigns = useMemo(() => {
+    return campaignsData?.campaigns || [];
+  }, [campaignsData?.campaigns]);
+
+  const aggregateStats = useMemo(() => {
+    return campaignsData?.aggregateStats || null;
+  }, [campaignsData?.aggregateStats]);
+
+  const chartData = useMemo(() => {
+    return campaignsData?.chartData || [];
+  }, [campaignsData?.chartData]);
   const [comparisonData, setComparisonData] = useState(null);
   const loading = campaignsLoading || false;
   const [chartGranularity, setChartGranularity] = useState('daily');
@@ -2085,8 +2093,8 @@ const CampaignsTab = ({
                     const prevAOV = account.averageOrderValue * 0.95;
                     
                     return (
-                      <tr 
-                        key={account.accountId}
+                      <tr
+                        key={account.accountId || `account-${index}`}
                         className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                       >
                         <td className="py-4 px-6">
@@ -2505,9 +2513,9 @@ const CampaignsTab = ({
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {accountComparisonData.slice(0, showAllAccounts ? accountComparisonData.length : 10).map((account) => (
-                    <div 
-                      key={account.accountId}
+                  {accountComparisonData.slice(0, showAllAccounts ? accountComparisonData.length : 10).map((account, index) => (
+                    <div
+                      key={account.accountId || `account-card-${index}`}
                       className={`px-3 py-2 rounded-lg border flex items-center gap-2 ${
                         account.performanceScore >= 70 
                           ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 

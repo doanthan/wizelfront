@@ -67,7 +67,7 @@ export function CampaignDataProvider({ children }) {
       }
 
       console.log('📊 Fetching from ClickHouse with params:', params.toString())
-      const response = await fetch(`/api/analytics/campaigns?${params}`)
+      const response = await fetch(`/api/analytics/campaigns-clickhouse?${params}`)
 
       if (!response.ok) {
         throw new Error(`Failed to fetch campaigns: ${response.status}`)
@@ -80,7 +80,7 @@ export function CampaignDataProvider({ children }) {
       console.error('Error fetching campaign data:', error)
       throw error
     }
-  }, [stores])
+  }, []) // Remove stores dependency to prevent infinite loop
 
   // Removed merge function - not needed with simplified approach
 

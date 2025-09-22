@@ -89,10 +89,15 @@ export async function GET(request) {
 
     const client = getClickHouseClient();
 
-    // Build WHERE clause for filtering
+    // Build WHERE clause for filtering - convert ISO dates to YYYY-MM-DD format
     const whereConditions = [];
-    whereConditions.push(`date >= '${startDate}'`);
-    whereConditions.push(`date <= '${endDate}'`);
+    const formattedStartDate = new Date(startDate).toISOString().split('T')[0];
+    const formattedEndDate = new Date(endDate).toISOString().split('T')[0];
+
+    console.log(`Date conversion: ${startDate} → ${formattedStartDate}, ${endDate} → ${formattedEndDate}`);
+
+    whereConditions.push(`date >= '${formattedStartDate}'`);
+    whereConditions.push(`date <= '${formattedEndDate}'`);
 
     if (klaviyoIds.length > 0) {
       const klaviyoIdList = klaviyoIds.map(id => `'${id}'`).join(',');
@@ -402,7 +407,7 @@ export async function GET(request) {
       dailyData: Array.from(dailyDataMap.values()),
       totalCount: transformedCampaigns.length,
       dateRange: { startDate, endDate },
-      filters: { accountIds },
+      filters: { accountIds: storePublicIds },
       dataSource: 'clickhouse'
     });
 

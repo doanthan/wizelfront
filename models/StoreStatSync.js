@@ -45,7 +45,7 @@ const StoreStatSyncSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  errors: [{
+  syncErrors: [{
     message: String,
     timestamp: { type: Date, default: Date.now },
     data: mongoose.Schema.Types.Mixed
@@ -86,7 +86,7 @@ StoreStatSyncSchema.methods.markFailed = function(error) {
   this.status = 'failed';
   this.completedAt = new Date();
   if (error) {
-    this.errors.push({
+    this.syncErrors.push({
       message: error.message || error,
       timestamp: new Date(),
       data: error

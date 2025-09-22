@@ -201,10 +201,7 @@ export default function AnalyticsPage() {
     
     // Function to fetch campaign data using shared context
     const fetchCampaignData = useCallback(async (forceRefresh = false) => {
-        // Only show loading if we don't have data yet or forcing refresh
-        if (!campaignsData || forceRefresh) {
-            setCampaignsLoading(true)
-        }
+        setCampaignsLoading(true)
         setCampaignsError(null)
 
         try {
@@ -240,7 +237,7 @@ export default function AnalyticsPage() {
                 startDate.toISOString(),
                 endDate.toISOString(),
                 accountIds,
-                { forceRefresh, prefetch: true, subscribe: true }
+                { forceRefresh }
             )
 
             console.log('📊 Using cached/fetched campaign data:', data)
@@ -251,27 +248,15 @@ export default function AnalyticsPage() {
         } finally {
             setCampaignsLoading(false)
         }
-    }, [selectedAccounts, stores, dateRangeSelection, getCampaignData, campaignsData])
+    }, [selectedAccounts, stores, dateRangeSelection, getCampaignData])
     
-    // Fetch campaign data when needed
+    // Fetch campaign data when dependencies change
     useEffect(() => {
-        // Only fetch if we're on a tab that needs campaign data
-        if ((activeTab === 'campaigns' || activeTab === 'deliverability') && stores.length > 0) {
-            // Check if we need to fetch (data not loaded yet)
-            if (!campaignsData) {
-                // Force refresh on initial load to bypass stale cache
-                fetchCampaignData(true)
-            }
-        }
-    }, [activeTab, stores, campaignsData, fetchCampaignData])
-    
-    // Refetch when dependencies change (force refresh)
-    useEffect(() => {
-        // Only refetch if we're on a tab that uses campaign data and have stores
+        // Only fetch if we're on a tab that needs campaign data and have stores
         if ((activeTab === 'campaigns' || activeTab === 'deliverability') && stores.length > 0) {
             fetchCampaignData(true)
         }
-    }, [selectedAccounts, dateRangeSelection])
+    }, [activeTab, stores, selectedAccounts, dateRangeSelection, fetchCampaignData])
     
     // Handle URL tab parameter changes
     useEffect(() => {

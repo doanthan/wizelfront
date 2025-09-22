@@ -139,8 +139,7 @@ const auditLogSchema = new mongoose.Schema({
       const date = new Date();
       date.setFullYear(date.getFullYear() + 7);
       return date;
-    },
-    index: true
+    }
   }
 });
 

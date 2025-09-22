@@ -5,9 +5,9 @@ import connectToDatabase from "@/lib/mongoose";
 import User from "@/models/User";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16"
-});
+}) : null;
 
 // Price IDs from Stripe Dashboard - replace with your actual price IDs
 const PRICE_IDS = {
@@ -23,6 +23,13 @@ const PRICE_IDS = {
 
 export async function POST(request) {
   try {
+    if (!stripe) {
+      return NextResponse.json(
+        { error: "Stripe is not configured" },
+        { status: 500 }
+      );
+    }
+
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
