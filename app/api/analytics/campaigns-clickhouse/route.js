@@ -67,9 +67,25 @@ export async function GET(request) {
       if (klaviyoIds.length === 0) {
         console.log('WARNING: No stores have Klaviyo integration configured');
 
-        // Try using store IDs as Klaviyo IDs (fallback for backwards compatibility)
-        console.log('Attempting fallback: using store IDs as Klaviyo IDs');
-        klaviyoIds = storePublicIds;
+        // Return empty response instead of attempting fallback
+        return NextResponse.json({
+          campaigns: [],
+          daily: [],
+          aggregate: {
+            totalCampaigns: 0,
+            emailCampaigns: 0,
+            smsCampaigns: 0,
+            totalRecipients: 0,
+            totalDelivered: 0,
+            totalOpens: 0,
+            totalClicks: 0,
+            totalConversions: 0,
+            totalRevenue: 0,
+            avgOpenRate: 0,
+            avgClickRate: 0,
+            avgConversionRate: 0
+          }
+        });
       }
     } else if (storePublicIds.length === 0) {
       // If no specific stores selected, get all stores with Klaviyo integration
@@ -80,9 +96,18 @@ export async function GET(request) {
         is_deleted: { $ne: true }
       }).toArray();
 
-      klaviyoIds = allStores
-        .map(store => store.klaviyo_integration?.public_id)
-        .filter(Boolean);
+      // Build mapping for all stores and extract Klaviyo IDs
+      allStores.forEach(store => {
+        const klaviyoId = store.klaviyo_integration?.public_id;
+        storeMapping[store.public_id] = {
+          name: store.name,
+          klaviyoId: klaviyoId || null
+        };
+
+        if (klaviyoId) {
+          klaviyoIds.push(klaviyoId);
+        }
+      });
 
       console.log(`Found ${klaviyoIds.length} stores with Klaviyo integration`);
     }
@@ -120,25 +145,17 @@ export async function GET(request) {
         -- Email performance metrics
         email_recipients,
         email_delivered,
-        email_bounced,
-        email_opens,
         email_opens_unique,
-        email_clicks,
         email_clicks_unique,
-        email_unsubscribes,
 
         -- Email rates (already calculated)
-        email_delivery_rate,
         email_open_rate,
         email_click_rate,
-        email_click_to_open_rate,
 
         -- SMS metrics
         sms_recipients,
         sms_delivered,
-        sms_clicks,
         sms_clicks_unique,
-        sms_delivery_rate,
         sms_click_rate,
 
         -- Conversion metrics
@@ -152,7 +169,7 @@ export async function GET(request) {
         best_performing_campaign_name,
         best_performing_campaign_revenue
 
-      FROM campaign_daily_aggregates FINAL
+      FROM campaign_daily_aggregates
       WHERE ${whereClause}
       ORDER BY date DESC
     `;
@@ -186,7 +203,7 @@ export async function GET(request) {
         total_revenue,
         total_orders
 
-      FROM account_metrics_daily FINAL
+      FROM account_metrics_daily
       WHERE ${whereClause}
       ORDER BY date DESC
     `;
@@ -196,6 +213,7 @@ export async function GET(request) {
       SELECT
         campaign_id,
         campaign_name,
+        klaviyo_public_id,
         date,
         send_channel as channel,
         recipients,
@@ -216,7 +234,7 @@ export async function GET(request) {
 
         updated_at
 
-      FROM campaign_statistics FINAL
+      FROM campaign_statistics
       WHERE ${whereClause}
       ORDER BY date DESC, revenue DESC
       LIMIT 1000
@@ -282,7 +300,6 @@ export async function GET(request) {
       totalEmailDelivered: 0,
       totalEmailOpens: 0,
       totalEmailClicks: 0,
-      totalEmailUnsubscribes: 0,
 
       // SMS metrics
       totalSmsRecipients: 0,
@@ -314,7 +331,6 @@ export async function GET(request) {
       aggregateStats.totalEmailDelivered += day.email_delivered || 0;
       aggregateStats.totalEmailOpens += day.email_opens_unique || 0;
       aggregateStats.totalEmailClicks += day.email_clicks_unique || 0;
-      aggregateStats.totalEmailUnsubscribes += day.email_unsubscribes || 0;
 
       aggregateStats.totalSmsRecipients += day.sms_recipients || 0;
       aggregateStats.totalSmsDelivered += day.sms_delivered || 0;
@@ -365,40 +381,62 @@ export async function GET(request) {
       conversionRate: day.avg_conversion_rate * 100
     })).sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    // Create reverse mapping from klaviyo_public_id to store info
+    const klaviyoToStoreMapping = {};
+    Object.entries(storeMapping).forEach(([storePublicId, storeInfo]) => {
+      if (storeInfo.klaviyoId) {
+        klaviyoToStoreMapping[storeInfo.klaviyoId] = {
+          storePublicId,
+          storeName: storeInfo.name
+        };
+      }
+    });
+
     // Transform individual campaigns for frontend
-    const transformedCampaigns = campaignDetails.map(campaign => ({
-      id: campaign.campaign_id,
-      campaignId: campaign.campaign_id,
-      name: campaign.campaign_name,
-      type: campaign.channel,
-      channel: campaign.channel,
-      status: 'sent',
+    const transformedCampaigns = campaignDetails.map(campaign => {
+      // Find store info using klaviyo_public_id
+      const storeInfo = klaviyoToStoreMapping[campaign.klaviyo_public_id] || {};
 
-      // Core metrics
-      recipients: campaign.recipients,
-      delivered: campaign.delivered,
-      opensUnique: campaign.opens_unique,
-      clicksUnique: campaign.clicks_unique,
-      conversions: campaign.conversions,
-      revenue: campaign.revenue,
+      return {
+        id: campaign.campaign_id,
+        campaignId: campaign.campaign_id,
+        name: campaign.campaign_name || 'Unnamed Campaign',
+        type: campaign.channel,
+        channel: campaign.channel,
+        status: 'sent',
 
-      // Rates (already calculated in query)
-      deliveryRate: campaign.delivery_rate,
-      openRate: campaign.open_rate,
-      clickRate: campaign.click_rate,
-      clickToOpenRate: campaign.click_to_open_rate,
-      conversionRate: campaign.conversion_rate,
-      revenuePerRecipient: campaign.revenue_per_recipient,
+        // Store information for calendar mapping
+        klaviyo_public_id: campaign.klaviyo_public_id,
+        store_public_ids: storeInfo.storePublicId ? [storeInfo.storePublicId] : [],
+        storeName: storeInfo.storeName || 'Unknown Store',
 
-      // Other metrics
-      unsubscribes: campaign.unsubscribes,
-      unsubscribeRate: campaign.delivered > 0 ? (campaign.unsubscribes / campaign.delivered) * 100 : 0,
+        // Core metrics
+        recipients: campaign.recipients,
+        delivered: campaign.delivered,
+        opensUnique: campaign.opens_unique,
+        clicksUnique: campaign.clicks_unique,
+        conversions: campaign.conversions,
+        revenue: campaign.revenue,
 
-      // Metadata
-      sentAt: campaign.date,
-      updatedAt: campaign.updated_at,
-      accountId: campaign.klaviyo_public_id
-    }));
+        // Rates (already calculated in query)
+        deliveryRate: campaign.delivery_rate,
+        openRate: campaign.open_rate,
+        clickRate: campaign.click_rate,
+        clickToOpenRate: campaign.click_to_open_rate,
+        conversionRate: campaign.conversion_rate,
+        revenuePerRecipient: campaign.revenue_per_recipient,
+
+        // Other metrics
+        unsubscribes: campaign.unsubscribes,
+        unsubscribeRate: campaign.delivered > 0 ? (campaign.unsubscribes / campaign.delivered) * 100 : 0,
+
+        // Metadata
+        sentAt: campaign.date,
+        send_date: campaign.date,
+        updatedAt: campaign.updated_at,
+        accountId: campaign.klaviyo_public_id
+      };
+    });
 
     return NextResponse.json({
       campaigns: transformedCampaigns,

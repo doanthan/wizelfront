@@ -235,10 +235,9 @@ Fetches scheduled campaigns from Klaviyo API.
 ```javascript
 // Fetch ALL scheduled campaigns regardless of date using status filter
 // This avoids date range limitations and gets all future campaigns in one call
-// Includes "Queued without Recipients" for campaigns that are scheduled but have no recipients
-const filter = `equals(messages.channel,'email'),any(status,["Draft","Scheduled","Sending","Queued without Recipients"])`
-const filter = `equals(messages.channel,'sms'),any(status,["Draft","Scheduled","Sending","Queued without Recipients"])`
-const filter = `equals(messages.channel,'mobile_push'),any(status,["Draft","Scheduled","Sending","Queued without Recipients"])`
+const filter = `equals(messages.channel,'email'),any(status,["Draft","Scheduled","Sending"])`
+const filter = `equals(messages.channel,'sms'),any(status,["Draft","Scheduled","Sending"])`
+const filter = `equals(messages.channel,'mobile_push'),any(status,["Draft","Scheduled","Sending"])`
 ```
 
 **Campaign Statuses Explained:**
@@ -854,7 +853,6 @@ setLoading(false); // Stop loading when complete or on error
 - [ ] User roles display correctly in store dropdown
 - [ ] Future campaigns from Klaviyo API display
 - [ ] Draft campaigns show even if in the past
-- [ ] "Queued without Recipients" campaigns display correctly
 - [ ] Historical campaigns from MongoDB display
 - [ ] Selected stores persist after page refresh
 - [ ] Selected stores available in other components via localStorage

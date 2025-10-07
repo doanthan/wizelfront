@@ -70,7 +70,7 @@ export async function GET(request) {
               WHEN conversion_value = 0 THEN 'ZERO'
               ELSE 'NORMAL'
             END as value_category
-          FROM flow_statistics FINAL
+          FROM flow_statistics
           WHERE klaviyo_public_id = {klaviyo_public_id:String}
             AND date >= {start_date:Date}
             AND date <= {end_date:Date}
@@ -121,7 +121,7 @@ export async function GET(request) {
             countIf(conversion_value > 1000000) as extreme_high_count,
             countIf(conversion_value > 100000) as high_count,
             countIf(conversion_value < 0) as negative_count
-          FROM flow_statistics FINAL
+          FROM flow_statistics
           WHERE klaviyo_public_id = {klaviyo_public_id:String}
             AND date >= {start_date:Date}
             AND date <= {end_date:Date}
@@ -166,7 +166,7 @@ export async function GET(request) {
             countIf(conversion_value > 4294967295) as uint32_overflow_count, -- 2^32 - 1
             min(conversion_value) as min_value,
             max(conversion_value) as max_value
-          FROM flow_statistics FINAL
+          FROM flow_statistics
           WHERE klaviyo_public_id = {klaviyo_public_id:String}
             AND date >= {start_date:Date}
             AND date <= {end_date:Date}
@@ -254,7 +254,7 @@ export async function GET(request) {
             count(*) as count,
             avg(conversion_value) as avg_value,
             sum(conversion_value) as total_value
-          FROM flow_statistics FINAL
+          FROM flow_statistics
           WHERE klaviyo_public_id = {klaviyo_public_id:String}
             AND date = {target_date:Date}
             AND conversion_value > 1000000
@@ -266,7 +266,7 @@ export async function GET(request) {
             count(*) as count,
             avg(conversion_value) as avg_value,
             sum(conversion_value) as total_value
-          FROM flow_statistics FINAL
+          FROM flow_statistics
           WHERE klaviyo_public_id = {klaviyo_public_id:String}
             AND date = {target_date:Date}
             AND conversion_value <= 1000000
@@ -305,7 +305,7 @@ export async function GET(request) {
             max(conversion_value) as max_value,
             avg(conversion_value) as avg_value,
             sum(conversion_value) as daily_total
-          FROM flow_statistics FINAL
+          FROM flow_statistics
           WHERE klaviyo_public_id = {klaviyo_public_id:String}
             AND date >= {start_date:Date}
             AND date <= {end_date:Date}
@@ -362,7 +362,7 @@ export async function GET(request) {
                 ELSE conversion_value  -- Keep original if reasonable
               END as corrected_value,
               updated_at
-            FROM flow_statistics FINAL
+            FROM flow_statistics
             WHERE klaviyo_public_id = {klaviyo_public_id:String}
               AND date >= {start_date:Date}
               AND date <= {end_date:Date}

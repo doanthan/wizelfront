@@ -1,9 +1,8 @@
 "use client";
 
-import { Plus, CalendarDays, CalendarRange, CalendarClock, ChevronLeft, ChevronRight, GitCompare } from 'lucide-react';
+import { Plus, CalendarDays, CalendarRange, CalendarClock, ChevronLeft, ChevronRight, GitCompare, RefreshCw } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { format } from 'date-fns';
-import { CalendarFilters } from './CalendarFilters';
 
 export const CalendarHeader = ({
   date,
@@ -28,7 +27,8 @@ export const CalendarHeader = ({
   futureLoading,
   pastLoading,
   loading,
-  loadingStores
+  loadingStores,
+  onRefresh
 }) => {
   const navigateDate = (direction) => {
     const newDate = new Date(date);
@@ -115,22 +115,19 @@ export const CalendarHeader = ({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Filters */}
-        <CalendarFilters
-          stores={stores}
-          selectedStores={selectedStores}
-          setSelectedStores={setSelectedStores}
-          selectedChannels={selectedChannels}
-          setSelectedChannels={setSelectedChannels}
-          selectedTags={selectedTags}
-          setSelectedTags={setSelectedTags}
-          selectedStatuses={selectedStatuses}
-          setSelectedStatuses={setSelectedStatuses}
-          availableTags={availableTags}
-          showStoreDropdown={showStoreDropdown}
-          setShowStoreDropdown={setShowStoreDropdown}
-          loadingStores={loadingStores}
-        />
+        {/* Refresh Button */}
+        {onRefresh && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={pastLoading || futureLoading}
+            className="p-2"
+            title="Refresh campaigns"
+          >
+            <RefreshCw className={`h-4 w-4 ${(pastLoading || futureLoading) ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
 
         {/* View Selector */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">

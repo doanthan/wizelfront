@@ -3,11 +3,10 @@
 import { useState } from "react";
 import MorphingLoader from "@/app/components/ui/loading";
 import { useRouter } from "next/navigation";
-import { 
-    Search, 
-    Store, 
-    Plus, 
-    ChevronUp,
+import {
+    Search,
+    Store,
+    Plus,
     Settings,
     CreditCard,
     HelpCircle,
@@ -93,24 +92,16 @@ export default function StoreSelectorEnhanced({ collapsed = false, currentUser }
                     </div>
                     
                     {!collapsed && (
-                        <>
-                            <div className="ml-3 flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-gray dark:text-white truncate">
-                                    {currentStore?.name || 'Select Store'}
-                                </p>
-                                <p className="text-xs text-neutral-gray dark:text-gray-400">
-                                    {currentStore?.subscription_tier === 'enterprise' ? 'Enterprise' : 
-                                     currentStore?.subscription_tier === 'pro' ? 'Pro Plan' : 
-                                     stores?.length > 0 ? `${stores.length} stores` : 'No stores'}
-                                </p>
-                            </div>
-                            <ChevronUp
-                                className={cn(
-                                    "h-4 w-4 text-neutral-gray transition-transform duration-200",
-                                    menuOpen ? "rotate-0" : "rotate-180"
-                                )}
-                            />
-                        </>
+                        <div className="ml-3 flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-gray dark:text-white truncate">
+                                {currentStore?.name || 'Select Store'}
+                            </p>
+                            <p className="text-xs text-neutral-gray dark:text-gray-400">
+                                {currentStore?.subscription_tier === 'enterprise' ? 'Enterprise' :
+                                 currentStore?.subscription_tier === 'pro' ? 'Pro Plan' :
+                                 stores?.length > 0 ? `${stores.length} stores` : 'No stores'}
+                            </p>
+                        </div>
                     )}
                 </button>
             </DropdownMenuTrigger>
@@ -308,9 +299,21 @@ export default function StoreSelectorEnhanced({ collapsed = false, currentUser }
                 <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
                 
                 {/* Log Out */}
-                <DropdownMenuItem 
-                    className="cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20" 
+                <DropdownMenuItem
+                    className="cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                     onClick={() => {
+                        // Clear all stored data on logout
+                        localStorage.removeItem('analyticsSelectedAccounts');
+                        localStorage.removeItem('analyticsDateRange');
+                        localStorage.removeItem('recentStoreIds');
+                        localStorage.removeItem('selectedStoreId');
+                        localStorage.removeItem('tags');
+                        localStorage.removeItem('userPermissions');
+                        localStorage.removeItem('currentContract');
+                        localStorage.removeItem('theme');
+                        // Clear any session storage as well
+                        sessionStorage.clear();
+                        // Sign out
                         signOut({ callbackUrl: '/' });
                     }}
                 >

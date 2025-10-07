@@ -358,6 +358,105 @@ Right Panel
 
 ### Card Layouts
 
+#### Modern Dashboard Card Design
+**IMPORTANT: Use the dashboard card style for consistency across all metric cards**
+
+```scss
+// Dashboard Metric Cards Pattern (matches /dashboard)
+.metric-card {
+  background: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 16px 8px;  // pb-2 equivalent
+    space-y: 0;
+
+    .card-title {
+      font-size: 14px;        // text-sm
+      font-weight: 500;       // font-medium
+      color: #111827;         // text-gray-900 dark:text-gray-100
+      .dark & {
+        color: #F3F4F6;       // gray-100
+      }
+    }
+
+    .card-icon {
+      width: 16px;           // h-4 w-4
+      height: 16px;
+      color: #6B7280;        // text-gray-600 dark:text-gray-400
+      .dark & {
+        color: #9CA3AF;      // gray-400
+      }
+    }
+  }
+
+  .card-content {
+    padding: 0 16px 16px;    // No top padding
+
+    .metric-value {
+      font-size: 24px;        // text-2xl
+      font-weight: 700;       // font-bold
+      color: #111827;         // text-gray-900 dark:text-gray-100
+      line-height: 1.2;
+      .dark & {
+        color: #F3F4F6;       // gray-100
+      }
+    }
+
+    .metric-description {
+      font-size: 12px;        // text-xs
+      color: #6B7280;         // text-gray-600 dark:text-gray-400
+      margin-top: 4px;
+      .dark & {
+        color: #9CA3AF;       // gray-400
+      }
+    }
+  }
+}
+
+// Dark mode adjustments
+.dark .metric-card {
+  background: #111827;      // gray-900
+  border-color: #374151;    // gray-700
+}
+```
+
+#### ❌ AVOID: Old Border-Left Card Style
+```scss
+// DON'T USE: This creates visual inconsistency
+.card-old-style {
+  border-left: 4px solid #color;  // Creates inconsistent spacing
+  .card-content {
+    padding: 16px;                 // Single padding value looks cramped
+  }
+}
+```
+
+#### ✅ USE: Dashboard Card Structure
+```jsx
+// Correct implementation matching dashboard
+<Card>
+  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">
+      Metric Name
+    </CardTitle>
+    <Icon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+  </CardHeader>
+  <CardContent>
+    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+      {formatValue(value)}
+    </div>
+    <p className="text-xs text-gray-600 dark:text-gray-400">
+      descriptive text
+    </p>
+  </CardContent>
+</Card>
+```
+
 #### Card Component Guidelines
 ```scss
 // CRITICAL: Prevent content overflow in cards
@@ -366,18 +465,18 @@ Right Panel
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;  // Always include gap to prevent badges from touching content
-  
+
   .card-content-area {
     flex: 1;
     min-width: 0;  // Critical for text truncation
-    
+
     .card-title {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
   }
-  
+
   .card-badge {
     flex-shrink: 0;  // Prevent badge from shrinking
   }
@@ -386,29 +485,29 @@ Right Panel
 // Store Cards Pattern
 .store-card {
   padding: 24px;
-  
+
   .header {
     display: flex;
     justify-content: space-between;
     gap: 8px;
     margin-bottom: 16px;
-    
+
     .store-info {
       flex: 1;
       min-width: 0;  // Enable truncation
       display: flex;
       gap: 12px;
-      
+
       .icon-container {
         flex-shrink: 0;
         width: 48px;
         height: 48px;
       }
-      
+
       .text-content {
         flex: 1;
         min-width: 0;
-        
+
         h3, p {
           overflow: hidden;
           text-overflow: ellipsis;
@@ -416,7 +515,7 @@ Right Panel
         }
       }
     }
-    
+
     .status-badge {
       flex-shrink: 0;  // Never shrink badges
     }
@@ -633,6 +732,78 @@ function CampaignCard({ campaign }) {
 }
 ```
 
+## Dropdown & Popover Guidelines
+
+### CRITICAL: Always Use Solid Backgrounds
+
+**Never use transparent or semi-transparent backgrounds for dropdowns, popovers, or overlays.** This causes readability issues and unprofessional appearance.
+
+#### Dropdown/Popover Styling Rules
+
+```scss
+// ✅ CORRECT - Solid backgrounds with proper contrast
+.dropdown-content {
+  background: #FFFFFF;  // Pure white in light mode
+  border: 1px solid #E5E7EB;  // Gray-200 border
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.dark .dropdown-content {
+  background: #1F2937;  // Gray-800 in dark mode
+  border: 1px solid #374151;  // Gray-700 border
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+// ❌ WRONG - Transparent backgrounds
+.dropdown-content {
+  background: rgba(255, 255, 255, 0.8);  // NO! Causes visibility issues
+  backdrop-filter: blur(10px);  // Avoid for dropdowns
+}
+```
+
+#### Text Contrast Rules
+
+```scss
+// ✅ CORRECT - High contrast text
+.dropdown-item {
+  color: #111827;  // Gray-900 for primary text
+}
+
+.dropdown-item-secondary {
+  color: #6B7280;  // Gray-500 for secondary text
+}
+
+.dark .dropdown-item {
+  color: #F9FAFB;  // Gray-50 in dark mode
+}
+
+// ❌ WRONG - Low contrast text
+.dropdown-item {
+  color: #9CA3AF;  // text-muted/gray-400 - Too light!
+}
+```
+
+#### Implementation Examples
+
+```jsx
+// ✅ CORRECT - Multi-select with solid backgrounds
+<PopoverContent className="w-full p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
+  <div className="space-y-2">
+    {options.map(option => (
+      <div className="flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+        <Checkbox />
+        <span className="ml-2 text-gray-900 dark:text-gray-100">{option.label}</span>
+      </div>
+    ))}
+  </div>
+</PopoverContent>
+
+// ❌ WRONG - Transparent with poor contrast
+<PopoverContent className="w-full p-2 bg-white/80 backdrop-blur">
+  <div className="text-muted">{/* Poor visibility */}</div>
+</PopoverContent>
+```
+
 ## Motion & Animation
 
 ### Timing Functions
@@ -711,6 +882,59 @@ $ultrawide: 1536px;
 - **Contrast Ratios**: AA standard minimum (4.5:1)
 - **Color Independence**: Never use color alone to convey information
 - **Focus Visibility**: Clear focus indicators for keyboard users
+
+## 🚨 CRITICAL: Text Contrast Guidelines
+
+### NEVER Use Low-Contrast Text
+**IMPORTANT: The following text colors provide insufficient contrast and should NEVER be used for primary content:**
+
+```scss
+// ❌ FORBIDDEN - Low contrast colors
+.text-muted        // Too light - fails contrast standards
+.text-gray-400     // Only for disabled/placeholder text
+.text-gray-500     // Only for secondary/meta text
+.text-neutral-gray // Acceptable only for secondary text, never primary
+
+// ❌ WRONG - Examples of poor contrast
+color: #9CA3AF;    // gray-400 - Too light for body text
+color: #6B7280;    // gray-500 - Too light for primary content
+color: #8B8B8B;    // Any mid-gray - Insufficient contrast
+```
+
+### ✅ REQUIRED: High-Contrast Text Colors
+**Use these colors for optimal readability:**
+
+```scss
+// ✅ CORRECT - High contrast text colors
+.text-gray-900     // Primary text in light mode
+.text-gray-100     // Primary text in dark mode
+.text-slate-900    // Alternative primary text
+.text-black        // Maximum contrast when needed
+
+// Light Mode Text Hierarchy
+primary-text: #111827;    // gray-900 - Main content
+secondary-text: #374151;  // gray-700 - Supporting content
+meta-text: #6B7280;      // gray-500 - Timestamps, labels only
+
+// Dark Mode Text Hierarchy
+primary-text: #F9FAFB;    // gray-50 - Main content
+secondary-text: #E5E7EB;  // gray-200 - Supporting content
+meta-text: #9CA3AF;      // gray-400 - Timestamps, labels only
+```
+
+### Text Usage Rules
+1. **Primary Content**: Always use `text-gray-900 dark:text-gray-100`
+2. **Secondary Content**: Use `text-gray-700 dark:text-gray-200`
+3. **Meta Information**: Use `text-gray-600 dark:text-gray-400` (timestamps, labels)
+4. **Disabled/Placeholder**: Use `text-gray-500 dark:text-gray-500` only
+5. **Never**: Use `text-muted` or any color lighter than gray-600 for readable content
+
+### Contrast Testing
+All text must meet these standards:
+- **Normal text**: 4.5:1 minimum contrast ratio
+- **Large text (18px+)**: 3:1 minimum contrast ratio
+- **Interactive elements**: 3:1 minimum contrast ratio with background
+- **Focus indicators**: 3:1 minimum contrast ratio with background
 
 ## Error Handling
 

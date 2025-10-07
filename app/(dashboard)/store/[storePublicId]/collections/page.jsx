@@ -23,7 +23,10 @@ import {
   List,
   Calendar,
   Link,
-  Image
+  Image,
+  ShoppingBag,
+  RefreshCw,
+  Store
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,6 +55,7 @@ export default function CollectionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewType, setViewType] = useState("table"); // "table" or "card"
+  const [isShopifyStore, setIsShopifyStore] = useState(false);
 
   useEffect(() => {
     if (storePublicId) {
@@ -104,6 +108,10 @@ export default function CollectionsPage() {
       setCollections(data.collections || []);
       setPermissions(data.permissions || {});
       setStore(data.store);
+
+      // Check if any collection is from Shopify
+      const hasShopifyCollections = data.collections?.some(col => col.isShopifyCollection);
+      setIsShopifyStore(hasShopifyCollections);
       
       // Only redirect if explicitly no access, not just limited permissions
       if (data.permissions && !data.permissions.canEditBrands && !data.permissions.userRole) {
@@ -133,6 +141,46 @@ export default function CollectionsPage() {
 
   const handleViewCollection = (collectionId) => {
     router.push(`/store/${storePublicId}/collections/${collectionId}`);
+  };
+
+  const handleSyncShopifyCollections = async () => {
+    try {
+      toast({
+        title: "Syncing Collections",
+        description: "Fetching latest collections from Shopify...",
+      });
+
+      const response = await fetch(`/api/store/${storePublicId}/sync-shopify-collections`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to sync: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      toast({
+        title: "Sync Complete",
+        description: data.message || "Collections synced successfully",
+        variant: "default",
+      });
+
+      // Refresh collections
+      await fetchCollections();
+
+    } catch (error) {
+      console.error('Error syncing collections:', error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync collections from Shopify",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredCollections = collections.filter(collection => 
@@ -195,20 +243,38 @@ export default function CollectionsPage() {
               </Button>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-slate-gray dark:text-white">Collections</h1>
+                {isShopifyStore && (
+                  <Badge className="bg-gradient-to-r from-green-600 to-green-500 text-white border-0">
+                    <ShoppingBag className="h-3 w-3 mr-1" />
+                    Shopify
+                  </Badge>
+                )}
                 <span className="text-neutral-gray dark:text-gray-400">•</span>
                 <p className="text-neutral-gray dark:text-gray-400">{store?.name || "Loading..."}</p>
               </div>
             </div>
 
-            {permissions.canCreateCollections && (
-              <Button 
-                onClick={handleCreateCollection}
-                className="bg-sky-blue hover:bg-royal-blue text-white gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Create Collection
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {isShopifyStore && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleSyncShopifyCollections}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Sync Shopify
+                </Button>
+              )}
+              {permissions.canCreateCollections && !isShopifyStore && (
+                <Button
+                  onClick={handleCreateCollection}
+                  className="bg-sky-blue hover:bg-royal-blue text-white gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Collection
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Navigation Tabs - Always show, let API handle permissions */}
@@ -406,9 +472,13 @@ export default function CollectionsPage() {
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
-                        <div>
+                        <div className="flex-1">
                           <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
-                            <Tag className="h-4 w-4 text-sky-blue" />
+                            {collection.isShopifyCollection ? (
+                              <ShoppingBag className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <Tag className="h-4 w-4 text-sky-blue" />
+                            )}
                             {collection.title}
                           </CardTitle>
                           <CardDescription className="mt-1">
@@ -426,7 +496,18 @@ export default function CollectionsPage() {
                               <ExternalLink className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            {permissions.canEditCollections && (
+                            {collection.isShopifyCollection && collection.url_link && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(collection.url_link, '_blank');
+                                }}
+                              >
+                                <ShoppingBag className="h-4 w-4 mr-2" />
+                                View on Shopify
+                              </DropdownMenuItem>
+                            )}
+                            {permissions.canEditCollections && !collection.isShopifyCollection && (
                               <>
                                 <DropdownMenuItem>
                                   <Edit className="h-4 w-4 mr-2" />
@@ -438,7 +519,7 @@ export default function CollectionsPage() {
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {permissions.canDeleteCollections && (
+                            {permissions.canDeleteCollections && !collection.isShopifyCollection && (
                               <DropdownMenuItem className="text-red-600">
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -523,8 +604,17 @@ export default function CollectionsPage() {
                       >
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            <Tag className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                            {collection.isShopifyCollection ? (
+                              <ShoppingBag className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <Tag className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                            )}
                             <span className="text-gray-900 dark:text-gray-100">{collection.title}</span>
+                            {collection.isShopifyCollection && (
+                              <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                                Shopify
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 dark:text-gray-300">
@@ -565,7 +655,18 @@ export default function CollectionsPage() {
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              {permissions.canEditCollections && (
+                              {collection.isShopifyCollection && collection.url_link && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(collection.url_link, '_blank');
+                                  }}
+                                >
+                                  <ShoppingBag className="h-4 w-4 mr-2" />
+                                  View on Shopify
+                                </DropdownMenuItem>
+                              )}
+                              {permissions.canEditCollections && !collection.isShopifyCollection && (
                                 <>
                                   <DropdownMenuItem>
                                     <Edit className="h-4 w-4 mr-2" />
@@ -577,7 +678,7 @@ export default function CollectionsPage() {
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              {permissions.canDeleteCollections && (
+                              {permissions.canDeleteCollections && !collection.isShopifyCollection && (
                                 <DropdownMenuItem className="text-red-600">
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Delete

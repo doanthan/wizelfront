@@ -1,96 +1,114 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import connectToDatabase from "@/lib/mongoose";
-import mongoose from "mongoose";
-import Store from "@/models/Store";
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import connectToDatabase from '@/lib/mongoose';
+import { fetchScheduledCampaignsForStores } from '@/lib/klaviyo';
 
-export async function POST(request) {
+// GET - Fetch upcoming scheduled campaigns from Klaviyo API only
+export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     await connectToDatabase();
 
-    const { storeIds, limit = 10 } = await request.json();
-
-    if (!storeIds || storeIds.length === 0) {
-      return NextResponse.json({ campaigns: [] });
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get stores with their Klaviyo public IDs
-    const stores = await Store.find({
-      public_id: { $in: storeIds }
-    }).select('public_id name klaviyo_integration.public_id').lean();
+    // Get user's accessible stores with API keys
+    const User = (await import('@/models/User')).default;
+    const Store = (await import('@/models/Store')).default;
 
-    const klaviyoPublicIds = stores
-      .map(s => s.klaviyo_integration?.public_id)
-      .filter(Boolean);
-
-    if (klaviyoPublicIds.length === 0) {
-      return NextResponse.json({ campaigns: [] });
+    const user = await User.findById(session.user.id);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const now = new Date();
+    // Get all accessible stores with Klaviyo integration
+    const allStores = await Store.findByUser(session.user.id);
+    const accessibleStores = allStores.filter(store =>
+      store.klaviyo_integration?.apiKey || store.klaviyo_integration?.oauth_token
+    );
 
-    // Access the campaignStats collection directly
-    const db = mongoose.connection.db;
-    const campaignStatsCollection = db.collection('campaignstats');
+    if (accessibleStores.length === 0) {
+      return NextResponse.json({ campaigns: [], total: 0 });
+    }
 
-    // Fetch upcoming/scheduled campaigns
-    const upcomingCampaigns = await campaignStatsCollection
-      .find({
-        klaviyo_public_id: { $in: klaviyoPublicIds },
-        $or: [
-          { scheduled_at: { $gte: now } },
-          {
-            send_time: { $gte: now },
-            'statistics.recipients': { $eq: 0 } // Not sent yet
-          }
-        ]
-      })
-      .sort({ scheduled_at: 1, send_time: 1 }) // Sort by soonest first
-      .limit(limit)
-      .toArray();
-
-    // Map the campaigns to include store information
-    const campaignsWithStores = upcomingCampaigns.map(campaign => {
-      // Find which stores use this Klaviyo account
-      const associatedStores = stores.filter(
-        s => s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
+    try {
+      // Fetch only scheduled/sending campaigns from Klaviyo API
+      const scheduledCampaigns = await fetchScheduledCampaignsForStores(
+        accessibleStores,
+        null, // No start date - get all scheduled
+        null, // No end date - get all scheduled
+        'scheduled' // Only scheduled status campaigns
       );
 
-      return {
-        id: campaign.groupings?.campaign_id || campaign._id,
-        name: campaign.campaign_name,
-        channel: campaign.groupings?.send_channel || 'email',
-        send_date: campaign.scheduled_at || campaign.send_time,
-        estimated_recipients: campaign.statistics?.recipients || 0,
+      // Filter campaigns to only future ones with proper status
+      const filteredCampaigns = scheduledCampaigns.filter(campaign => {
+        // Use send_time first, then scheduled_at for comparison
+        const campaignDate = new Date(
+          campaign.attributes?.send_time ||
+          campaign.attributes?.scheduled_at ||
+          campaign.date ||
+          campaign.send_time ||
+          campaign.scheduled_at
+        );
 
-        // Store information
-        klaviyo_public_id: campaign.klaviyo_public_id,
-        store_public_ids: campaign.store_public_ids || associatedStores.map(s => s.public_id),
-        store_names: associatedStores.map(s => s.name)
-      };
-    });
+        const isFuture = campaignDate > new Date();
 
-    return NextResponse.json({
-      campaigns: campaignsWithStores,
-      count: campaignsWithStores.length
-    });
+        // Check if campaign has scheduled, sending, or queued without recipients status
+        const status = campaign.attributes?.status || campaign.status;
+        const isScheduledStatus = status === 'Scheduled' ||
+                                 status === 'Sending' 
+
+        return isFuture && isScheduledStatus;
+      });
+
+      // Format campaigns for display
+      const formattedCampaigns = filteredCampaigns.map(campaign => ({
+        id: `upcoming-${campaign.id}`,
+        campaignId: campaign.id,
+        messageId: campaign.relationships?.['campaign-messages']?.data?.[0]?.id ||
+                   campaign.messageId ||
+                   campaign.message_id ||
+                   null,
+        name: campaign.attributes?.name || campaign.name || 'Unnamed Campaign',
+        date: campaign.attributes?.send_time ||
+              campaign.attributes?.scheduled_at ||
+              campaign.date ||
+              campaign.send_time ||
+              campaign.scheduled_at,
+        channel: campaign._channel || campaign.channel || 'email',
+        status: campaign.attributes?.status || campaign.status || 'Scheduled',
+        isScheduled: true,
+        // Store info
+        storeName: campaign.storeInfo?.name || 'Unknown Store',
+        klaviyo_public_id: campaign.storeInfo?.klaviyoPublicId,
+        store_public_ids: campaign.store_public_ids || [campaign.storeInfo?.publicId],
+        // Klaviyo campaign fields
+        scheduled_at: campaign.attributes?.scheduled_at || campaign.scheduled_at,
+        send_time: campaign.attributes?.send_time || campaign.send_time,
+        estimated_recipients: campaign.attributes?.estimated_recipients || 0,
+        audiences: campaign.attributes?.audiences || campaign.audiences || {
+          included: [],
+          excluded: []
+        }
+      }));
+
+      return NextResponse.json({
+        campaigns: formattedCampaigns,
+        total: formattedCampaigns.length
+      });
+
+    } catch (error) {
+      console.warn('Error fetching upcoming campaigns:', error.message);
+      return NextResponse.json({ campaigns: [], total: 0 });
+    }
 
   } catch (error) {
-    console.error('Error fetching upcoming campaigns:', error);
+    console.error('Upcoming campaigns fetch error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch campaigns' },
+      { error: 'Failed to fetch upcoming campaigns' },
       { status: 500 }
     );
   }
-}
-
-// GET method for testing
-export async function GET(request) {
-  return POST(request);
 }

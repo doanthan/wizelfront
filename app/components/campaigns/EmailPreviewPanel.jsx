@@ -5,7 +5,7 @@ import { FileText, MessageSquare } from 'lucide-react';
 import MorphingLoader from '@/app/components/ui/loading';
 import { cn } from '@/lib/utils';
 
-export const EmailPreviewPanel = ({ messageId, storeId, compact = false }) => {
+export const EmailPreviewPanel = ({ messageId, storeId, compact = false, messageType = 'campaign' }) => {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -17,27 +17,31 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false }) => {
         setContent(null);
         return;
       }
-      
-      console.log('📧 EmailPreviewPanel: Fetching content for:', { messageId, storeId });
-      
+
+      console.log('📧 EmailPreviewPanel: Fetching content for:', { messageId, storeId, messageType });
+
       try {
         setLoading(true);
         // StoreId is required for the API
         if (!storeId) {
-          console.error('EmailPreviewPanel: StoreId is required to fetch campaign content');
-          console.log('Available info:', { messageId, storeId });
+          console.error('EmailPreviewPanel: StoreId is required to fetch content');
+          console.log('Available info:', { messageId, storeId, messageType });
           setContent(null);
           setLoading(false);
           return;
         }
-        
-        const url = `/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`;
+
+        // Determine API endpoint based on message type
+        const url = messageType === 'flow'
+          ? `/api/flow-messages/${messageId}?storeId=${storeId}&include=template`
+          : `/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`;
+
         console.log('🔗 EmailPreviewPanel: Fetching from URL:', url);
         const response = await fetch(url);
         if (response.ok) {
           const result = await response.json();
-          console.log('✅ EmailPreviewPanel: Received content:', { 
-            success: result.success, 
+          console.log('✅ EmailPreviewPanel: Received content:', {
+            success: result.success,
             channel: result.data?.channel || result.data?.type,
             hasHtml: !!result.data?.html,
             hasBody: !!result.data?.body,
@@ -47,7 +51,7 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false }) => {
           setContent(result.data || result);
         } else {
           const errorText = await response.text();
-          console.error('❌ EmailPreviewPanel: Failed to fetch campaign content:', response.status, errorText);
+          console.error('❌ EmailPreviewPanel: Failed to fetch content:', response.status, errorText);
           setContent(null);
         }
       } catch (error) {
@@ -59,7 +63,7 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false }) => {
     };
 
     fetchContent();
-  }, [messageId, storeId]);
+  }, [messageId, storeId, messageType]);
 
   if (loading) {
     return (

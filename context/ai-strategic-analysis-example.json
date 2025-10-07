@@ -1,0 +1,281 @@
+{
+  "description": "Strategic Analysis Example - Answers 'WHY' and 'WHAT NEXT' questions",
+  "purpose": "Enable AI to answer strategic questions like 'Why is campaign X better?' and 'What campaigns should I do next?'",
+
+  "topCampaigns": [
+    {
+      "name": "Black Friday - 70% Off Everything 🔥",
+      "revenue": 125678.50,
+      "recipients": 87654,
+      "openRate": 0.3456,
+      "clickRate": 0.0567,
+      "conversionRate": 0.0234,
+      "sendTime": "2024-11-29T10:00:00.000Z",
+      "subjectLine": "🔥 Black Friday - 70% Off Everything (Today Only!)",
+      "campaignType": "promotional",
+      "segment": "All Subscribers",
+      "channel": "email",
+      "hasDiscount": true,
+      "discountAmount": 70,
+      "isUrgent": true,
+      "isPersonalized": false,
+      "hasEmoji": true,
+      "sendDay": "Friday",
+      "sendHour": 10
+    },
+    {
+      "name": "VIP Early Access - Winter Collection",
+      "revenue": 98754.20,
+      "recipients": 23456,
+      "openRate": 0.4567,
+      "clickRate": 0.0987,
+      "conversionRate": 0.0456,
+      "sendTime": "2024-11-15T14:00:00.000Z",
+      "subjectLine": "Exclusive Preview: New Winter Collection",
+      "campaignType": "vip",
+      "segment": "VIP Customers",
+      "channel": "email",
+      "hasDiscount": false,
+      "discountAmount": null,
+      "isUrgent": false,
+      "isPersonalized": true,
+      "hasEmoji": false,
+      "sendDay": "Tuesday",
+      "sendHour": 14
+    },
+    {
+      "name": "Cyber Monday Flash Sale",
+      "revenue": 87432.10,
+      "recipients": 92341,
+      "openRate": 0.2987,
+      "clickRate": 0.0498,
+      "conversionRate": 0.0198,
+      "sendTime": "2024-12-02T08:00:00.000Z",
+      "subjectLine": "Final Hours: Cyber Monday Sale Ends Tonight",
+      "campaignType": "promotional",
+      "segment": "All Subscribers",
+      "channel": "email",
+      "hasDiscount": true,
+      "discountAmount": 50,
+      "isUrgent": true,
+      "isPersonalized": false,
+      "hasEmoji": false,
+      "sendDay": "Monday",
+      "sendHour": 8
+    }
+  ],
+
+  "strategicInsights": {
+    "contentPatterns": {
+      "discountPerformance": {
+        "withDiscount": { "count": 2, "avgRevenue": 106555.30 },
+        "withoutDiscount": { "count": 1, "avgRevenue": 98754.20 },
+        "winner": "with_discount",
+        "insight": "Discount campaigns generate 8% more revenue on average"
+      },
+
+      "urgencyImpact": {
+        "withUrgency": { "count": 2, "avgOpenRate": 0.3221 },
+        "withoutUrgency": { "count": 1, "avgOpenRate": 0.4567 },
+        "insight": "Urgent language doesn't significantly improve open rates"
+      },
+
+      "emojiImpact": {
+        "insight": "Emojis in subject lines increase open rates by 16%"
+      }
+    },
+
+    "audiencePatterns": {
+      "bySegment": {
+        "All Subscribers": {
+          "campaigns": [
+            "Black Friday - 70% Off Everything",
+            "Cyber Monday Flash Sale"
+          ],
+          "totalRevenue": 213110.60,
+          "avgOpenRate": 0.3221,
+          "avgClickRate": 0.0532,
+          "avgConversionRate": 0.0216,
+          "count": 2
+        },
+        "VIP Customers": {
+          "campaigns": [
+            "VIP Early Access - Winter Collection"
+          ],
+          "totalRevenue": 98754.20,
+          "avgOpenRate": 0.4567,
+          "avgClickRate": 0.0987,
+          "avgConversionRate": 0.0456,
+          "count": 1
+        }
+      },
+
+      "bestSegment": {
+        "name": "All Subscribers",
+        "totalRevenue": 213110.60,
+        "insight": "All Subscribers is your highest-value segment with $213.1K revenue from 2 top campaigns"
+      }
+    },
+
+    "timingPatterns": {
+      "byDay": {
+        "Friday": { "campaigns": 1, "revenue": 125678.50 },
+        "Tuesday": { "campaigns": 1, "revenue": 98754.20 },
+        "Monday": { "campaigns": 1, "revenue": 87432.10 }
+      },
+      "byHour": {
+        "10": { "campaigns": 1, "revenue": 125678.50 },
+        "14": { "campaigns": 1, "revenue": 98754.20 },
+        "8": { "campaigns": 1, "revenue": 87432.10 }
+      },
+      "insight": "Your top performers show clear timing patterns - replicate this timing for future campaigns"
+    },
+
+    "campaignTypePatterns": {
+      "byType": {
+        "promotional": {
+          "campaigns": ["Black Friday", "Cyber Monday"],
+          "totalRevenue": 213110.60,
+          "avgOpenRate": 0.3221,
+          "avgClickRate": 0.0532,
+          "count": 2
+        },
+        "vip": {
+          "campaigns": ["VIP Early Access"],
+          "totalRevenue": 98754.20,
+          "avgOpenRate": 0.4567,
+          "avgClickRate": 0.0987,
+          "count": 1
+        }
+      },
+      "topType": {
+        "type": "promotional",
+        "totalRevenue": 213110.60,
+        "insight": "promotional campaigns are your strongest performers"
+      }
+    },
+
+    "nextCampaignSuggestions": [
+      {
+        "title": "Create discount-driven campaign",
+        "rationale": "2 of your top 3 campaigns included discounts",
+        "action": "Launch a limited-time offer with a clear discount (30-50% off)",
+        "expectedImpact": "High revenue potential based on historical performance",
+        "priority": "High"
+      },
+      {
+        "title": "Create campaign targeting VIP Customers",
+        "rationale": "This segment appears in 1 of your top campaigns",
+        "action": "Design personalized content for VIP Customers highlighting exclusive benefits",
+        "expectedImpact": "Higher conversion rates with targeted messaging",
+        "priority": "High"
+      },
+      {
+        "title": "Schedule campaign at proven send time",
+        "rationale": "Your top campaigns were sent on Friday around 10:00",
+        "action": "Schedule next campaign for Friday at 10:00",
+        "expectedImpact": "Improved engagement by leveraging proven timing",
+        "priority": "Medium"
+      },
+      {
+        "title": "Create another promotional campaign",
+        "rationale": "promotional campaigns dominate your top performers",
+        "action": "Develop a new promotional campaign with fresh creative",
+        "expectedImpact": "Consistent performance with proven campaign format",
+        "priority": "Medium"
+      },
+      {
+        "title": "A/B test variations of top performer",
+        "rationale": "Black Friday - 70% Off Everything was your highest revenue campaign",
+        "action": "Test different subject lines, discounts, or CTAs with same audience",
+        "expectedImpact": "Optimize already-proven campaign formula",
+        "priority": "Medium"
+      }
+    ],
+
+    "whyPerformanceDiffers": [
+      "Revenue: Black Friday - 70% Off Everything earned 27% more than VIP Early Access - Winter Collection",
+      "Open Rate: 34.6% vs 45.7% (-24%) - likely because it uses emoji and creates urgency",
+      "Click Rate: 5.67% vs 9.87% (-43%)",
+      "Conversion Rate: 2.34% vs 4.56% (-49%)",
+      "Audience: \"All Subscribers\" outperforms \"VIP Customers\" - consider focusing on higher-value segments"
+    ]
+  },
+
+  "exampleQuestions": {
+    "strategic": [
+      {
+        "question": "Why is 'Black Friday' performing better than 'Cyber Monday'?",
+        "answer": "Black Friday earned 44% more revenue primarily due to:\n1. 70% discount vs 50% discount (higher value proposition)\n2. Emoji in subject line (🔥) increased open rate by 16%\n3. Better send time (Friday 10am vs Monday 8am)\n4. Stronger urgency language ('Today Only' vs 'Ends Tonight')\n\nThe data shows discount amount and timing were the key differentiators."
+      },
+      {
+        "question": "What campaigns should I do next?",
+        "answer": "Based on your top performers, here are 5 recommended campaigns:\n\n1. **Create discount-driven campaign** (High Priority)\n   - 2 of your top 3 campaigns included discounts\n   - Launch a limited-time 40-60% off sale\n   - Expected: High revenue based on historical performance\n\n2. **Target VIP Customers** (High Priority)\n   - Your VIP segment has 4.56% conversion rate vs 2.16% average\n   - Create exclusive early access or VIP-only products\n   - Expected: 2-3x higher conversion rates\n\n3. **Schedule for Friday 10am** (Medium Priority)\n   - Your highest revenue campaign was sent Friday 10am\n   - Replicate this proven timing\n\n4. **Create another promotional campaign** (Medium Priority)\n   - Promotional campaigns generated $213K (68% of top revenue)\n   - Focus on time-limited offers with clear discounts\n\n5. **A/B test Black Friday variations** (Medium Priority)\n   - Test different discount amounts (60% vs 70%)\n   - Test emoji variations (🔥 vs ⚡ vs none)\n   - Test subject line urgency levels"
+      },
+      {
+        "question": "Should I use emojis in subject lines?",
+        "answer": "Yes, but strategically. Your data shows:\n- Emojis increase open rates by 16%\n- 'Black Friday 🔥' had 34.6% open rate\n- 'Cyber Monday' (no emoji) had 29.9% open rate\n\nRecommendation: Use emojis for promotional/urgent campaigns, but test different emojis to see what resonates with your audience. 🔥 and ⚡ tend to work well for sales."
+      },
+      {
+        "question": "Which audience segment should I focus on?",
+        "answer": "Focus on expanding your VIP Customers segment:\n\n**VIP Customers** (your best segment):\n- 45.7% open rate (vs 32.2% average)\n- 9.87% click rate (vs 5.32% average)\n- 4.56% conversion rate (vs 2.16% average)\n- $4,208 revenue per campaign on average\n\nActionable steps:\n1. Create a VIP tier program to grow this segment\n2. Send VIP-exclusive campaigns 2-3x per month\n3. Offer early access, exclusive products, or higher discounts\n4. Move top customers from 'All Subscribers' to VIP based on purchase history"
+      },
+      {
+        "question": "What discount percentage works best?",
+        "answer": "Your data shows 70% discount outperformed 50%:\n\n- **70% off**: $125K revenue, 34.6% open rate\n- **50% off**: $87K revenue, 29.9% open rate\n\nHowever, consider:\n1. Higher discounts may reduce margins\n2. VIP campaign with NO discount generated $98K with 45.7% open rate\n3. Value proposition matters more than discount size for VIP segment\n\nRecommendation:\n- **Mass market**: 50-70% discounts during peak seasons\n- **VIP segment**: Exclusivity > discounts (early access, limited editions)\n- **Test**: 40%, 50%, 60%, 70% to find sweet spot for your margins"
+      }
+    ],
+
+    "tactical": [
+      {
+        "question": "What's the best day to send campaigns?",
+        "answer": "Friday generated the highest revenue ($125K), but Tuesday had the best engagement:\n\n- **Friday 10am**: $125K revenue (promotional campaign)\n- **Tuesday 2pm**: $98K revenue (VIP campaign, 45.7% open rate)\n- **Monday 8am**: $87K revenue (lower engagement)\n\nRecommendation: Tuesday-Friday are your best days. Avoid Monday mornings."
+      },
+      {
+        "question": "What subject line patterns work best?",
+        "answer": "Your top performers show these patterns:\n\n1. **Emoji + Urgency + Discount**\n   - '🔥 Black Friday - 70% Off Everything (Today Only!)'\n   - 34.6% open rate, $125K revenue\n\n2. **Exclusivity + Value**\n   - 'Exclusive Preview: New Winter Collection'\n   - 45.7% open rate (VIP segment)\n\n3. **Urgency + Deadline**\n   - 'Final Hours: Cyber Monday Sale Ends Tonight'\n   - 29.9% open rate\n\nKey elements: Clear value prop, urgency/scarcity, specific discount amount"
+      }
+    ]
+  },
+
+  "aiContextUsage": {
+    "whenUserAsks": "Why is Black Friday better than Cyber Monday?",
+    "aiUses": {
+      "topCampaigns": "Gets both campaigns with full strategic context",
+      "strategicInsights.whyPerformanceDiffers": "Pre-calculated comparison",
+      "strategicInsights.contentPatterns": "Analyzes discount impact, emoji impact, urgency",
+      "strategicInsights.timingPatterns": "Compares send times"
+    },
+    "aiResponse": "Black Friday outperformed Cyber Monday by 44% ($125K vs $87K) for these reasons:\n\n1. **Higher discount** (70% vs 50%) created stronger value proposition\n2. **Emoji in subject** (🔥) increased open rate by 16% (34.6% vs 29.9%)\n3. **Better timing** (Friday 10am vs Monday 8am)\n4. **Stronger urgency** ('Today Only' vs 'Ends Tonight')\n\nThe combination of higher perceived value and better timing drove the revenue difference."
+  },
+
+  "implementationNotes": {
+    "dataRequirements": [
+      "campaign_name",
+      "subject_line (if available)",
+      "revenue",
+      "recipients",
+      "opens_unique",
+      "clicks_unique",
+      "conversions",
+      "send_time",
+      "segment_name or audience_name",
+      "tags (optional)"
+    ],
+
+    "automaticDetection": [
+      "Campaign type (promotional, vip, newsletter, etc.) - detected from name/subject",
+      "Discount presence and amount - detected via regex",
+      "Urgency language - detected via keyword matching",
+      "Emoji usage - detected via unicode ranges",
+      "Send day and hour - extracted from send_time"
+    ],
+
+    "tokenUsage": {
+      "raw900campaigns": "~150,000 tokens",
+      "aggregatedWithStrategy": "~8,000 tokens",
+      "savings": "95% reduction",
+      "enables": "Strategic questions that require pattern analysis"
+    }
+  }
+}

@@ -210,14 +210,13 @@ export default function StoreRevenueReportPage() {
             onValueChange={handleStoreChange}
             disabled={isLoadingStores || !stores || stores.length === 0}
           >
-            <SelectTrigger className="h-9 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-colors min-w-[200px] flex items-center justify-between">
+            <SelectTrigger className="h-9 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:border-gray-300 dark:hover:border-gray-600 transition-colors min-w-[200px]">
               <div className="flex items-center gap-2">
                 <Store className="h-4 w-4 text-gray-500" />
                 <span className="text-gray-900 dark:text-gray-100 font-medium">
                   {currentStore?.name || 'Select store'}
                 </span>
               </div>
-              <ChevronDown className="h-4 w-4 text-gray-400" />
             </SelectTrigger>
             <SelectContent align="end" className="w-[250px]">
               {stores && stores.map(store => (

@@ -33,7 +33,8 @@ import {
     Plus,
     Search,
     Check,
-    X
+    X,
+    FileText
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useToast } from '@/app/components/ui/use-toast'
@@ -93,6 +94,15 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
         if (isOpen && campaign) {
             setCampaignData(campaign);
 
+            // Debug logging to check audiences data
+            console.log('ScheduledCampaignModal - Campaign data:', {
+                campaignName: campaign.name,
+                audiences: campaign.audiences,
+                included_audiences: campaign.included_audiences,
+                excluded_audiences: campaign.excluded_audiences,
+                hasAudiences: !!(campaign.audiences?.included?.length || campaign.audiences?.excluded?.length)
+            });
+
             // Initialize update form with campaign data
             setUpdateForm({
                 name: campaign.campaign_name || campaign.name || '',
@@ -119,26 +129,77 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
         }
     }, [isOpen, campaign])
 
+    // Fetch full campaign details including audiences when modal opens
+    useEffect(() => {
+        const fetchCampaignDetails = async () => {
+            if (!isOpen || !campaign) return;
+
+            const campaignId = campaign.campaignId || campaign.id?.replace('future-', '');
+            const storeId = campaign.klaviyo_public_id;
+
+            if (!campaignId || !storeId) {
+                console.warn('Missing campaignId or storeId for fetching campaign details');
+                return;
+            }
+
+            try {
+                console.log('Fetching full campaign details:', { campaignId, storeId });
+                const response = await fetch(`/api/klaviyo/campaign/${campaignId}?storeId=${storeId}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        console.log('Fetched campaign with audiences:', result.data.audiences);
+
+                        // Update the campaign data with the fetched details
+                        setCampaignData(prev => ({
+                            ...prev,
+                            audiences: result.data.audiences,
+                            attributes: result.data.attributes,
+                            ...result.data.attributes  // Spread attributes to top level for easier access
+                        }));
+                    }
+                } else {
+                    console.error('Failed to fetch campaign details, status:', response.status);
+                }
+            } catch (error) {
+                console.error('Error fetching campaign details:', error);
+            }
+        };
+
+        fetchCampaignDetails();
+    }, [isOpen, campaign?.id, campaign?.campaignId, campaign?.klaviyo_public_id]);
+
     // Fetch and cache audiences for the store
     useEffect(() => {
         const fetchStoreAudiences = async () => {
             if (!isOpen || !campaign) return;
 
             const data = campaignData || campaign;
-            const storeId = data.klaviyo_public_id;
+            // Try multiple ways to get the store ID
+            const storeId = data.klaviyo_public_id ||
+                           data.store?.klaviyo_integration?.public_id ||
+                           stores?.find(s =>
+                               s.public_id === data?.store_public_id ||
+                               s.public_id === campaign?.store_public_id
+                           )?.klaviyo_integration?.public_id;
 
             if (!storeId) {
+                console.warn('No klaviyo store ID found for audience fetch');
                 return;
             }
 
             // Check if we already have cached audiences for this store
             if (audienceCache[storeId]) {
+                console.log('Using cached audiences for store:', storeId);
                 setStoreAudiences(audienceCache[storeId]);
                 return;
             }
 
             // Check if we're already fetching for this store
             if (fetchingStores.has(storeId)) {
+                console.log('Already fetching audiences for store:', storeId);
                 return;
             }
 
@@ -146,16 +207,24 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
             setLoadingAudiences(true);
 
             try {
+                console.log('Fetching audiences for store:', storeId);
                 const response = await fetch(`/api/klaviyo/store-audiences?storeId=${storeId}`);
 
                 if (response.ok) {
                     const result = await response.json();
                     const audienceData = result.data?.audienceIndex || {};
 
+                    console.log('Fetched audience data:', {
+                        storeId,
+                        audienceCount: Object.keys(audienceData).length,
+                        sampleAudiences: Object.keys(audienceData).slice(0, 3)
+                    });
+
                     // Cache the data globally
                     audienceCache[storeId] = audienceData;
                     setStoreAudiences(audienceData);
                 } else {
+                    console.error('Failed to fetch audiences, status:', response.status);
                     setStoreAudiences({});
                 }
             } catch (error) {
@@ -168,7 +237,7 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
         };
 
         fetchStoreAudiences();
-    }, [isOpen, campaign?.id]) // Only depend on isOpen and campaign.id
+    }, [isOpen, campaign?.id, campaign?.klaviyo_public_id]) // Use campaign's klaviyo_public_id instead
 
     // Fetch recipient estimation using the simpler endpoint
     useEffect(() => {
@@ -329,9 +398,18 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                             <Calendar className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" />
                                             <span className="font-medium">{formatDate(data.send_time || data.scheduled_at)}</span>
                                         </div>
-                                        <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 py-0 px-1.5 text-xs">
-                                            <Clock className="w-2.5 h-2.5 mr-0.5" />
-                                            Scheduled
+                                        <Badge
+                                            variant="outline"
+                                            className={
+                                                data.status === 'Draft'
+                                                    ? "border-gray-500 text-gray-600 bg-gray-50 py-0 px-1.5 text-xs"
+                                                    : "border-blue-500 text-blue-600 bg-blue-50 py-0 px-1.5 text-xs"
+                                            }
+                                        >
+                                            {data.status === 'Draft' ?
+                                                <><FileText className="w-2.5 h-2.5 mr-0.5" />Draft</> :
+                                                <><Clock className="w-2.5 h-2.5 mr-0.5" />Scheduled</>
+                                            }
                                         </Badge>
                                         <Badge variant="outline" className="border-gray-300 dark:border-gray-600 py-0 px-1.5 text-xs">
                                             {data.type === 'sms' || data.channel === 'sms' ? (
@@ -381,6 +459,12 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                                         'Not scheduled yet'
                                                     }
                                                 </p>
+                                                {/* Local timezone note - moved here */}
+                                                {data.send_strategy?.options?.is_local && (
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Sending in recipient's local timezone
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -400,7 +484,17 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                             <Activity className="w-4 h-4 text-gray-500 mt-0.5" />
                                             <div className="flex-1">
                                                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Campaign Status</p>
-                                                <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 mt-1">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={
+                                                        data.status === 'Draft'
+                                                            ? "border-gray-500 text-gray-600 bg-gray-50 mt-1"
+                                                            : data.status === 'Queued without Recipients'
+                                                            ? "border-yellow-500 text-yellow-600 bg-yellow-50 mt-1"
+                                                            : "border-blue-500 text-blue-600 bg-blue-50 mt-1"
+                                                    }
+                                                >
+                                                    {/* Show the actual status from Klaviyo */}
                                                     {data.status || 'Scheduled'}
                                                 </Badge>
                                             </div>
@@ -421,14 +515,6 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Local timezone note - full width */}
-                                    {data.send_strategy?.options?.is_local && (
-                                        <p className="text-xs text-gray-500 mt-3 pt-3 border-t dark:border-gray-700">
-                                            <Clock className="w-3 h-3 inline mr-1" />
-                                            Sending in recipient's local timezone
-                                        </p>
-                                    )}
                                 </CardContent>
                             </Card>
 
@@ -441,7 +527,19 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    {data.audiences?.included?.length > 0 && (
+                                    {/* Debug logging for audiences */}
+                                    {console.log('Full campaign data:', campaign)}
+                                    {console.log('Full data object:', data)}
+                                    {console.log('Audiences display check:', {
+                                        data_audiences: data.audiences,
+                                        campaign_audiences: campaign?.audiences,
+                                        included: data.audiences?.included || campaign?.audiences?.included,
+                                        excluded: data.audiences?.excluded || campaign?.audiences?.excluded,
+                                        storeAudiences: Object.keys(storeAudiences || {}).length,
+                                        loadingAudiences
+                                    })}
+
+                                    {(data.audiences?.included?.length > 0 || campaign?.audiences?.included?.length > 0) && (
                                         <div>
                                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                                                 Included Audiences
@@ -450,18 +548,23 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                                 )}
                                             </p>
                                             <div className="flex flex-wrap gap-1.5">
-                                                {data.audiences.included.map((audienceId) => {
+                                                {(data.audiences?.included || campaign?.audiences?.included || []).map((audienceId) => {
                                                     const audience = storeAudiences?.[audienceId];
-                                                    const name = audience?.name || audienceId;
+                                                    // Show the name if we have it, otherwise show the ID
+                                                    const name = audience?.name || `Audience ${audienceId.slice(0, 8)}...`;
                                                     const profileCount = audience?.profile_count;
                                                     const type = audience?.type;
+                                                    const isLoading = loadingAudiences && !audience;
 
                                                     return (
                                                         <Badge
                                                             key={audienceId}
                                                             variant="secondary"
-                                                            className="bg-green-100 text-green-800 border-green-300 text-xs py-0.5 px-2"
-                                                            title={`${type === 'segment' ? 'Segment' : type === 'list' ? 'List' : 'Audience'}: ${name}`}
+                                                            className={`text-xs py-0.5 px-2 ${
+                                                                isLoading ? 'bg-gray-100 text-gray-600 animate-pulse' :
+                                                                'bg-green-100 text-green-800 border-green-300'
+                                                            }`}
+                                                            title={`${type === 'segment' ? 'Segment' : type === 'list' ? 'List' : 'Audience'}: ${audience?.name || audienceId}`}
                                                         >
                                                             <UserCheck className="w-2.5 h-2.5 mr-0.5" />
                                                             {name}
@@ -477,7 +580,7 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                         </div>
                                     )}
 
-                                    {data.audiences?.excluded?.length > 0 && (
+                                    {(data.audiences?.excluded?.length > 0 || campaign?.audiences?.excluded?.length > 0) && (
                                         <div>
                                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                                                 Excluded Audiences
@@ -486,17 +589,22 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                                 )}
                                             </p>
                                             <div className="flex flex-wrap gap-1.5">
-                                                {data.audiences.excluded.map((audienceId) => {
+                                                {(data.audiences?.excluded || campaign?.audiences?.excluded || []).map((audienceId) => {
                                                     const audience = storeAudiences?.[audienceId];
-                                                    const name = audience?.name || audienceId;
+                                                    // Show the name if we have it, otherwise show the ID
+                                                    const name = audience?.name || `Audience ${audienceId.slice(0, 8)}...`;
                                                     const type = audience?.type;
+                                                    const isLoading = loadingAudiences && !audience;
 
                                                     return (
                                                         <Badge
                                                             key={audienceId}
                                                             variant="secondary"
-                                                            className="bg-red-100 text-red-800 border-red-300 text-xs py-0.5 px-2"
-                                                            title={`${type === 'segment' ? 'Segment' : type === 'list' ? 'List' : 'Audience'}: ${name}`}
+                                                            className={`text-xs py-0.5 px-2 ${
+                                                                isLoading ? 'bg-gray-100 text-gray-600 animate-pulse' :
+                                                                'bg-red-100 text-red-800 border-red-300'
+                                                            }`}
+                                                            title={`${type === 'segment' ? 'Segment' : type === 'list' ? 'List' : 'Audience'}: ${audience?.name || audienceId}`}
                                                         >
                                                             <XCircle className="w-2.5 h-2.5 mr-0.5" />
                                                             {name}
@@ -517,6 +625,10 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                                     </span>
                                                 ) : estimatedRecipients > 0 ? (
                                                     formatNumber(estimatedRecipients)
+                                                ) : data.estimated_recipients > 0 ? (
+                                                    formatNumber(data.estimated_recipients)
+                                                ) : campaign?.estimated_recipients > 0 ? (
+                                                    formatNumber(campaign.estimated_recipients)
                                                 ) : (
                                                     <span className="text-xs text-gray-500">Not available</span>
                                                 )}

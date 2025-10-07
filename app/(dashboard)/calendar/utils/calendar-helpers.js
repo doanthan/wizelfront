@@ -115,13 +115,14 @@ export const sortCampaignsByDate = (campaigns, direction = 'desc') => {
  * Get campaign metrics display
  */
 export const getCampaignMetrics = (campaign) => {
+  // Use performance object (API already mapped from statistics)
   const openRate = campaign.performance?.openRate || 0;
   const clickRate = campaign.performance?.clickRate || 0;
   const revenue = campaign.performance?.revenue || 0;
-  
+
   let metricDisplay = '';
   let metricValue = 0;
-  
+
   if (campaign.channel === 'sms') {
     metricDisplay = 'CTR';
     metricValue = clickRate;
@@ -129,7 +130,7 @@ export const getCampaignMetrics = (campaign) => {
     metricDisplay = 'Open';
     metricValue = openRate;
   }
-  
+
   return {
     openRate,
     clickRate,
@@ -143,10 +144,11 @@ export const getCampaignMetrics = (campaign) => {
  * Check if campaign is scheduled
  */
 export const isCampaignScheduled = (campaign) => {
-  return campaign.isScheduled || 
-         campaign.status === 'scheduled' || 
-         campaign.status === 'Draft' || 
+  return campaign.isScheduled ||
+         campaign.status === 'scheduled' ||
+         campaign.status === 'Draft' ||
          campaign.status === 'Scheduled' ||
+         campaign.status === 'Sending' ||
          campaign.status === 'Queued without Recipients';
 };
 

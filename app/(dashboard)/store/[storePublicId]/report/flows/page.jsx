@@ -6,12 +6,11 @@ import { useStores } from "@/app/contexts/store-context";
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
 import { useTheme } from "@/app/contexts/theme-context";
 import { Button } from "@/app/components/ui/button";
-import { Sun, Moon, Store } from "lucide-react";
+import { Sun, Moon, Store, ArrowUpDown } from "lucide-react";
 import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils';
 import MorphingLoader from '@/app/components/ui/loading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { Progress } from "@/app/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -19,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { MultiSelect } from "@/app/components/ui/multi-select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -30,16 +31,237 @@ import {
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList
+  ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-  Zap, TrendingUp, TrendingDown, DollarSign,
-  Users, ShoppingCart, Mail, Clock,
-  ArrowUp, ArrowDown, Calendar, Activity,
-  CheckCircle, XCircle, AlertCircle, Repeat
+  TrendingUp, TrendingDown, DollarSign,
+  Users, Mail, ArrowUp, ArrowDown
 } from 'lucide-react';
 
-const COLORS = ['#60A5FA', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899'];
+// Design system colors from design-principles.md
+const COLORS = [
+  '#60A5FA', // Sky blue (primary brand)
+  '#8B5CF6', // Vivid violet (secondary)
+  '#22C55E', // Success green
+  '#F59E0B', // Warning amber
+  '#EF4444', // Danger red
+  '#2563EB', // Royal blue
+  '#7C3AED', // Deep purple
+  '#34D399', // Emerald
+  '#FBBF24', // Amber
+  '#F87171'  // Red
+];
+
+const METRIC_OPTIONS = [
+  { value: 'recipients', label: 'Recipients', color: '#3b82f6' },
+  { value: 'opens', label: 'Unique Opens', color: '#10b981' },
+  { value: 'clicks', label: 'Unique Clicks', color: '#f59e0b' },
+  { value: 'conversions', label: 'Conversions', color: '#8b5cf6' },
+  { value: 'open_rate', label: 'Open Rate %', color: '#06b6d4' },
+  { value: 'click_rate', label: 'Click Rate %', color: '#ec4899' },
+  { value: 'conversion_rate', label: 'Conversion Rate %', color: '#ef4444' },
+  { value: 'revenue', label: 'Revenue', color: '#10b981' },
+];
+
+// Helper function to get metric label
+function getMetricLabel(metric) {
+  const labels = {
+    open_rate: 'Open Rate',
+    click_rate: 'Click Rate',
+    conversion_rate: 'Conversion Rate',
+    recipients: 'Recipients',
+    opens_unique: 'Unique Opens',
+    clicks_unique: 'Unique Clicks',
+    conversions: 'Conversions',
+    conversion_value: 'Revenue'
+  };
+  return labels[metric] || metric;
+}
+
+// Helper function to prepare time series data for multiple flows
+function prepareTimeSeriesData(performanceOverTime, selectedFlows, selectedMetric) {
+  if (!performanceOverTime || Object.keys(performanceOverTime).length === 0) {
+    return [];
+  }
+
+  // Convert performanceOverTime object to array sorted by date
+  const sortedDates = Object.keys(performanceOverTime).sort();
+
+  const timeSeriesData = sortedDates.map(date => {
+    const dayData = performanceOverTime[date];
+    const dataPoint = { date };
+
+    if (!selectedFlows || selectedFlows.length === 0) {
+      // If no flows selected, aggregate all flows for this date
+      const flowNames = Object.keys(dayData);
+      const aggregated = flowNames.reduce((acc, flowName) => {
+        const flowData = dayData[flowName];
+        return {
+          recipients: acc.recipients + (flowData.recipients || 0),
+          delivered: acc.delivered + (flowData.delivered || 0),
+          opens_unique: acc.opens_unique + (flowData.opens_unique || 0),
+          clicks_unique: acc.clicks_unique + (flowData.clicks_unique || 0),
+          conversions: acc.conversions + (flowData.conversions || 0),
+          conversion_value: acc.conversion_value + (flowData.conversion_value || 0)
+        };
+      }, { recipients: 0, delivered: 0, opens_unique: 0, clicks_unique: 0, conversions: 0, conversion_value: 0 });
+
+      // Calculate aggregated value
+      let value;
+      if (selectedMetric === 'open_rate') {
+        value = aggregated.delivered > 0 ? (aggregated.opens_unique / aggregated.delivered) * 100 : 0;
+      } else if (selectedMetric === 'click_rate') {
+        value = aggregated.delivered > 0 ? (aggregated.clicks_unique / aggregated.delivered) * 100 : 0;
+      } else if (selectedMetric === 'conversion_rate') {
+        value = aggregated.delivered > 0 ? (aggregated.conversions / aggregated.delivered) * 100 : 0;
+      } else {
+        value = aggregated[selectedMetric] || 0;
+      }
+
+      dataPoint['All Flows'] = value;
+    } else {
+      // Add data for each selected flow
+      selectedFlows.forEach(flowName => {
+        const flowData = dayData[flowName];
+        if (flowData) {
+          dataPoint[flowName] = flowData[selectedMetric] || 0;
+        } else {
+          dataPoint[flowName] = 0;
+        }
+      });
+    }
+
+    return dataPoint;
+  });
+
+  return timeSeriesData;
+}
+
+// Helper function to get available flows from performance data
+function getAvailableFlows(performanceOverTime) {
+  if (!performanceOverTime || Object.keys(performanceOverTime).length === 0) {
+    return [];
+  }
+
+  const flowSet = new Set();
+  Object.values(performanceOverTime).forEach(dayData => {
+    Object.keys(dayData).forEach(flowName => flowSet.add(flowName));
+  });
+
+  return Array.from(flowSet).sort();
+}
+
+// Helper function to prepare funnel data for a selected flow
+function prepareFunnelData(flows, selectedFlowName) {
+  if (!flows || flows.length === 0 || !selectedFlowName) {
+    return [];
+  }
+
+  const flow = flows.find(f => f.flow_name === selectedFlowName);
+  if (!flow) {
+    return [];
+  }
+
+  const recipients = flow.recipients || 0;
+  const delivered = flow.delivered || 0;
+  const opens = flow.opens || 0;
+  const clicks = flow.clicks || 0;
+  const conversions = flow.conversions || 0;
+
+  // Calculate percentages (of recipients)
+  const deliveredPct = recipients > 0 ? (delivered / recipients) * 100 : 0;
+  const opensPct = recipients > 0 ? (opens / recipients) * 100 : 0;
+  const clicksPct = recipients > 0 ? (clicks / recipients) * 100 : 0;
+  const conversionsPct = recipients > 0 ? (conversions / recipients) * 100 : 0;
+
+  return [
+    { stage: 'Recipients', value: recipients, percentage: 100 },
+    { stage: 'Delivered', value: delivered, percentage: deliveredPct },
+    { stage: 'Opened', value: opens, percentage: opensPct },
+    { stage: 'Clicked', value: clicks, percentage: clicksPct },
+    { stage: 'Converted', value: conversions, percentage: conversionsPct }
+  ];
+}
+
+// Helper function to prepare funnel data for a selected message
+function prepareMessageFunnelData(messages, selectedMessageId) {
+  if (!messages || messages.length === 0 || !selectedMessageId) {
+    return [];
+  }
+
+  const message = messages.find(m => m.flow_message_id === selectedMessageId);
+  if (!message) {
+    return [];
+  }
+
+  const recipients = message.recipients || 0;
+  const delivered = message.delivered || 0;
+  const opens = message.opens || 0;
+  const clicks = message.clicks || 0;
+  const conversions = message.conversions || 0;
+
+  // Calculate percentages (of recipients)
+  const deliveredPct = recipients > 0 ? (delivered / recipients) * 100 : 0;
+  const opensPct = recipients > 0 ? (opens / recipients) * 100 : 0;
+  const clicksPct = recipients > 0 ? (clicks / recipients) * 100 : 0;
+  const conversionsPct = recipients > 0 ? (conversions / recipients) * 100 : 0;
+
+  return [
+    { stage: 'Recipients', value: recipients, percentage: 100 },
+    { stage: 'Delivered', value: delivered, percentage: deliveredPct },
+    { stage: 'Opened', value: opens, percentage: opensPct },
+    { stage: 'Clicked', value: clicks, percentage: clicksPct },
+    { stage: 'Converted', value: conversions, percentage: conversionsPct }
+  ];
+}
+
+// Helper function to get unique messages with flow context
+function getUniqueMessages(messages) {
+  if (!messages || messages.length === 0) {
+    return [];
+  }
+
+  return messages.map(msg => ({
+    value: msg.flow_message_id,
+    label: `${msg.flow_name} - ${msg.flow_message_name || 'Message ' + msg.flow_message_id.substring(0, 8)}`,
+    flow_name: msg.flow_name,
+    message_name: msg.flow_message_name || msg.flow_message_id,
+    full_data: msg
+  }));
+}
+
+// Helper function to prepare message time series data
+function prepareMessageTimeSeriesData(messagePerformanceOverTime, selectedMessages, selectedMetric) {
+  if (!messagePerformanceOverTime || Object.keys(messagePerformanceOverTime).length === 0) {
+    return [];
+  }
+
+  // Convert to array sorted by date
+  const sortedDates = Object.keys(messagePerformanceOverTime).sort();
+
+  const timeSeriesData = sortedDates.map(date => {
+    const dayData = messagePerformanceOverTime[date];
+    const dataPoint = { date };
+
+    if (!selectedMessages || selectedMessages.length === 0) {
+      return dataPoint;
+    }
+
+    // Add data for each selected message
+    selectedMessages.forEach(msg => {
+      const messageData = dayData[msg.value];
+      if (messageData) {
+        dataPoint[msg.label] = messageData[selectedMetric] || 0;
+      } else {
+        dataPoint[msg.label] = 0;
+      }
+    });
+
+    return dataPoint;
+  });
+
+  return timeSeriesData;
+}
 
 export default function StoreFlowsReportPage() {
   const router = useRouter();
@@ -51,6 +273,73 @@ export default function StoreFlowsReportPage() {
   const [flowsData, setFlowsData] = useState(null);
   const [error, setError] = useState(null);
   const [storePublicId, setStorePublicId] = useState(null);
+  const [selectedMetrics, setSelectedMetrics] = useState([
+    { value: 'recipients', label: 'Recipients' },
+    { value: 'opens', label: 'Unique Opens' },
+    { value: 'clicks', label: 'Unique Clicks' },
+    { value: 'conversions', label: 'Conversions' }
+  ]);
+  const [selectedFlow, setSelectedFlow] = useState(null);
+  const [sortColumn, setSortColumn] = useState('recipients');
+  const [sortDirection, setSortDirection] = useState('desc');
+
+  // Message Level sorting
+  const [messageSortColumn, setMessageSortColumn] = useState('recipients');
+  const [messageSortDirection, setMessageSortDirection] = useState('desc');
+
+  // Flow Aggregate View selections
+  const [selectedEngagementFlows, setSelectedEngagementFlows] = useState([]);
+  const [selectedEngagementMetric, setSelectedEngagementMetric] = useState('open_rate');
+  const [selectedFunnelFlow, setSelectedFunnelFlow] = useState(null);
+  const [selectedComparisonFlows, setSelectedComparisonFlows] = useState([]);
+  const [selectedRevenueFlows, setSelectedRevenueFlows] = useState([]);
+  const [hiddenFlowLines, setHiddenFlowLines] = useState(new Set());
+
+  // Message Level View selections
+  const [selectedMessageEngagementMessages, setSelectedMessageEngagementMessages] = useState([]);
+  const [selectedMessageEngagementMetric, setSelectedMessageEngagementMetric] = useState('open_rate');
+  const [selectedMessageFunnel, setSelectedMessageFunnel] = useState(null);
+  const [selectedMessageComparison, setSelectedMessageComparison] = useState([]);
+  const [selectedMessageComparisonMetric, setSelectedMessageComparisonMetric] = useState('recipients');
+  const [selectedMessageRevenue, setSelectedMessageRevenue] = useState([]);
+  const [hiddenMessageLines, setHiddenMessageLines] = useState(new Set());
+
+  // Get tab from URL
+  const [view, setView] = useState('aggregate');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'message-level') {
+        setView('messages');
+      }
+    }
+  }, []);
+
+  // Reset hidden lines when selected messages change
+  useEffect(() => {
+    setHiddenMessageLines(new Set());
+  }, [selectedMessageEngagementMessages]);
+
+  // Reset hidden flow lines when selected flows change
+  useEffect(() => {
+    setHiddenFlowLines(new Set());
+  }, [selectedEngagementFlows]);
+
+  // Update URL when tab changes
+  const handleTabChange = (newTab) => {
+    setView(newTab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (newTab === 'messages') {
+        url.searchParams.set('tab', 'message-level');
+      } else {
+        url.searchParams.delete('tab');
+      }
+      window.history.pushState({}, '', url.toString());
+    }
+  };
 
   // Get storePublicId from params
   useEffect(() => {
@@ -100,7 +389,6 @@ export default function StoreFlowsReportPage() {
   // Handle date range changes
   const handleDateRangeChange = (newDateRangeSelection) => {
     setDateRangeSelection(newDateRangeSelection);
-    localStorage.setItem('flowsReportDateRange', JSON.stringify(newDateRangeSelection));
   };
 
   // Handle store selection change
@@ -110,381 +398,1045 @@ export default function StoreFlowsReportPage() {
     }
   };
 
-  // Mock data for flows
-  const mockFlowsData = {
+  // Fetch flow data from API
+  useEffect(() => {
+    if (!storePublicId) return;
+
+    const fetchFlowData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const startDate = dateRangeSelection.ranges.main.start.toISOString();
+        const endDate = dateRangeSelection.ranges.main.end.toISOString();
+
+        const response = await fetch(
+          `/api/store/${storePublicId}/report/flows?startDate=${startDate}&endDate=${endDate}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch flow data');
+        }
+
+        const data = await response.json();
+        setFlowsData(data);
+
+        // Preselect all messages for the time series chart
+        if (data.messages && data.messages.length > 0) {
+          const allMessages = getUniqueMessages(data.messages);
+          setSelectedMessageEngagementMessages(allMessages);
+        }
+      } catch (err) {
+        console.error('Error fetching flow data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFlowData();
+  }, [storePublicId, dateRangeSelection]);
+
+  // Use real data or mock data
+  const data = flowsData || {
+    flows: [],
     summary: {
-      active_flows: 12,
-      total_triggered: 45230,
-      total_completed: 28450,
-      completion_rate: 62.9,
-      total_revenue: 285000,
-      avg_revenue_per_flow: 10.01,
-      total_emails_sent: 125000,
-      total_conversions: 3250
+      total_recipients: 0,
+      total_revenue: 0,
+      avg_open_rate: 0,
+      avg_click_rate: 0,
+      avg_conversion_rate: 0
     },
     previousPeriod: {
-      active_flows: 10,
-      total_triggered: 38500,
-      total_completed: 22150,
-      completion_rate: 57.5,
-      total_revenue: 215000
-    },
-    flowPerformance: [
-      {
-        name: "Welcome Series",
-        status: "active",
-        triggered: 12500,
-        completed: 9375,
-        completion_rate: 75,
-        emails_sent: 37500,
-        conversions: 1125,
-        conversion_rate: 9,
-        revenue: 67500,
-        avg_time_to_complete: "3 days"
-      },
-      {
-        name: "Abandoned Cart",
-        status: "active",
-        triggered: 8900,
-        completed: 5340,
-        completion_rate: 60,
-        emails_sent: 17800,
-        conversions: 890,
-        conversion_rate: 10,
-        revenue: 89000,
-        avg_time_to_complete: "24 hours"
-      },
-      {
-        name: "Post-Purchase",
-        status: "active",
-        triggered: 6700,
-        completed: 5025,
-        completion_rate: 75,
-        emails_sent: 13400,
-        conversions: 335,
-        conversion_rate: 5,
-        revenue: 33500,
-        avg_time_to_complete: "7 days"
-      },
-      {
-        name: "Win-Back",
-        status: "active",
-        triggered: 4200,
-        completed: 2100,
-        completion_rate: 50,
-        emails_sent: 8400,
-        conversions: 210,
-        conversion_rate: 5,
-        revenue: 42000,
-        avg_time_to_complete: "14 days"
-      },
-      {
-        name: "Browse Abandonment",
-        status: "active",
-        triggered: 5800,
-        completed: 3480,
-        completion_rate: 60,
-        emails_sent: 11600,
-        conversions: 290,
-        conversion_rate: 5,
-        revenue: 23200,
-        avg_time_to_complete: "2 days"
-      }
-    ],
-    flowFunnel: [
-      { name: 'Triggered', value: 45230, fill: '#60A5FA' },
-      { name: 'First Email Opened', value: 36184, fill: '#8B5CF6' },
-      { name: 'Clicked', value: 18092, fill: '#10B981' },
-      { name: 'Converted', value: 3250, fill: '#F59E0B' }
-    ],
-    revenueByFlow: [
-      { name: 'Abandoned Cart', revenue: 89000 },
-      { name: 'Welcome Series', revenue: 67500 },
-      { name: 'Win-Back', revenue: 42000 },
-      { name: 'Post-Purchase', revenue: 33500 },
-      { name: 'Browse Abandonment', revenue: 23200 },
-      { name: 'Others', revenue: 29800 }
-    ],
-    flowTrends: [
-      { date: '2024-01-01', triggered: 1500, completed: 945 },
-      { date: '2024-01-08', triggered: 1650, completed: 1040 },
-      { date: '2024-01-15', triggered: 1800, completed: 1134 },
-      { date: '2024-01-22', triggered: 1400, completed: 882 },
-      { date: '2024-01-29', triggered: 1700, completed: 1071 }
-    ]
+      total_recipients: 0,
+      total_revenue: 0,
+      avg_open_rate: 0,
+      avg_click_rate: 0
+    }
   };
 
-  // Calculate metric changes
-  const getPercentageChange = (current, previous) => {
+  // Calculate metrics
+  const totalMetrics = data.flows.reduce((acc, flow) => ({
+    recipients: acc.recipients + (flow.recipients || 0),
+    delivered: acc.delivered + (flow.delivered || 0),
+    opens: acc.opens + (flow.opens_unique || 0),
+    clicks: acc.clicks + (flow.clicks_unique || 0),
+    conversions: acc.conversions + (flow.conversions || 0),
+    revenue: acc.revenue + (flow.conversion_value || 0)
+  }), { recipients: 0, delivered: 0, opens: 0, clicks: 0, conversions: 0, revenue: 0 });
+
+  const avgOpenRate = data.summary?.avg_open_rate || 0;
+  const avgClickRate = data.summary?.avg_click_rate || 0;
+  const avgConversionRate = data.summary?.avg_conversion_rate || 0;
+
+  // Calculate changes
+  const calculateChange = (current, previous) => {
     if (!previous || previous === 0) return 0;
     return ((current - previous) / previous) * 100;
   };
 
-  if (loading && !flowsData && mounted) {
-    setTimeout(() => setLoading(false), 1000);
+  const recipientsChange = calculateChange(totalMetrics.recipients, data.previousPeriod?.total_recipients);
+  const openRateChange = calculateChange(avgOpenRate, data.previousPeriod?.avg_open_rate);
+  const clickRateChange = calculateChange(avgClickRate, data.previousPeriod?.avg_click_rate);
+  const revenueChange = calculateChange(totalMetrics.revenue, data.previousPeriod?.total_revenue);
+
+  // Handle sorting for flows
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  // Handle sorting for messages
+  const handleMessageSort = (column) => {
+    if (messageSortColumn === column) {
+      setMessageSortDirection(messageSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setMessageSortColumn(column);
+      setMessageSortDirection('desc');
+    }
+  };
+
+  // Sort flows data
+  const sortedFlows = [...data.flows].sort((a, b) => {
+    let aVal = a[sortColumn];
+    let bVal = b[sortColumn];
+
+    // Handle flow_name (string)
+    if (sortColumn === 'flow_name') {
+      aVal = aVal || '';
+      bVal = bVal || '';
+      return sortDirection === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+
+    // Handle numeric values
+    aVal = aVal || 0;
+    bVal = bVal || 0;
+    return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+  });
+
+  // Sort messages data
+  const sortedMessages = [...(data.messages || [])].sort((a, b) => {
+    let aVal = a[messageSortColumn];
+    let bVal = b[messageSortColumn];
+
+    // Handle string columns
+    if (messageSortColumn === 'flow_name' || messageSortColumn === 'flow_message_name') {
+      aVal = aVal || '';
+      bVal = bVal || '';
+      return messageSortDirection === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+
+    // Handle numeric values
+    aVal = aVal || 0;
+    bVal = bVal || 0;
+    return messageSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+  });
+
+  // Filter messages for selected flow
+  const messageData = selectedFlow
+    ? (data.messages || []).filter(msg => msg.flow_name === selectedFlow)
+    : [];
+
+  // Handle legend click to toggle line visibility for messages
+  const handleLegendClick = (e) => {
+    const dataKey = e.dataKey;
+    setHiddenMessageLines(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dataKey)) {
+        newSet.delete(dataKey);
+      } else {
+        newSet.add(dataKey);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle legend click to toggle line visibility for flows
+  const handleFlowLegendClick = (e) => {
+    const dataKey = e.dataKey;
+    setHiddenFlowLines(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dataKey)) {
+        newSet.delete(dataKey);
+      } else {
+        newSet.add(dataKey);
+      }
+      return newSet;
+    });
+  };
+
+  // Show loading state
+  if (loading && !mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <MorphingLoader size="large" showText={true} text="Loading flow data..." />
+      </div>
+    );
   }
 
-  const data = flowsData || mockFlowsData;
+  const MetricCard = ({ title, value, subtitle, trend }) => (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</div>
+        <div className="text-3xl font-bold text-gray-900 dark:text-white">{value}</div>
+        {subtitle && <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{subtitle}</div>}
+        {trend !== undefined && trend !== null && (
+          <div className={`flex items-center gap-1 text-sm mt-2 ${trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            {trend > 0 ? <ArrowUp className="h-3 w-3" /> : trend < 0 ? <ArrowDown className="h-3 w-3" /> : null}
+            {Math.abs(trend).toFixed(1)}% vs last period
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const SortableHeader = ({ column, label, align = "left" }) => (
+    <TableHead
+      className={`text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}
+      onClick={() => handleSort(column)}
+    >
+      <div className={`flex items-center gap-1 ${align === "right" ? "justify-end" : align === "center" ? "justify-center" : ""}`}>
+        {label}
+        <ArrowUpDown className={`h-3 w-3 ${sortColumn === column ? 'text-blue-600' : 'text-gray-400'}`} />
+      </div>
+    </TableHead>
+  );
+
+  const MessageSortableHeader = ({ column, label, align = "left" }) => (
+    <TableHead
+      className={`text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}
+      onClick={() => handleMessageSort(column)}
+    >
+      <div className={`flex items-center gap-1 ${align === "right" ? "justify-end" : align === "center" ? "justify-center" : ""}`}>
+        {label}
+        <ArrowUpDown className={`h-3 w-3 ${messageSortColumn === column ? 'text-blue-600' : 'text-gray-400'}`} />
+      </div>
+    </TableHead>
+  );
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Flows Report
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Automated flow performance for {currentStore?.name || 'store'}
-          </p>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Flow Analytics Dashboard</h2>
+          <p className="text-gray-600 dark:text-gray-400">Monitor and analyze your Klaviyo flow performance</p>
         </div>
-
         <div className="flex items-center gap-2">
-          <Select value={storePublicId || ''} onValueChange={handleStoreChange}>
-            <SelectTrigger className="w-[200px]">
-              <Store className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Select a store">
-                {currentStore?.name || 'Select store'}
-              </SelectValue>
+          <Select value={storePublicId || ""} onValueChange={handleStoreChange}>
+            <SelectTrigger className="w-[240px] h-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Store className="mr-2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <SelectValue placeholder="Select store" />
             </SelectTrigger>
             <SelectContent>
-              {stores && stores.map(store => (
+              {stores?.map((store) => (
                 <SelectItem key={store.public_id} value={store.public_id}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      store.klaviyo_integration?.public_id ? 'bg-green-500' : 'bg-gray-400'
-                    }`} />
-                    {store.name}
-                  </div>
+                  {store.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-
           <DateRangeSelector
+            value={dateRangeSelection}
             onDateRangeChange={handleDateRangeChange}
-            storageKey="flowsReportDateRange"
-            showComparison={true}
-            initialDateRange={dateRangeSelection}
           />
-
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={toggleTheme}
-            className="h-9 w-9 hover:bg-sky-tint/50 transition-all"
           >
-            {mounted ? (theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />) : <div className="h-4 w-4" />}
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
       </div>
 
-      {/* Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Flows</CardTitle>
-            <Zap className="h-4 w-4 text-sky-blue" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.active_flows}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              +{data.summary.active_flows - data.previousPeriod.active_flows} from last period
-            </p>
-          </CardContent>
-        </Card>
+      {/* Tabs for View Selection */}
+      <Tabs value={view} onValueChange={handleTabChange} className="w-full">
+        <TabsList>
+          <TabsTrigger value="aggregate">Flow Aggregate View</TabsTrigger>
+          <TabsTrigger value="messages">Message Level View</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Flow Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.total_revenue)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {formatPercentage(getPercentageChange(data.summary.total_revenue, data.previousPeriod.total_revenue))} from last period
-            </p>
-          </CardContent>
-        </Card>
+        {/* Flow Aggregate View */}
+        <TabsContent value="aggregate">
+          {!loading && !error && (
+            <div className="space-y-6">
+          {/* Key Metrics Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              title="Total Recipients"
+              value={formatNumber(totalMetrics.recipients)}
+              trend={recipientsChange}
+            />
+            <MetricCard
+              title="Avg Open Rate"
+              value={formatPercentage(avgOpenRate)}
+              subtitle="Across all flows"
+              trend={openRateChange}
+            />
+            <MetricCard
+              title="Avg Click Rate"
+              value={formatPercentage(avgClickRate)}
+              subtitle="Across all flows"
+              trend={clickRateChange}
+            />
+            <MetricCard
+              title="Total Revenue"
+              value={formatCurrency(totalMetrics.revenue)}
+              trend={revenueChange}
+            />
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-vivid-violet" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.completion_rate)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {(data.summary.completion_rate - data.previousPeriod.completion_rate).toFixed(1)}pp from last period
-            </p>
-          </CardContent>
-        </Card>
+          {/* Detailed Flow Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Flow Details</CardTitle>
+              <CardDescription>Click column headers to sort</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full overflow-x-visible">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-xs">
+                      <SortableHeader column="flow_name" label="Flow Name" />
+                      <SortableHeader column="recipients" label="Recipients" align="right" />
+                      <SortableHeader column="open_rate" label="Open Rate" align="right" />
+                      <SortableHeader column="click_rate" label="Click Rate" align="right" />
+                      <SortableHeader column="conversion_rate" label="Conv Rate" align="right" />
+                      <SortableHeader column="conversion_value" label="Revenue" align="right" />
+                      <SortableHeader column="revenue_per_recipient" label="RPR" align="right" />
+                      <SortableHeader column="bounce_rate" label="Bounce Rate" align="right" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedFlows.map((flow, idx) => {
+                      // Calculate changes vs previous period
+                      const prevPeriod = flow.previous_period;
+                      const calcChange = (current, previous) => {
+                        if (!previous || previous === 0) return null;
+                        return ((current - previous) / previous) * 100;
+                      };
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Triggered</CardTitle>
-            <Activity className="h-4 w-4 text-deep-purple" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_triggered)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {formatPercentage(getPercentageChange(data.summary.total_triggered, data.previousPeriod.total_triggered))} from last period
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+                      const recipientsChange = prevPeriod ? calcChange(flow.recipients, prevPeriod.recipients) : null;
+                      const openRateChange = prevPeriod ? calcChange(flow.open_rate, prevPeriod.open_rate) : null;
+                      const clickRateChange = prevPeriod ? calcChange(flow.click_rate, prevPeriod.click_rate) : null;
+                      const convRateChange = prevPeriod ? calcChange(flow.conversion_rate, prevPeriod.conversion_rate) : null;
+                      const revenueChange = prevPeriod ? calcChange(flow.conversion_value, prevPeriod.revenue) : null;
+                      const rprChange = prevPeriod ? calcChange(flow.revenue_per_recipient, prevPeriod.revenue_per_recipient) : null;
+                      const bounceRateChange = prevPeriod ? calcChange(flow.bounce_rate, prevPeriod.bounce_rate) : null;
 
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        {/* Flow Funnel */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Flow Journey Funnel</CardTitle>
-            <CardDescription>User progression through flows</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <FunnelChart>
-                <Tooltip />
-                <Funnel
-                  dataKey="value"
-                  data={data.flowFunnel}
-                  isAnimationActive
-                >
-                  <LabelList position="center" fill="#fff" />
-                </Funnel>
-              </FunnelChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                      const ChangeIndicator = ({ change, inverse = false }) => {
+                        if (change === null || change === undefined) return null;
+                        const isPositive = inverse ? change < 0 : change > 0;
+                        const color = isPositive ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500';
+                        const icon = change > 0 ? '↑' : change < 0 ? '↓' : '';
+                        return (
+                          <div className={`text-xs ${color} font-medium`}>
+                            {icon} {Math.abs(change).toFixed(1)}%
+                          </div>
+                        );
+                      };
 
-        {/* Revenue by Flow */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue by Flow</CardTitle>
-            <CardDescription>Top revenue generating flows</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.revenueByFlow} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Bar dataKey="revenue" fill="#60A5FA" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+                      return (
+                        <TableRow key={idx} className="text-sm">
+                          <TableCell className="font-medium text-gray-900 dark:text-white py-2">
+                            {flow.flow_name}
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className="text-gray-900 dark:text-gray-100">{formatNumber(flow.recipients)}</div>
+                            <ChangeIndicator change={recipientsChange} />
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.open_rate)}</div>
+                            <ChangeIndicator change={openRateChange} />
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.click_rate)}</div>
+                            <ChangeIndicator change={clickRateChange} />
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.conversion_rate)}</div>
+                            <ChangeIndicator change={convRateChange} />
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className="text-gray-900 dark:text-gray-100">{formatCurrency(flow.conversion_value)}</div>
+                            <ChangeIndicator change={revenueChange} />
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className="text-gray-900 dark:text-gray-100">{formatCurrency(flow.revenue_per_recipient)}</div>
+                            <ChangeIndicator change={rprChange} />
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.bounce_rate)}</div>
+                            <ChangeIndicator change={bounceRateChange} inverse={true} />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Flow Performance Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Flow Performance Details</CardTitle>
-          <CardDescription>Individual flow metrics and conversion rates</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Flow Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Triggered</TableHead>
-                <TableHead className="text-right">Completed</TableHead>
-                <TableHead>Completion Rate</TableHead>
-                <TableHead className="text-right">Conversions</TableHead>
-                <TableHead className="text-right">Conv. Rate</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
-                <TableHead>Avg Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.flowPerformance.map((flow) => (
-                <TableRow key={flow.name}>
-                  <TableCell className="font-medium">{flow.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="success">
-                      {flow.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{formatNumber(flow.triggered)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(flow.completed)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Progress value={flow.completion_rate} className="w-[60px]" />
-                      <span className="text-sm">{flow.completion_rate}%</span>
+          {/* Flow Performance Comparison */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle>Flow Performance Comparison</CardTitle>
+              <div className="w-96">
+                <MultiSelect
+                  options={METRIC_OPTIONS}
+                  value={selectedMetrics}
+                  onChange={setSelectedMetrics}
+                  placeholder="Select metrics to compare..."
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={data.flows}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis
+                    dataKey="flow_name"
+                    angle={-15}
+                    textAnchor="end"
+                    height={100}
+                    tick={{ fill: 'currentColor' }}
+                  />
+                  <YAxis tick={{ fill: 'currentColor' }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                      border: '1px solid var(--tooltip-border, #e5e7eb)',
+                      borderRadius: '8px',
+                      color: 'var(--tooltip-text, #111827)'
+                    }}
+                    wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  {selectedMetrics.some(m => m.value === 'recipients') && (
+                    <Bar dataKey="recipients" fill="#60A5FA" name="Recipients" radius={[8, 8, 0, 0]} />
+                  )}
+                  {selectedMetrics.some(m => m.value === 'opens') && (
+                    <Bar dataKey="opens" fill="#22C55E" name="Unique Opens" radius={[8, 8, 0, 0]} />
+                  )}
+                  {selectedMetrics.some(m => m.value === 'clicks') && (
+                    <Bar dataKey="clicks" fill="#F59E0B" name="Unique Clicks" radius={[8, 8, 0, 0]} />
+                  )}
+                  {selectedMetrics.some(m => m.value === 'conversions') && (
+                    <Bar dataKey="conversions" fill="#8B5CF6" name="Conversions" radius={[8, 8, 0, 0]} />
+                  )}
+                  {selectedMetrics.some(m => m.value === 'open_rate') && (
+                    <Bar dataKey="open_rate" fill="#2563EB" name="Open Rate %" radius={[8, 8, 0, 0]} />
+                  )}
+                  {selectedMetrics.some(m => m.value === 'click_rate') && (
+                    <Bar dataKey="click_rate" fill="#7C3AED" name="Click Rate %" radius={[8, 8, 0, 0]} />
+                  )}
+                  {selectedMetrics.some(m => m.value === 'conversion_rate') && (
+                    <Bar dataKey="conversion_rate" fill="#EF4444" name="Conversion Rate %" radius={[8, 8, 0, 0]} />
+                  )}
+                  {selectedMetrics.some(m => m.value === 'revenue') && (
+                    <Bar dataKey="revenue" fill="#34D399" name="Revenue" radius={[8, 8, 0, 0]} />
+                  )}
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Engagement Rates - Full Width with Time Series */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle>Engagement Rates by Flow - Daily Time Series</CardTitle>
+              <div className="flex gap-2">
+                <Select value={selectedEngagementMetric} onValueChange={setSelectedEngagementMetric}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select metric" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open_rate">Open Rate</SelectItem>
+                    <SelectItem value="click_rate">Click Rate</SelectItem>
+                    <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
+                    <SelectItem value="recipients">Recipients</SelectItem>
+                    <SelectItem value="opens_unique">Unique Opens</SelectItem>
+                    <SelectItem value="clicks_unique">Unique Clicks</SelectItem>
+                    <SelectItem value="conversions">Conversions</SelectItem>
+                    <SelectItem value="conversion_value">Revenue</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="w-[280px]">
+                  <MultiSelect
+                    options={getAvailableFlows(data.performanceOverTime).map(flow => ({
+                      value: flow,
+                      label: flow
+                    }))}
+                    value={selectedEngagementFlows}
+                    onChange={setSelectedEngagementFlows}
+                    placeholder="Select flows to compare..."
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={prepareTimeSeriesData(data.performanceOverTime, selectedEngagementFlows.map(f => f.value), selectedEngagementMetric)}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: 'currentColor' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => {
+                      if (['open_rate', 'click_rate', 'conversion_rate'].includes(selectedEngagementMetric)) {
+                        return formatPercentage(value);
+                      }
+                      if (selectedEngagementMetric === 'conversion_value') {
+                        return formatCurrency(value).replace('$', '');
+                      }
+                      return formatNumber(value);
+                    }}
+                    tick={{ fill: 'currentColor' }}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => {
+                      let formattedValue;
+                      if (['open_rate', 'click_rate', 'conversion_rate'].includes(selectedEngagementMetric)) {
+                        formattedValue = formatPercentage(value);
+                      } else if (selectedEngagementMetric === 'conversion_value') {
+                        formattedValue = formatCurrency(value);
+                      } else {
+                        formattedValue = formatNumber(value);
+                      }
+                      return [formattedValue, name];
+                    }}
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                      border: '1px solid var(--tooltip-border, #e5e7eb)',
+                      borderRadius: '8px',
+                      color: 'var(--tooltip-text, #111827)'
+                    }}
+                    wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                  />
+                  <Legend
+                    wrapperStyle={{ paddingTop: '20px', cursor: 'pointer' }}
+                    onClick={handleFlowLegendClick}
+                    iconType="line"
+                  />
+                  {selectedEngagementFlows.length === 0 ? (
+                    <Line
+                      type="monotone"
+                      dataKey="All Flows"
+                      stroke="#60A5FA"
+                      name="All Flows (Aggregate)"
+                      strokeWidth={3}
+                      dot={{ fill: '#60A5FA', r: 5, strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 7 }}
+                      hide={hiddenFlowLines.has('All Flows (Aggregate)')}
+                      strokeOpacity={hiddenFlowLines.has('All Flows (Aggregate)') ? 0 : 1}
+                    />
+                  ) : (
+                    selectedEngagementFlows.map((flow, idx) => (
+                      <Line
+                        key={flow.value}
+                        type="monotone"
+                        dataKey={flow.value}
+                        stroke={COLORS[idx % COLORS.length]}
+                        name={flow.label}
+                        strokeWidth={3}
+                        dot={{ fill: COLORS[idx % COLORS.length], r: 5, strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 7 }}
+                        hide={hiddenFlowLines.has(flow.label)}
+                        strokeOpacity={hiddenFlowLines.has(flow.label) ? 0 : 1}
+                      />
+                    ))
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Revenue Distribution & Flow Engagement Funnel */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Distribution</CardTitle>
+                <CardDescription>Revenue contribution by flow</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <Pie
+                      data={data.flows.filter(f => f.revenue > 0)}
+                      dataKey="revenue"
+                      nameKey="flow_name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={(entry) => {
+                        const total = data.flows.reduce((sum, f) => sum + (f.revenue || 0), 0);
+                        const percentage = ((entry.revenue / total) * 100).toFixed(1);
+                        return `${percentage}%`;
+                      }}
+                    >
+                      {data.flows.filter(f => f.revenue > 0).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => formatCurrency(value)}
+                      contentStyle={{
+                        backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                        border: '1px solid var(--tooltip-border, #e5e7eb)',
+                        borderRadius: '8px',
+                        color: 'var(--tooltip-text, #111827)'
+                      }}
+                      wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      formatter={(value, entry) => {
+                        const flowName = value.length > 25 ? value.substring(0, 25) + '...' : value;
+                        return `${flowName}: ${formatCurrency(entry.payload.revenue)}`;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle>Flow Engagement Funnel</CardTitle>
+                  <CardDescription>Conversion funnel for selected flow</CardDescription>
+                </div>
+                <Select value={selectedFunnelFlow} onValueChange={setSelectedFunnelFlow}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select flow" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {data.flows.map((flow, idx) => (
+                      <SelectItem key={idx} value={flow.flow_name}>
+                        {flow.flow_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                {selectedFunnelFlow ? (
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart
+                      data={prepareFunnelData(data.flows, selectedFunnelFlow)}
+                      layout="vertical"
+                      margin={{ left: 80, right: 30, top: 20, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                      <XAxis
+                        type="number"
+                        tickFormatter={(value) => formatNumber(value)}
+                        tick={{ fill: 'currentColor' }}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="stage"
+                        tick={{ fill: 'currentColor' }}
+                        width={80}
+                      />
+                      <Tooltip
+                        formatter={(value, name, props) => {
+                          const percentage = props.payload.percentage;
+                          return [`${formatNumber(value)} (${formatPercentage(percentage)})`, 'Count'];
+                        }}
+                        contentStyle={{
+                          backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                          border: '1px solid var(--tooltip-border, #e5e7eb)',
+                          borderRadius: '8px',
+                          color: 'var(--tooltip-text, #111827)'
+                        }}
+                        wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                      />
+                      <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                        {prepareFunnelData(data.flows, selectedFunnelFlow).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[350px] text-gray-500 dark:text-gray-400">
+                    <div className="text-center">
+                      <Mail className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                      <p>Select a flow to view the engagement funnel</p>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right">{formatNumber(flow.conversions)}</TableCell>
-                  <TableCell className="text-right">{flow.conversion_rate}%</TableCell>
-                  <TableCell className="text-right">{formatCurrency(flow.revenue)}</TableCell>
-                  <TableCell className="text-gray-600 dark:text-gray-400">{flow.avg_time_to_complete}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+            </div>
+          )}
+        </TabsContent>
 
-      {/* Flow Trends */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Flow Activity Trends</CardTitle>
-          <CardDescription>Triggered vs completed flows over time</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data.flowTrends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="triggered" stroke="#60A5FA" strokeWidth={2} name="Triggered" />
-              <Line type="monotone" dataKey="completed" stroke="#10B981" strokeWidth={2} name="Completed" />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        {/* Message Level View */}
+        <TabsContent value="messages">
+          {!loading && !error && (
+            <div className="space-y-6">
+          {/* Message Details Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Message Details</CardTitle>
+              <CardDescription>Click column headers to sort</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-xs">
+                      <MessageSortableHeader column="flow_name" label="Flow" />
+                      <MessageSortableHeader column="flow_message_name" label="Message" />
+                      <MessageSortableHeader column="recipients" label="Recipients" align="right" />
+                      <MessageSortableHeader column="open_rate" label="Open Rate" align="right" />
+                      <MessageSortableHeader column="click_rate" label="Click Rate" align="right" />
+                      <MessageSortableHeader column="conversion_rate" label="Conv Rate" align="right" />
+                      <MessageSortableHeader column="revenue" label="Revenue" align="right" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedMessages.map((msg, idx) => (
+                      <TableRow key={idx} className="text-sm">
+                        <TableCell className="font-medium text-gray-900 dark:text-white py-2">
+                          {msg.flow_name}
+                        </TableCell>
+                        <TableCell className="text-gray-900 dark:text-gray-100 py-2">
+                          {msg.flow_message_name || msg.flow_message_id}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                          {formatNumber(msg.recipients)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                          {formatPercentage(msg.open_rate)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                          {formatPercentage(msg.click_rate)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                          {formatPercentage(msg.conversion_rate)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                          {formatCurrency(msg.revenue)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Flow Insights */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Best Performing Flow</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold text-gray-900 dark:text-white">Welcome Series</div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">75% completion rate</p>
-            <p className="text-sm text-green-600">{formatCurrency(67500)} revenue</p>
+          {/* Message Performance Time Series */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle>Message Performance Time Series</CardTitle>
+              <div className="flex gap-2">
+                <Select value={selectedMessageEngagementMetric} onValueChange={setSelectedMessageEngagementMetric}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select metric" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open_rate">Open Rate</SelectItem>
+                    <SelectItem value="click_rate">Click Rate</SelectItem>
+                    <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
+                    <SelectItem value="recipients">Recipients</SelectItem>
+                    <SelectItem value="opens_unique">Unique Opens</SelectItem>
+                    <SelectItem value="clicks_unique">Unique Clicks</SelectItem>
+                    <SelectItem value="conversions">Conversions</SelectItem>
+                    <SelectItem value="conversion_value">Revenue</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="w-[280px]">
+                  <MultiSelect
+                    options={getUniqueMessages(data.messages)}
+                    value={selectedMessageEngagementMessages}
+                    onChange={setSelectedMessageEngagementMessages}
+                    placeholder="Select messages..."
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={prepareMessageTimeSeriesData(
+                  data.messagePerformanceOverTime,
+                  selectedMessageEngagementMessages,
+                  selectedMessageEngagementMetric
+                )}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: 'currentColor' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => {
+                      if (['open_rate', 'click_rate', 'conversion_rate'].includes(selectedMessageEngagementMetric)) {
+                        return formatPercentage(value);
+                      }
+                      if (selectedMessageEngagementMetric === 'conversion_value') {
+                        return formatCurrency(value).replace('$', '');
+                      }
+                      return formatNumber(value);
+                    }}
+                    tick={{ fill: 'currentColor' }}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => {
+                      let formattedValue;
+                      if (['open_rate', 'click_rate', 'conversion_rate'].includes(selectedMessageEngagementMetric)) {
+                        formattedValue = formatPercentage(value);
+                      } else if (selectedMessageEngagementMetric === 'conversion_value') {
+                        formattedValue = formatCurrency(value);
+                      } else {
+                        formattedValue = formatNumber(value);
+                      }
+                      return [formattedValue, name];
+                    }}
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                      border: '1px solid var(--tooltip-border, #e5e7eb)',
+                      borderRadius: '8px',
+                      color: 'var(--tooltip-text, #111827)'
+                    }}
+                    wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                  />
+                  <Legend
+                    wrapperStyle={{ paddingTop: '20px', cursor: 'pointer' }}
+                    onClick={handleLegendClick}
+                    iconType="line"
+                  />
+                  {selectedMessageEngagementMessages.map((msg, idx) => (
+                    <Line
+                      key={msg.value}
+                      type="monotone"
+                      dataKey={msg.label}
+                      stroke={COLORS[idx % COLORS.length]}
+                      name={msg.label}
+                      strokeWidth={3}
+                      dot={{ fill: COLORS[idx % COLORS.length], r: 5, strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 7 }}
+                      hide={hiddenMessageLines.has(msg.label)}
+                      strokeOpacity={hiddenMessageLines.has(msg.label) ? 0 : 1}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Message Performance Comparison */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle>Message Performance Comparison</CardTitle>
+              <div className="flex gap-2">
+                <Select value={selectedMessageComparisonMetric} onValueChange={setSelectedMessageComparisonMetric}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select metric" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recipients">Recipients</SelectItem>
+                    <SelectItem value="opens">Unique Opens</SelectItem>
+                    <SelectItem value="clicks">Unique Clicks</SelectItem>
+                    <SelectItem value="conversions">Conversions</SelectItem>
+                    <SelectItem value="open_rate">Open Rate</SelectItem>
+                    <SelectItem value="click_rate">Click Rate</SelectItem>
+                    <SelectItem value="conversion_rate">Conversion Rate</SelectItem>
+                    <SelectItem value="revenue">Revenue</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="w-[280px]">
+                  <MultiSelect
+                    options={getUniqueMessages(data.messages)}
+                    value={selectedMessageComparison}
+                    onChange={setSelectedMessageComparison}
+                    placeholder="Select messages to compare..."
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={selectedMessageComparison.length > 0
+                  ? data.messages.filter(m => selectedMessageComparison.some(s => s.value === m.flow_message_id))
+                  : data.messages
+                }>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis
+                    dataKey="flow_message_name"
+                    angle={-15}
+                    textAnchor="end"
+                    height={100}
+                    tick={{ fill: 'currentColor' }}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => {
+                      if (['open_rate', 'click_rate', 'conversion_rate'].includes(selectedMessageComparisonMetric)) {
+                        return formatPercentage(value);
+                      }
+                      if (selectedMessageComparisonMetric === 'revenue') {
+                        return formatCurrency(value).replace('$', '');
+                      }
+                      return formatNumber(value);
+                    }}
+                    tick={{ fill: 'currentColor' }}
+                  />
+                  <Tooltip
+                    formatter={(value) => {
+                      if (['open_rate', 'click_rate', 'conversion_rate'].includes(selectedMessageComparisonMetric)) {
+                        return formatPercentage(value);
+                      }
+                      if (selectedMessageComparisonMetric === 'revenue') {
+                        return formatCurrency(value);
+                      }
+                      return formatNumber(value);
+                    }}
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                      border: '1px solid var(--tooltip-border, #e5e7eb)',
+                      borderRadius: '8px',
+                      color: 'var(--tooltip-text, #111827)'
+                    }}
+                    wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                  />
+                  <Bar
+                    dataKey={selectedMessageComparisonMetric}
+                    fill="#60A5FA"
+                    name={getMetricLabel(selectedMessageComparisonMetric)}
+                    radius={[8, 8, 0, 0]}
+                  >
+                    {(selectedMessageComparison.length > 0
+                      ? data.messages.filter(m => selectedMessageComparison.some(s => s.value === m.flow_message_id))
+                      : data.messages
+                    ).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Message Engagement Funnels - Multi-Select */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <div>
+                <CardTitle>Message Engagement Funnels</CardTitle>
+                <CardDescription>Compare conversion funnels across multiple messages</CardDescription>
+              </div>
+              <div className="w-[320px]">
+                <MultiSelect
+                  options={getUniqueMessages(data.messages)}
+                  value={selectedMessageRevenue}
+                  onChange={setSelectedMessageRevenue}
+                  placeholder="Select messages to compare..."
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {selectedMessageRevenue.length > 0 ? (
+                <div className={`grid gap-6 ${selectedMessageRevenue.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : selectedMessageRevenue.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                  {selectedMessageRevenue.map((msg, msgIdx) => {
+                    const funnelData = prepareMessageFunnelData(data.messages, msg.value);
+                    return (
+                      <div key={msg.value} className="space-y-2">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate" title={msg.label}>
+                          {msg.label}
+                        </h4>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart
+                            data={funnelData}
+                            layout="vertical"
+                            margin={{ left: 80, right: 10, top: 10, bottom: 10 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                            <XAxis
+                              type="number"
+                              tickFormatter={(value) => formatNumber(value)}
+                              tick={{ fill: 'currentColor', fontSize: 11 }}
+                            />
+                            <YAxis
+                              type="category"
+                              dataKey="stage"
+                              tick={{ fill: 'currentColor', fontSize: 11 }}
+                              width={80}
+                            />
+                            <Tooltip
+                              formatter={(value, name, props) => {
+                                const percentage = props.payload.percentage;
+                                return [`${formatNumber(value)} (${formatPercentage(percentage)})`, 'Count'];
+                              }}
+                              contentStyle={{
+                                backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                                border: '1px solid var(--tooltip-border, #e5e7eb)',
+                                borderRadius: '8px',
+                                color: 'var(--tooltip-text, #111827)'
+                              }}
+                              wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                            />
+                            <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                              {funnelData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[(msgIdx * 5 + index) % COLORS.length]} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-[350px] text-gray-500 dark:text-gray-400">
+                  <div className="text-center">
+                    <Mail className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p>Select messages to view and compare engagement funnels</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {loading && (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <MorphingLoader size="large" showText={true} text="Loading flow data..." />
+        </div>
+      )}
+
+      {error && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-red-600 dark:text-red-400">{error}</p>
+            </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Highest Revenue Flow</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold text-gray-900 dark:text-white">Abandoned Cart</div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">10% conversion rate</p>
-            <p className="text-sm text-green-600">{formatCurrency(89000)} revenue</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Flow Efficiency</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.avg_revenue_per_flow)}</div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Average revenue per flow recipient</p>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 }

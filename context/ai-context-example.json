@@ -1,0 +1,688 @@
+{
+  "aiState": {
+    "currentPage": "/multi-account-reporting",
+    "pageTitle": "Multi-Account Campaign Performance",
+    "pageType": "campaigns",
+
+    "selectedStores": [
+      {
+        "value": "rZResQK",
+        "label": "Fashion Boutique NYC",
+        "klaviyo_id": "Pe5Xw6"
+      },
+      {
+        "value": "7MP60fH",
+        "label": "Beauty Store LA",
+        "klaviyo_id": "XqkVGb"
+      }
+    ],
+    "selectedKlaviyoIds": ["Pe5Xw6", "XqkVGb"],
+    "storeMetadata": {
+      "rZResQK": {
+        "industry": "fashion",
+        "size": "medium",
+        "monthlyRevenue": 125000
+      },
+      "7MP60fH": {
+        "industry": "beauty",
+        "size": "small",
+        "monthlyRevenue": 45000
+      }
+    },
+
+    "dateRange": {
+      "start": "2025-01-01T00:00:00.000Z",
+      "end": "2025-01-31T23:59:59.999Z",
+      "preset": "last30days",
+      "comparison": {
+        "start": "2024-12-01T00:00:00.000Z",
+        "end": "2024-12-31T23:59:59.999Z"
+      },
+      "seasonalContext": "post-holiday"
+    },
+
+    "data": {
+      "raw": {
+        "campaigns": [
+          {
+            "campaign_id": "01JQ8XVY9MC3QVPNR0R4ST7ACD",
+            "campaign_name": "New Year Sale - 50% Off",
+            "send_time": "2025-01-13T19:32:00.000Z",
+            "recipients": 45230,
+            "opens_unique": 12458,
+            "clicks_unique": 1876,
+            "conversions": 234,
+            "revenue": 45678.50,
+            "klaviyo_public_id": "Pe5Xw6"
+          },
+          {
+            "campaign_id": "01JQ8XVY9MC3QVPNR0R4ST7BCF",
+            "campaign_name": "Winter Skincare Collection",
+            "send_time": "2025-01-15T14:00:00.000Z",
+            "recipients": 23450,
+            "opens_unique": 6245,
+            "clicks_unique": 987,
+            "conversions": 145,
+            "revenue": 28934.20,
+            "klaviyo_public_id": "XqkVGb"
+          }
+        ],
+        "totalRecords": 45
+      },
+
+      "aggregated": {
+        "totalCampaigns": 45,
+        "totalRevenue": 186754.30,
+        "totalRecipients": 523450,
+        "avgOpenRate": 0.2345,
+        "avgClickRate": 0.0287,
+        "avgConversionRate": 0.0156,
+        "revenueGrowth": 0.125,
+        "engagementTrend": "increasing",
+
+        "topPerformer": {
+          "name": "New Year Sale - 50% Off",
+          "revenue": 45678.50,
+          "openRate": 0.2754,
+          "clickRate": 0.0415,
+          "conversionRate": 0.0052
+        },
+
+        "byDay": {
+          "Monday": { "campaigns": 8, "avgOpenRate": 0.2134 },
+          "Tuesday": { "campaigns": 12, "avgOpenRate": 0.2567 },
+          "Wednesday": { "campaigns": 9, "avgOpenRate": 0.2289 },
+          "Thursday": { "campaigns": 7, "avgOpenRate": 0.2423 },
+          "Friday": { "campaigns": 5, "avgOpenRate": 0.2178 },
+          "Saturday": { "campaigns": 2, "avgOpenRate": 0.1956 },
+          "Sunday": { "campaigns": 2, "avgOpenRate": 0.1834 }
+        }
+      },
+
+      "charts": [
+        {
+          "type": "line",
+          "title": "Revenue Trend",
+          "data": [
+            { "date": "2025-01-01", "revenue": 4234.50 },
+            { "date": "2025-01-02", "revenue": 3876.20 },
+            { "date": "2025-01-03", "revenue": 5123.80 }
+          ]
+        }
+      ],
+
+      "campaigns": [
+        {
+          "campaign_id": "01JQ8XVY9MC3QVPNR0R4ST7ACD",
+          "name": "New Year Sale - 50% Off",
+          "type": "promotional",
+          "channel": "email",
+          "status": "sent",
+          "metrics": {
+            "recipients": 45230,
+            "openRate": 0.2754,
+            "clickRate": 0.0415,
+            "revenue": 45678.50
+          }
+        }
+      ],
+
+      "audience": {
+        "totalProfiles": 87654,
+        "activeProfiles": 65432,
+        "newProfilesThisMonth": 3456,
+        "churnedProfiles": 1234
+      }
+    },
+
+    "filters": {
+      "stores": ["rZResQK", "7MP60fH"],
+      "channels": ["email"],
+      "campaigns": [],
+      "flows": [],
+      "tags": ["promotional", "seasonal"],
+      "status": ["sent"],
+      "segmentType": []
+    },
+
+    "metrics": {
+      "primary": {
+        "totalRevenue": 186754.30,
+        "totalOrders": 1234,
+        "avgOrderValue": 151.34,
+        "totalRecipients": 523450,
+        "openRate": 0.2345,
+        "clickRate": 0.0287,
+        "conversionRate": 0.0156,
+        "unsubscribeRate": 0.0008,
+        "bounceRate": 0.0024,
+        "spamRate": 0.0001
+      },
+
+      "secondary": {
+        "clickToOpenRate": 0.1224,
+        "revenuePerRecipient": 0.3568,
+        "costPerAcquisition": null,
+        "customerLifetimeValue": 456.78,
+        "listGrowthRate": 0.0394,
+        "engagementScore": 7.8
+      },
+
+      "comparisons": {
+        "revenue": {
+          "current": 186754.30,
+          "previous": 166245.60,
+          "change": 0.1234,
+          "trend": "up"
+        },
+        "openRate": {
+          "current": 0.2345,
+          "previous": 0.2189,
+          "change": 0.0713,
+          "trend": "up"
+        },
+        "clickRate": {
+          "current": 0.0287,
+          "previous": 0.0265,
+          "change": 0.0830,
+          "trend": "up"
+        },
+        "conversionRate": {
+          "current": 0.0156,
+          "previous": 0.0148,
+          "change": 0.0541,
+          "trend": "up"
+        }
+      },
+
+      "byChannel": {
+        "email": {
+          "campaigns": 45,
+          "recipients": 523450,
+          "revenue": 186754.30,
+          "openRate": 0.2345,
+          "clickRate": 0.0287
+        },
+        "sms": {
+          "campaigns": 12,
+          "recipients": 34567,
+          "revenue": 23456.70,
+          "clickRate": 0.0456
+        }
+      },
+
+      "campaigns": {
+        "totalCampaigns": 45,
+        "avgCampaignsPerWeek": 2.8,
+        "bestSendTime": "2:00 PM",
+        "bestSendDay": "Tuesday",
+        "topPerformingCampaign": {
+          "name": "New Year Sale - 50% Off",
+          "revenue": 45678.50
+        }
+      },
+
+      "flows": {
+        "totalFlows": 8,
+        "activeFlows": 7,
+        "flowRevenue": 67834.20,
+        "topPerformingFlow": {
+          "name": "Welcome Series",
+          "revenue": 23456.80
+        }
+      },
+
+      "audience": {
+        "totalProfiles": 87654,
+        "activeProfiles": 65432,
+        "growthRate": 0.0394,
+        "churnRate": 0.0141,
+        "topSegments": [
+          { "name": "VIP Customers", "size": 2345, "revenue": 78654.30 },
+          { "name": "Engaged Subscribers", "size": 12456, "revenue": 45678.90 },
+          { "name": "Recent Buyers", "size": 8765, "revenue": 34567.80 }
+        ]
+      }
+    },
+
+    "insights": {
+      "automated": [
+        "Open rates have increased by +7.1% compared to the previous period - great job!",
+        "\"New Year Sale - 50% Off\" is your top performing campaign with $45.7K in revenue",
+        "Your campaigns perform best when sent on Tuesday at 2:00 PM",
+        "Email engagement is 12.3% above your historical average",
+        "Revenue per recipient has improved by 8.5% this month"
+      ],
+
+      "anomalies": [
+        "Significant spike in unsubscribe rate on Jan 18 (0.23%) - Investigate campaign content",
+        "Click rates dropped 15% on weekend campaigns compared to weekday",
+        "Unusually low open rate (12.3%) for \"Flash Sale Alert\" - Review subject line"
+      ],
+
+      "opportunities": [
+        "SMS channel shows 58% higher click rates than email - Consider expanding SMS campaigns",
+        "VIP segment generates 3.2x revenue per recipient - Increase frequency for this segment",
+        "Tuesday 2pm campaigns outperform by 34% - Schedule more campaigns at this time",
+        "Welcome flow has 2.3x conversion rate - Audit and replicate successful elements"
+      ],
+
+      "warnings": [
+        "Bounce rate increased to 2.4% - Review list hygiene practices",
+        "List growth rate declining for 3 consecutive weeks - Implement new acquisition strategies"
+      ],
+
+      "recommendations": [
+        {
+          "action": "A/B test subject lines with urgency vs. curiosity",
+          "impact": "Could increase open rates by 15-30%",
+          "effort": "Low",
+          "priority": "High"
+        },
+        {
+          "action": "Create re-engagement campaign for inactive subscribers (>90 days)",
+          "impact": "Could recover 20-35% of dormant subscribers",
+          "effort": "Medium",
+          "priority": "High"
+        },
+        {
+          "action": "Implement browse abandonment flow",
+          "impact": "Could generate $15-25K additional monthly revenue",
+          "effort": "High",
+          "priority": "Medium"
+        }
+      ],
+
+      "benchmarks": {
+        "openRate": {
+          "industry": 0.2133,
+          "yourValue": 0.2345,
+          "status": "above",
+          "percentile": 68
+        },
+        "clickRate": {
+          "industry": 0.0262,
+          "yourValue": 0.0287,
+          "status": "above",
+          "percentile": 62
+        }
+      },
+
+      "seasonalTrends": [
+        "Post-holiday engagement typically dips 15-20% - current performance is 12% above expected",
+        "January is historically strong for new customer acquisition - capitalize with welcome series"
+      ],
+
+      "audienceInsights": [
+        "Most engaged time: Weekdays 1-4 PM EST",
+        "Mobile opens: 67% (industry avg: 61%)",
+        "Average customer makes 2.3 purchases per year",
+        "Highest LTV segment: VIP Customers ($456/customer)"
+      ],
+
+      "contentInsights": [
+        "Subject lines with emojis: 8% higher open rate",
+        "Personalized subject lines: 15% higher click rate",
+        "Optimal subject line length: 40-50 characters",
+        "Promotional language in subject: 23% higher conversion but 12% higher unsubscribe"
+      ]
+    },
+
+    "campaigns": {
+      "upcoming": [
+        {
+          "name": "Valentine's Day Preview",
+          "scheduledFor": "2025-02-10T14:00:00.000Z",
+          "estimatedRecipients": 52340,
+          "segment": "Engaged Subscribers"
+        },
+        {
+          "name": "Flash Sale - 24 Hours Only",
+          "scheduledFor": "2025-02-15T10:00:00.000Z",
+          "estimatedRecipients": 87654,
+          "segment": "All Subscribers"
+        }
+      ],
+
+      "recent": [
+        {
+          "name": "New Year Sale - 50% Off",
+          "sentAt": "2025-01-13T19:32:00.000Z",
+          "recipients": 45230,
+          "openRate": 0.2754,
+          "revenue": 45678.50
+        },
+        {
+          "name": "Winter Clearance Event",
+          "sentAt": "2025-01-20T15:00:00.000Z",
+          "recipients": 38765,
+          "openRate": 0.2234,
+          "revenue": 23456.80
+        }
+      ],
+
+      "topPerformers": [
+        {
+          "name": "New Year Sale - 50% Off",
+          "revenue": 45678.50,
+          "openRate": 0.2754,
+          "clickRate": 0.0415,
+          "conversionRate": 0.0052,
+          "roi": 15.6
+        },
+        {
+          "name": "VIP Early Access",
+          "revenue": 38934.20,
+          "openRate": 0.3245,
+          "clickRate": 0.0567,
+          "conversionRate": 0.0089,
+          "roi": 21.3
+        },
+        {
+          "name": "Back in Stock Alert",
+          "revenue": 28456.90,
+          "openRate": 0.4123,
+          "clickRate": 0.0876,
+          "conversionRate": 0.0123,
+          "roi": 28.7
+        }
+      ],
+
+      "underperformers": [
+        {
+          "name": "Weekly Newsletter #4",
+          "revenue": 1234.50,
+          "openRate": 0.1123,
+          "clickRate": 0.0089,
+          "issue": "Low engagement - Review content relevance"
+        }
+      ],
+
+      "sendTimeAnalysis": {
+        "bestDay": "Tuesday",
+        "bestTime": "2:00 PM",
+        "worstDay": "Sunday",
+        "worstTime": "6:00 AM",
+        "insights": "Tuesday 2 PM campaigns generate 34% more revenue than average"
+      },
+
+      "subjectLineAnalysis": {
+        "avgLength": 45,
+        "emojiUsage": 0.23,
+        "personalization": 0.67,
+        "topWords": ["Sale", "New", "Exclusive", "Limited", "Free"],
+        "insights": "Personalized subject lines outperform generic by 15%"
+      },
+
+      "contentAnalysis": {
+        "avgEmailLength": "medium",
+        "ctaCount": 2.3,
+        "imageRatio": 0.45,
+        "insights": "2-3 CTAs perform best. Single CTA emails underperform by 12%"
+      }
+    },
+
+    "flows": {
+      "active": [
+        {
+          "name": "Welcome Series",
+          "status": "active",
+          "triggers": 234,
+          "conversions": 89,
+          "revenue": 23456.80
+        },
+        {
+          "name": "Abandoned Cart",
+          "status": "active",
+          "triggers": 1234,
+          "conversions": 234,
+          "revenue": 34567.90
+        },
+        {
+          "name": "Post-Purchase",
+          "status": "active",
+          "triggers": 567,
+          "conversions": 123,
+          "revenue": 12345.60
+        }
+      ],
+
+      "performance": [
+        {
+          "name": "Abandoned Cart",
+          "revenue": 34567.90,
+          "conversionRate": 0.1896,
+          "avgOrderValue": 147.73
+        },
+        {
+          "name": "Welcome Series",
+          "revenue": 23456.80,
+          "conversionRate": 0.3803,
+          "avgOrderValue": 263.56
+        }
+      ],
+
+      "dropOffPoints": [
+        {
+          "flow": "Abandoned Cart",
+          "step": "Email 2",
+          "dropOffRate": 0.45,
+          "recommendation": "Test shorter delay between email 1 and 2"
+        },
+        {
+          "flow": "Welcome Series",
+          "step": "Email 3",
+          "dropOffRate": 0.32,
+          "recommendation": "Add incentive in email 3 to maintain engagement"
+        }
+      ],
+
+      "optimizationOpportunities": [
+        "Abandoned Cart: Test adding SMS to 24-hour mark",
+        "Welcome Series: A/B test discount amount (10% vs 15%)",
+        "Post-Purchase: Implement review request flow"
+      ]
+    },
+
+    "segments": {
+      "topPerforming": [
+        {
+          "name": "VIP Customers",
+          "size": 2345,
+          "revenue": 78654.30,
+          "avgOrderValue": 335.45,
+          "openRate": 0.3456
+        },
+        {
+          "name": "Engaged Subscribers",
+          "size": 12456,
+          "revenue": 45678.90,
+          "avgOrderValue": 98.76,
+          "openRate": 0.2876
+        }
+      ],
+
+      "growthSegments": [
+        {
+          "name": "New Subscribers (<30 days)",
+          "size": 3456,
+          "growthRate": 0.234,
+          "conversionRate": 0.0456
+        }
+      ],
+
+      "riskSegments": [
+        {
+          "name": "Previously Active (60-90 days inactive)",
+          "size": 5678,
+          "churnRisk": "high",
+          "recommendation": "Launch win-back campaign immediately"
+        }
+      ],
+
+      "suggestions": [
+        "Create RFM segment for customers who buy frequently but low AOV - target with bundle offers",
+        "Build geographic segment for regional promotions",
+        "Create birthday segment for personalized campaigns"
+      ]
+    },
+
+    "userContext": {
+      "recentQueries": [
+        {
+          "query": "What's my best performing campaign this month?",
+          "response": "Your top campaign is \"New Year Sale - 50% Off\" with $45.7K in revenue...",
+          "timestamp": "2025-01-30T14:32:00.000Z"
+        },
+        {
+          "query": "Why are my weekend campaigns underperforming?",
+          "response": "Weekend campaigns show 15% lower click rates. Consider focusing on Tuesday-Thursday...",
+          "timestamp": "2025-01-30T14:28:00.000Z"
+        }
+      ],
+
+      "focusAreas": ["campaign optimization", "revenue growth", "segmentation"],
+      "expertise": "intermediate",
+
+      "preferences": {
+        "preferredMetrics": ["revenue", "openRate", "clickRate"],
+        "preferredViews": ["charts", "top_performers"],
+        "industryType": "ecommerce"
+      },
+
+      "goals": [
+        "Increase monthly revenue by 25%",
+        "Improve email engagement rates",
+        "Reduce list churn",
+        "Implement advanced segmentation"
+      ]
+    },
+
+    "benchmarks": {
+      "industry": {
+        "openRate": { "value": 0.2133, "source": "2024 Email Marketing Benchmarks" },
+        "clickRate": { "value": 0.0262, "source": "2024 Email Marketing Benchmarks" },
+        "conversionRate": { "value": 0.0148, "source": "2024 Email Marketing Benchmarks" },
+        "unsubscribeRate": { "value": 0.001, "source": "2024 Email Marketing Benchmarks" }
+      },
+
+      "similar": {
+        "description": "E-commerce businesses with 50K-100K subscribers",
+        "avgMonthlyRevenue": 145000,
+        "avgCampaignsPerWeek": 2.5,
+        "avgOpenRate": 0.2245
+      },
+
+      "historical": {
+        "last30Days": {
+          "revenue": 186754.30,
+          "openRate": 0.2345,
+          "clickRate": 0.0287
+        },
+        "last90Days": {
+          "avgRevenue": 172345.60,
+          "avgOpenRate": 0.2267,
+          "avgClickRate": 0.0274
+        },
+        "yearOverYear": {
+          "revenueGrowth": 0.234,
+          "audienceGrowth": 0.156
+        }
+      }
+    },
+
+    "timestamp": "2025-01-30T15:45:23.456Z",
+    "dataFreshness": "2025-01-30T15:30:00.000Z",
+    "version": "2.0"
+  },
+
+  "conversationHistory": [
+    {
+      "timestamp": "2025-01-30T15:45:00.000Z",
+      "change": {
+        "filters": {
+          "channels": ["email"]
+        }
+      },
+      "page": "/multi-account-reporting"
+    },
+    {
+      "timestamp": "2025-01-30T15:42:00.000Z",
+      "change": {
+        "dateRange": {
+          "preset": "last30days"
+        }
+      },
+      "page": "/multi-account-reporting"
+    }
+  ],
+
+  "formattedContext": "# Wizel AI Marketing Intelligence Context\n\n## Current View\n**Page:** Multi-Account Campaign Performance (campaigns)\n**Selected Accounts:** Fashion Boutique NYC, Beauty Store LA\n\n## Time Period\n**Date Range:** last 30 days\n**Comparing to:** Previous period\n**Seasonal Context:** post-holiday\n\n## Key Performance Indicators\n- **Total Revenue:** $186.8K 📈 +12.3% vs previous period\n- **Open Rate:** 23.5% 📈 +7.1% vs previous period\n- **Click Rate:** 2.9% 📈 +8.3% vs previous period\n- **Conversion Rate:** 1.6% 📈 +5.4% vs previous period\n\n## Campaign Intelligence\n### Top Performing Campaigns\n1. **New Year Sale - 50% Off**\n   - Revenue: $45.7K\n   - Open Rate: +27.5%\n   - Click Rate: +4.2%\n\n### Send Time Analysis\n- **Best Day:** Tuesday\n- **Best Time:** 2:00 PM\n\n## AI-Generated Insights\n1. Open rates have increased by +7.1% compared to the previous period - great job!\n2. \"New Year Sale - 50% Off\" is your top performing campaign with $45.7K in revenue\n3. Your campaigns perform best when sent on Tuesday at 2:00 PM\n\n## Growth Opportunities\n1. SMS channel shows 58% higher click rates than email - Consider expanding SMS campaigns\n2. VIP segment generates 3.2x revenue per recipient - Increase frequency for this segment\n3. Tuesday 2pm campaigns outperform by 34% - Schedule more campaigns at this time\n\n## Actionable Recommendations\n1. A/B test subject lines with urgency vs. curiosity - *Could increase open rates by 15-30%*\n2. Create re-engagement campaign for inactive subscribers (>90 days) - *Could recover 20-35% of dormant subscribers*\n\n## Industry Benchmarks\n- **Open Rate:** You're above industry average (21.3%)\n- **Click Rate:** You're above industry average (2.6%)\n\n## User Profile\n- **Expertise Level:** intermediate\n- **Focus Areas:** campaign optimization, revenue growth, segmentation\n- **Goals:** Increase monthly revenue by 25%, Improve email engagement rates, Reduce list churn, Implement advanced segmentation\n",
+
+  "enrichedContext": {
+    "performance": "good",
+    "trends": ["Strong revenue growth detected", "Improving engagement rates"],
+    "benchmarks": {
+      "openRate": {
+        "value": 0.2133,
+        "userValue": 0.2345,
+        "status": "above",
+        "difference": 0.0212
+      },
+      "clickRate": {
+        "value": 0.0262,
+        "userValue": 0.0287,
+        "status": "above",
+        "difference": 0.0025
+      }
+    },
+    "seasonality": {
+      "detected": false,
+      "pattern": null
+    },
+    "channelRecommendations": [],
+    "segmentationOpportunities": [
+      "Create RFM (Recency, Frequency, Monetary) segments for targeted campaigns",
+      "Build VIP customer segment for exclusive offers",
+      "Create at-risk customer segment for win-back campaigns"
+    ]
+  },
+
+  "suggestedActions": [
+    {
+      "type": "improvement",
+      "action": "A/B test subject lines and preview text",
+      "message": "Click rates are below industry average (2.62%). Consider A/B testing subject lines.",
+      "priority": "high",
+      "estimatedImpact": "15-30% improvement in click rate"
+    },
+    {
+      "type": "investigate",
+      "action": "Investigate anomaly",
+      "message": "Significant spike in unsubscribe rate on Jan 18 (0.23%) - Investigate campaign content",
+      "priority": "medium",
+      "estimatedImpact": "Identify root cause"
+    }
+  ],
+
+  "marketingIntelligence": {
+    "performanceCategory": "good",
+    "trendDirection": "positive",
+    "urgentActions": [],
+    "quickWins": [],
+    "contentStrategy": {
+      "frequency": "moderate",
+      "consistency": "unknown",
+      "topPerformingTypes": []
+    },
+    "audienceHealth": {
+      "overall": "unknown",
+      "listGrowth": "good",
+      "engagement": "unknown"
+    },
+    "channelMix": {
+      "activeChannels": ["email", "sms"],
+      "recommendations": []
+    }
+  }
+}

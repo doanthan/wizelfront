@@ -6,12 +6,10 @@ import { useStores } from "@/app/contexts/store-context";
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
 import { useTheme } from "@/app/contexts/theme-context";
 import { Button } from "@/app/components/ui/button";
-import { Sun, Moon, Store } from "lucide-react";
+import { Sun, Moon, Store, ArrowUpDown } from "lucide-react";
 import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils';
 import MorphingLoader from '@/app/components/ui/loading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
-import { Progress } from "@/app/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -28,29 +26,30 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import {
-  LineChart, Line, BarChart, Bar,
+  LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
+  ResponsiveContainer
 } from 'recharts';
 import {
-  FileText, TrendingUp, TrendingDown, Users,
-  Eye, MousePointer, CheckCircle, XCircle,
-  ArrowUp, ArrowDown, Calendar, Smartphone,
-  Monitor, Tablet, Globe, Clock, UserPlus
+  FileText, Eye, MousePointer, XCircle, DollarSign,
+  ArrowUp, ArrowDown, TrendingUp
 } from 'lucide-react';
 
-const COLORS = ['#60A5FA', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899'];
+const COLORS = ['#60A5FA', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#2563EB', '#7C3AED', '#34D399'];
 
 export default function StoreFormsReportPage() {
   const router = useRouter();
   const params = useParams();
-  const { stores, isLoadingStores } = useStores();
+  const { stores } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formsData, setFormsData] = useState(null);
   const [error, setError] = useState(null);
   const [storePublicId, setStorePublicId] = useState(null);
+  const [sortColumn, setSortColumn] = useState('viewed_form');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [selectedFormForTrends, setSelectedFormForTrends] = useState('all');
 
   // Get storePublicId from params
   useEffect(() => {
@@ -100,7 +99,6 @@ export default function StoreFormsReportPage() {
   // Handle date range changes
   const handleDateRangeChange = (newDateRangeSelection) => {
     setDateRangeSelection(newDateRangeSelection);
-    localStorage.setItem('formsReportDateRange', JSON.stringify(newDateRangeSelection));
   };
 
   // Handle store selection change
@@ -110,432 +108,399 @@ export default function StoreFormsReportPage() {
     }
   };
 
-  // Mock data for forms
-  const mockFormsData = {
-    summary: {
-      active_forms: 8,
-      total_views: 125000,
-      total_submissions: 8750,
-      conversion_rate: 7.0,
-      new_subscribers: 7500,
-      bounce_rate: 45.2,
-      avg_time_on_form: 32,
-      total_unique_visitors: 95000
-    },
-    previousPeriod: {
-      active_forms: 7,
-      total_views: 105000,
-      total_submissions: 6825,
-      conversion_rate: 6.5,
-      new_subscribers: 5800
-    },
-    formPerformance: [
-      {
-        name: "Newsletter Popup",
-        type: "popup",
-        status: "active",
-        views: 45000,
-        submissions: 4050,
-        conversion_rate: 9.0,
-        bounce_rate: 35,
-        new_subscribers: 3645,
-        avg_time: "18s",
-        placement: "homepage"
-      },
-      {
-        name: "Exit Intent Offer",
-        type: "popup",
-        status: "active",
-        views: 28000,
-        submissions: 2240,
-        conversion_rate: 8.0,
-        bounce_rate: 40,
-        new_subscribers: 2016,
-        avg_time: "12s",
-        placement: "all pages"
-      },
-      {
-        name: "Footer Subscribe",
-        type: "embedded",
-        status: "active",
-        views: 22000,
-        submissions: 1100,
-        conversion_rate: 5.0,
-        bounce_rate: 60,
-        new_subscribers: 990,
-        avg_time: "45s",
-        placement: "footer"
-      },
-      {
-        name: "Welcome Bar",
-        type: "bar",
-        status: "active",
-        views: 15000,
-        submissions: 750,
-        conversion_rate: 5.0,
-        bounce_rate: 50,
-        new_subscribers: 675,
-        avg_time: "8s",
-        placement: "header"
-      },
-      {
-        name: "Contest Entry",
-        type: "landing",
-        status: "active",
-        views: 8000,
-        submissions: 400,
-        conversion_rate: 5.0,
-        bounce_rate: 42,
-        new_subscribers: 360,
-        avg_time: "120s",
-        placement: "landing page"
+  // Fetch forms data from API
+  useEffect(() => {
+    if (!storePublicId) return;
+
+    const fetchFormsData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const startDate = dateRangeSelection.ranges.main.start.toISOString();
+        const endDate = dateRangeSelection.ranges.main.end.toISOString();
+
+        const response = await fetch(
+          `/api/store/${storePublicId}/report/forms?startDate=${startDate}&endDate=${endDate}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch forms data');
+        }
+
+        const data = await response.json();
+        setFormsData(data);
+      } catch (err) {
+        console.error('Error fetching forms data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    ],
-    deviceBreakdown: [
-      { device: 'Mobile', views: 68750, submissions: 4812, rate: 7.0 },
-      { device: 'Desktop', views: 43750, submissions: 3500, rate: 8.0 },
-      { device: 'Tablet', views: 12500, submissions: 438, rate: 3.5 }
-    ],
-    formTypes: [
-      { type: 'Popup', count: 3, submissions: 7040 },
-      { type: 'Embedded', count: 2, submissions: 1100 },
-      { type: 'Bar', count: 1, submissions: 750 },
-      { type: 'Landing', count: 2, submissions: 860 }
-    ],
-    submissionTrends: [
-      { date: '2024-01-01', views: 4200, submissions: 294 },
-      { date: '2024-01-08', views: 4500, submissions: 338 },
-      { date: '2024-01-15', views: 4800, submissions: 384 },
-      { date: '2024-01-22', views: 4100, submissions: 287 },
-      { date: '2024-01-29', views: 4600, submissions: 368 }
-    ],
-    sourceBreakdown: [
-      { source: 'Direct', percentage: 35 },
-      { source: 'Organic Search', percentage: 28 },
-      { source: 'Social Media', percentage: 22 },
-      { source: 'Referral', percentage: 10 },
-      { source: 'Email', percentage: 5 }
-    ]
+    };
+
+    fetchFormsData();
+  }, [storePublicId, dateRangeSelection]);
+
+  // Handle sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
   };
 
-  // Calculate metric changes
-  const getPercentageChange = (current, previous) => {
-    if (!previous || previous === 0) return 0;
-    return ((current - previous) / previous) * 100;
-  };
+  // Sort forms data
+  const sortedForms = useMemo(() => {
+    if (!formsData?.forms) return [];
 
-  if (loading && !formsData && mounted) {
-    setTimeout(() => setLoading(false), 1000);
+    return [...formsData.forms].sort((a, b) => {
+      let aVal = a[sortColumn];
+      let bVal = b[sortColumn];
+
+      // Handle form_name (string)
+      if (sortColumn === 'form_name') {
+        aVal = aVal || '';
+        bVal = bVal || '';
+        return sortDirection === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      // Handle numeric values
+      aVal = aVal || 0;
+      bVal = bVal || 0;
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [formsData?.forms, sortColumn, sortDirection]);
+
+  // Filter trend data by selected form
+  const filteredTrendData = useMemo(() => {
+    if (!formsData?.forms || !formsData?.performanceOverTime) return [];
+
+    if (selectedFormForTrends === 'all') {
+      return formsData.performanceOverTime;
+    }
+
+    // Find the selected form's daily data
+    const selectedForm = formsData.forms.find(f => f.form_id === selectedFormForTrends);
+    if (!selectedForm?.days) return [];
+
+    return selectedForm.days.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [formsData, selectedFormForTrends]);
+
+  // Show loading state
+  if (loading && !mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <MorphingLoader size="large" showText={true} text="Loading forms data..." />
+      </div>
+    );
   }
 
-  const data = formsData || mockFormsData;
+  const SortableHeader = ({ column, label, align = "left" }) => (
+    <TableHead
+      className={`text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${align === "right" ? "text-right" : ""}`}
+      onClick={() => handleSort(column)}
+    >
+      <div className={`flex items-center gap-1 ${align === "right" ? "justify-end" : ""}`}>
+        {label}
+        <ArrowUpDown className={`h-3 w-3 ${sortColumn === column ? 'text-blue-600' : 'text-gray-400'}`} />
+      </div>
+    </TableHead>
+  );
+
+  const MetricCard = ({ title, value, subtitle, icon: Icon, change }) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-blue-600" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
+        {subtitle && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>}
+        {change !== undefined && change !== null && (
+          <div className={`flex items-center gap-1 text-xs mt-2 ${change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            {change > 0 ? <ArrowUp className="h-3 w-3" /> : change < 0 ? <ArrowDown className="h-3 w-3" /> : null}
+            {Math.abs(change).toFixed(1)}% vs last period
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-3">
+    <div className="flex-1 space-y-6 p-4 pt-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Forms Report
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Signup form performance for {currentStore?.name || 'store'}
-          </p>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Form Analytics Dashboard</h2>
+          <p className="text-gray-600 dark:text-gray-400">Monitor and analyze your Klaviyo form performance</p>
         </div>
-
         <div className="flex items-center gap-2">
-          <Select value={storePublicId || ''} onValueChange={handleStoreChange}>
-            <SelectTrigger className="w-[200px]">
-              <Store className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Select a store">
-                {currentStore?.name || 'Select store'}
-              </SelectValue>
+          <Select value={storePublicId || ""} onValueChange={handleStoreChange}>
+            <SelectTrigger className="w-[240px] h-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Store className="mr-2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <SelectValue placeholder="Select store" />
             </SelectTrigger>
             <SelectContent>
-              {stores && stores.map(store => (
+              {stores?.map((store) => (
                 <SelectItem key={store.public_id} value={store.public_id}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      store.klaviyo_integration?.public_id ? 'bg-green-500' : 'bg-gray-400'
-                    }`} />
-                    {store.name}
-                  </div>
+                  {store.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-
           <DateRangeSelector
-            onDateRangeChange={handleDateRangeChange}
-            storageKey="formsReportDateRange"
-            showComparison={true}
-            initialDateRange={dateRangeSelection}
+            value={dateRangeSelection}
+            onChange={handleDateRangeChange}
           />
-
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={toggleTheme}
-            className="h-9 w-9 hover:bg-sky-tint/50 transition-all"
           >
-            {mounted ? (theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />) : <div className="h-4 w-4" />}
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
       </div>
 
-      {/* Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Forms</CardTitle>
-            <FileText className="h-4 w-4 text-sky-blue" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.active_forms}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              +{data.summary.active_forms - data.previousPeriod.active_forms} from last period
-            </p>
+      {loading && (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <MorphingLoader size="large" showText={true} text="Loading forms data..." />
+        </div>
+      )}
+
+      {error && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600 dark:text-red-400">{error}</div>
           </CardContent>
         </Card>
+      )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-            <MousePointer className="h-4 w-4 text-vivid-violet" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.conversion_rate)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {(data.summary.conversion_rate - data.previousPeriod.conversion_rate).toFixed(1)}pp from last period
-            </p>
-          </CardContent>
-        </Card>
+      {!loading && !error && formsData && (
+        <>
+          {/* Key Metrics */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              title="Total Forms"
+              value={formsData.summary.total_forms}
+              icon={FileText}
+              subtitle="Active signup forms"
+            />
+            <MetricCard
+              title="Form Views"
+              value={formatNumber(formsData.summary.total_views)}
+              icon={Eye}
+              subtitle={`${formatNumber(formsData.summary.total_unique_views)} unique views`}
+            />
+            <MetricCard
+              title="Submissions"
+              value={formatNumber(formsData.summary.total_submits)}
+              icon={MousePointer}
+              subtitle={`${formatNumber(formsData.summary.total_unique_submits)} unique submits`}
+            />
+            <MetricCard
+              title="Avg Submit Rate"
+              value={formatPercentage(formsData.summary.avg_submit_rate)}
+              icon={TrendingUp}
+              subtitle="Overall conversion rate"
+            />
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Subscribers</CardTitle>
-            <UserPlus className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.new_subscribers)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {formatPercentage(getPercentageChange(data.summary.new_subscribers, data.previousPeriod.new_subscribers))} from last period
-            </p>
-          </CardContent>
-        </Card>
+          {/* Form Details Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Form Performance Details</CardTitle>
+              <CardDescription>Click column headers to sort</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-xs">
+                      <SortableHeader column="form_name" label="Form Name" />
+                      <SortableHeader column="viewed_form" label="Views" align="right" />
+                      <SortableHeader column="viewed_form_uniques" label="Unique Views" align="right" />
+                      <SortableHeader column="submits" label="Submits" align="right" />
+                      <SortableHeader column="submits_unique" label="Unique Submits" align="right" />
+                      <SortableHeader column="submit_rate" label="Submit Rate" align="right" />
+                      <SortableHeader column="closed_form" label="Closes" align="right" />
+                      <SortableHeader column="close_rate" label="Close Rate" align="right" />
+                      <SortableHeader column="conversion_value" label="Revenue" align="right" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedForms.map((form, idx) => (
+                      <TableRow key={form.form_id} className="text-sm">
+                        <TableCell className="font-medium text-gray-900 dark:text-white">
+                          {form.form_name}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          {formatNumber(form.viewed_form)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          {formatNumber(form.viewed_form_uniques)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          {formatNumber(form.submits)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          {formatNumber(form.submits_unique)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          <span className={form.submit_rate > 10 ? 'text-green-600 font-semibold' : ''}>
+                            {formatPercentage(form.submit_rate)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          {formatNumber(form.closed_form)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          {formatPercentage(form.close_rate)}
+                        </TableCell>
+                        <TableCell className="text-right text-gray-900 dark:text-gray-100">
+                          {formatCurrency(form.conversion_value)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-            <Eye className="h-4 w-4 text-deep-purple" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_views)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {formatPercentage(getPercentageChange(data.summary.total_views, data.previousPeriod.total_views))} from last period
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary Metrics */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Bounce Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{data.summary.bounce_rate}%</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Visitors who left immediately</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Avg Time on Form</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{data.summary.avg_time_on_form}s</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Average engagement time</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Unique Visitors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_unique_visitors)}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Individual form viewers</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Submissions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.summary.total_submissions)}</div>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Form completions</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        {/* Device Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Device Performance</CardTitle>
-            <CardDescription>Form conversions by device type</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.deviceBreakdown.map((device) => (
-                <div key={device.device} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {device.device === 'Mobile' && <Smartphone className="h-4 w-4" />}
-                      {device.device === 'Desktop' && <Monitor className="h-4 w-4" />}
-                      {device.device === 'Tablet' && <Tablet className="h-4 w-4" />}
-                      <span className="font-medium">{device.device}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{formatNumber(device.submissions)} submissions</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{formatPercentage(device.rate)} conversion</div>
-                    </div>
-                  </div>
-                  <Progress value={(device.views / data.summary.total_views) * 100} className="h-2" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Traffic Sources */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Traffic Sources</CardTitle>
-            <CardDescription>Where form visitors come from</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={data.sourceBreakdown}
-                  dataKey="percentage"
-                  nameKey="source"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={(entry) => `${entry.source}: ${entry.percentage}%`}
-                >
-                  {data.sourceBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          {/* Performance Over Time */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <div>
+                <CardTitle>Form Performance Trends</CardTitle>
+                <CardDescription>Daily views, submissions, and conversion rates</CardDescription>
+              </div>
+              <Select value={selectedFormForTrends} onValueChange={setSelectedFormForTrends}>
+                <SelectTrigger className="w-[280px]">
+                  <SelectValue placeholder="Select form" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Forms (Aggregate)</SelectItem>
+                  {formsData.forms.map((form) => (
+                    <SelectItem key={form.form_id} value={form.form_id}>
+                      {form.form_name}
+                    </SelectItem>
                   ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+                </SelectContent>
+              </Select>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart data={filteredTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: 'currentColor' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tick={{ fill: 'currentColor' }}
+                    tickFormatter={(value) => formatNumber(value)}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fill: 'currentColor' }}
+                    tickFormatter={(value) => `${value.toFixed(1)}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                      border: '1px solid var(--tooltip-border, #e5e7eb)',
+                      borderRadius: '8px',
+                      color: 'var(--tooltip-text, #111827)'
+                    }}
+                    wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                    formatter={(value, name) => {
+                      if (name === 'Submit Rate') return `${value.toFixed(2)}%`;
+                      return formatNumber(value);
+                    }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="viewed_form"
+                    stackId="1"
+                    stroke="#60A5FA"
+                    fill="#60A5FA"
+                    fillOpacity={0.6}
+                    name="Views"
+                  />
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="submits"
+                    stackId="2"
+                    stroke="#10B981"
+                    fill="#10B981"
+                    fillOpacity={0.6}
+                    name="Submissions"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="submit_rate"
+                    stroke="#8B5CF6"
+                    strokeWidth={3}
+                    dot={{ fill: '#8B5CF6', r: 4 }}
+                    name="Submit Rate"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-      {/* Form Performance Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Form Performance Details</CardTitle>
-          <CardDescription>Individual form metrics and conversion rates</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Form Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Views</TableHead>
-                <TableHead className="text-right">Submissions</TableHead>
-                <TableHead>Conversion Rate</TableHead>
-                <TableHead className="text-right">New Subscribers</TableHead>
-                <TableHead>Avg Time</TableHead>
-                <TableHead>Placement</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.formPerformance.map((form) => (
-                <TableRow key={form.name}>
-                  <TableCell className="font-medium">{form.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {form.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="success">
-                      {form.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{formatNumber(form.views)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(form.submissions)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Progress value={form.conversion_rate * 10} className="w-[60px]" />
-                      <span className="text-sm">{form.conversion_rate}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">{formatNumber(form.new_subscribers)}</TableCell>
-                  <TableCell>{form.avg_time}</TableCell>
-                  <TableCell className="text-gray-600 dark:text-gray-400">{form.placement}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Submission Trends */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Form Activity Trends</CardTitle>
-          <CardDescription>Views and submissions over time</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={data.submissionTrends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Area type="monotone" dataKey="views" stackId="1" stroke="#60A5FA" fill="#60A5FA" fillOpacity={0.6} name="Views" />
-              <Area type="monotone" dataKey="submissions" stackId="1" stroke="#10B981" fill="#10B981" fillOpacity={0.6} name="Submissions" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Form Type Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Performance by Form Type</CardTitle>
-          <CardDescription>Submissions breakdown by form type</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={data.formTypes}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="type" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="submissions" fill="#8B5CF6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          {/* Form Comparison Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Form Comparison - Submit Rates</CardTitle>
+              <CardDescription>Compare submission performance across all forms</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={sortedForms}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  <XAxis
+                    dataKey="form_name"
+                    angle={-15}
+                    textAnchor="end"
+                    height={100}
+                    tick={{ fill: 'currentColor' }}
+                  />
+                  <YAxis
+                    tick={{ fill: 'currentColor' }}
+                    tickFormatter={(value) => `${value.toFixed(1)}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                      border: '1px solid var(--tooltip-border, #e5e7eb)',
+                      borderRadius: '8px',
+                      color: 'var(--tooltip-text, #111827)'
+                    }}
+                    wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                    formatter={(value) => `${value.toFixed(2)}%`}
+                  />
+                  <Bar dataKey="submit_rate" fill="#60A5FA" name="Submit Rate %" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

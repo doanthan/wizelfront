@@ -42,176 +42,173 @@ export async function GET(request) {
     // Format dates for ClickHouse
     const formatDate = (date) => date.toISOString().split('T')[0];
 
-    // Query 1: Try to get aggregated metrics from account_metrics_daily first (most efficient)
-    // If this table exists, it's the best source for overall revenue metrics
-    let ordersQuery;
-    let useAggregatedTable = false;
-
-    try {
-      // Check if account_metrics_daily exists and has data
-      const checkTableQuery = `
-        SELECT count() as row_count
-        FROM account_metrics_daily FINAL
-        WHERE klaviyo_public_id = {klaviyo_public_id:String}
-          AND date BETWEEN {start_date:Date} AND {end_date:Date}
-        LIMIT 1
-      `;
-
-      const checkResult = await clickhouse.query({
-        query: checkTableQuery,
-        query_params: {
-          klaviyo_public_id: klaviyoPublicId,
-          start_date: formatDate(startDate),
-          end_date: formatDate(endDate)
-        },
-        format: 'JSONEachRow'
-      });
-
-      const check = (await checkResult.json())[0];
-
-      if (check && check.row_count > 0) {
-        useAggregatedTable = true;
-        ordersQuery = `
-          SELECT
-            sum(total_orders) as total_orders,
-            sum(total_revenue) as total_revenue,
-            avg(avg_order_value) as avg_order_value,
-            sum(unique_customers) as unique_customers,
-            sum(new_customers) as new_customers_count,
-            sum(returning_customers) as returning_customers_count
-          FROM account_metrics_daily FINAL
-          WHERE klaviyo_public_id = {klaviyo_public_id:String}
-            AND date BETWEEN {start_date:Date} AND {end_date:Date}
-        `;
-      }
-    } catch (e) {
-      console.log('account_metrics_daily not available, falling back to orders table');
-    }
-
-    // Fallback to orders table if aggregated table not available
-    if (!useAggregatedTable) {
-      ordersQuery = `
-        SELECT
-          count() as total_orders,
-          sum(order_value) as total_revenue,
-          avg(order_value) as avg_order_value,
-          uniqExact(customer_email) as unique_customers
-        FROM klaviyo_orders FINAL
-        WHERE klaviyo_public_id = {klaviyo_public_id:String}
-          AND toDate(order_timestamp) BETWEEN {start_date:Date} AND {end_date:Date}
-      `;
-    }
-
-    // Query 2: Get campaign attributed revenue using aggregated table for better performance
-    const campaignRevenueQuery = `
+    // Query 1: Use account_metrics_daily for aggregated metrics (V2 architecture)
+    // This table is the primary source for overall revenue metrics with channel breakdown
+    const ordersQuery = `
       SELECT
-        sum(total_campaigns) as total_campaigns,
-        sum(email_recipients + sms_recipients) as total_recipients,
-        sum(total_conversion_value) as campaign_revenue,
-        sum(total_conversions) as total_conversions,
-        avg(revenue_per_recipient) as avg_rpr
-      FROM campaign_daily_aggregates FINAL
+        sum(total_orders) as total_orders,
+        sum(total_revenue) as total_revenue,
+        avg(avg_order_value) as avg_order_value,
+        max(unique_customers) as unique_customers,
+        sum(new_customers) as new_customers_count,
+        sum(returning_customers) as returning_customers_count,
+        -- Channel revenue breakdown (V2 fields)
+        sum(email_revenue) as email_revenue,
+        sum(sms_revenue) as sms_revenue,
+        sum(push_revenue) as push_revenue,
+        sum(campaign_revenue) as campaign_revenue,
+        sum(flow_revenue) as flow_revenue,
+        -- Separate campaign channel revenue
+        sum(campaign_email_revenue) as campaign_email_revenue,
+        sum(campaign_sms_revenue) as campaign_sms_revenue,
+        sum(campaign_push_revenue) as campaign_push_revenue
+      FROM account_metrics_daily
       WHERE klaviyo_public_id = {klaviyo_public_id:String}
         AND date BETWEEN {start_date:Date} AND {end_date:Date}
     `;
 
-    // Query 3: Get flow attributed revenue
+    // Query 2: Get detailed campaign statistics using campaign_statistics table (V2)
+    const campaignStatsDetailQuery = `
+      WITH latest_campaigns AS (
+        SELECT
+          campaign_id,
+          argMax(recipients, updated_at) as recipients,
+          argMax(opens_unique, updated_at) as opens_unique,
+          argMax(clicks_unique, updated_at) as clicks_unique,
+          argMax(conversions, updated_at) as conversions,
+          argMax(conversion_value, updated_at) as conversion_value,
+          argMax(send_channel, updated_at) as send_channel
+        FROM campaign_statistics
+        WHERE klaviyo_public_id = {klaviyo_public_id:String}
+          AND date BETWEEN {start_date:Date} AND {end_date:Date}
+        GROUP BY campaign_id
+      )
+      SELECT
+        count(DISTINCT campaign_id) as total_campaigns,
+        sum(recipients) as total_recipients,
+        sum(conversion_value) as campaign_revenue,
+        sum(conversions) as total_conversions,
+        sum(conversion_value) / nullIf(sum(recipients), 0) as avg_rpr
+      FROM latest_campaigns
+    `;
+
+    // Query 3: Get flow attributed revenue using flow_statistics (V2 with argMax)
     const flowRevenueQuery = `
+      WITH latest_flows AS (
+        SELECT
+          flow_id,
+          argMax(recipients, updated_at) as recipients,
+          argMax(conversion_value, updated_at) as conversion_value,
+          argMax(conversions, updated_at) as conversions
+        FROM flow_statistics
+        WHERE klaviyo_public_id = {klaviyo_public_id:String}
+          AND date BETWEEN {start_date:Date} AND {end_date:Date}
+        GROUP BY flow_id
+      )
       SELECT
         sum(conversion_value) as flow_revenue,
         sum(recipients) as total_recipients,
         count(DISTINCT flow_id) as active_flows
-      FROM flow_statistics FINAL
-      WHERE klaviyo_public_id = {klaviyo_public_id:String}
-        AND date BETWEEN {start_date:Date} AND {end_date:Date}
+      FROM latest_flows
     `;
 
-    // Query 4: Get customer breakdown (only if not using aggregated table)
-    let customerAnalysisQuery = null;
-    if (!useAggregatedTable) {
-      customerAnalysisQuery = `
-        WITH customer_orders AS (
-          SELECT
-            customer_email,
-            count() as order_count,
-            min(order_timestamp) as first_order_date
-          FROM klaviyo_orders FINAL
-          WHERE klaviyo_public_id = {klaviyo_public_id:String}
-          GROUP BY customer_email
-        )
-        SELECT
-          countIf(toDate(first_order_date) BETWEEN {start_date:Date} AND {end_date:Date}) as new_customers,
-          countIf(toDate(first_order_date) < {start_date:Date} AND order_count > 1) as returning_customers
-        FROM customer_orders
-      `;
-    }
+    // Query 4: Customer analysis is now included in account_metrics_daily, no separate query needed
 
-    // Query 5: Get previous period metrics
-    let previousPeriodQuery;
-    if (useAggregatedTable) {
-      previousPeriodQuery = `
-        SELECT
-          sum(total_orders) as total_orders,
-          sum(total_revenue) as total_revenue,
-          avg(avg_order_value) as avg_order_value,
-          sum(unique_customers) as unique_customers
-        FROM account_metrics_daily FINAL
-        WHERE klaviyo_public_id = {klaviyo_public_id:String}
-          AND date BETWEEN {prev_start_date:Date} AND {prev_end_date:Date}
-      `;
-    } else {
-      previousPeriodQuery = `
-        SELECT
-          count() as total_orders,
-          sum(order_value) as total_revenue,
-          avg(order_value) as avg_order_value,
-          uniqExact(customer_email) as unique_customers
-        FROM klaviyo_orders FINAL
-        WHERE klaviyo_public_id = {klaviyo_public_id:String}
-          AND toDate(order_timestamp) BETWEEN {prev_start_date:Date} AND {prev_end_date:Date}
-      `;
-    }
+    // Query 5: Get previous period metrics using account_metrics_daily (V2)
+    const previousPeriodQuery = `
+      SELECT
+        sum(total_orders) as total_orders,
+        sum(total_revenue) as total_revenue,
+        avg(avg_order_value) as avg_order_value,
+        max(unique_customers) as unique_customers,
+        sum(campaign_revenue) as campaign_revenue,
+        sum(flow_revenue) as flow_revenue
+      FROM account_metrics_daily
+      WHERE klaviyo_public_id = {klaviyo_public_id:String}
+        AND date BETWEEN {prev_start_date:Date} AND {prev_end_date:Date}
+    `;
 
-    // Query 6: Get form statistics
+    // Query 6: Get form statistics using V2 argMax pattern
     const formStatsQuery = `
+      WITH latest_forms AS (
+        SELECT
+          form_id,
+          argMax(submits, updated_at) as submits
+        FROM form_statistics
+        WHERE klaviyo_public_id = {klaviyo_public_id:String}
+          AND date BETWEEN {start_date:Date} AND {end_date:Date}
+        GROUP BY form_id
+      )
       SELECT
         count(DISTINCT form_id) as active_forms,
         sum(submits) as total_submissions
-      FROM form_statistics FINAL
-      WHERE klaviyo_public_id = {klaviyo_public_id:String}
-        AND date BETWEEN {start_date:Date} AND {end_date:Date}
+      FROM latest_forms
     `;
 
-    // Query 7: Get segment statistics
+    // Query 7: Get segment statistics using V2 argMax pattern
     const segmentStatsQuery = `
+      WITH latest_segments AS (
+        SELECT
+          segment_id,
+          argMax(total_members, updated_at) as total_members
+        FROM segment_statistics
+        WHERE klaviyo_public_id = {klaviyo_public_id:String}
+          AND date = (
+            SELECT max(date)
+            FROM segment_statistics
+            WHERE klaviyo_public_id = {klaviyo_public_id:String}
+          )
+        GROUP BY segment_id
+      )
       SELECT
         count(DISTINCT segment_id) as total_segments,
         sum(total_members) as total_profiles
-      FROM segment_statistics FINAL
-      WHERE klaviyo_public_id = {klaviyo_public_id:String}
-        AND date = (
-          SELECT max(date)
-          FROM segment_statistics FINAL
-          WHERE klaviyo_public_id = {klaviyo_public_id:String}
-        )
+      FROM latest_segments
     `;
 
-    // Query 8: Get email/SMS campaign performance
+    // Query 8: Get email/SMS campaign performance using V2 argMax pattern
     const campaignStatsQuery = `
+      WITH latest_campaigns AS (
+        SELECT
+          campaign_id,
+          argMax(send_channel, updated_at) as channel,
+          argMax(recipients, updated_at) as recipients,
+          argMax(opens_unique, updated_at) as opens_unique,
+          argMax(clicks_unique, updated_at) as clicks_unique,
+          argMax(open_rate, updated_at) as open_rate,
+          argMax(click_rate, updated_at) as click_rate
+        FROM campaign_statistics
+        WHERE klaviyo_public_id = {klaviyo_public_id:String}
+          AND date BETWEEN {start_date:Date} AND {end_date:Date}
+        GROUP BY campaign_id
+      )
       SELECT
-        send_channel as channel,
+        channel,
         count(DISTINCT campaign_id) as total_campaigns,
         sum(recipients) as total_sent,
         sum(opens_unique) as total_opens,
         sum(clicks_unique) as total_clicks,
-        avg(CASE WHEN recipients > 0 THEN (opens_unique * 100.0 / recipients) ELSE 0 END) as avg_open_rate,
-        avg(CASE WHEN recipients > 0 THEN (clicks_unique * 100.0 / recipients) ELSE 0 END) as avg_click_rate,
+        avg(open_rate) as avg_open_rate,
+        avg(click_rate) as avg_click_rate,
         avg(CASE WHEN opens_unique > 0 THEN (clicks_unique * 100.0 / opens_unique) ELSE 0 END) as avg_ctor
-      FROM campaign_statistics FINAL
+      FROM latest_campaigns
+      GROUP BY channel
+    `;
+
+    // Query 9: Get daily revenue breakdown for chart
+    const revenueByDayQuery = `
+      SELECT
+        date,
+        total_revenue as revenue,
+        (campaign_revenue + flow_revenue) as attributed_revenue,
+        campaign_email_revenue as email_campaign_revenue,
+        campaign_sms_revenue as sms_campaign_revenue,
+        flow_revenue as flow_revenue,
+        GREATEST(0, total_revenue - campaign_revenue - flow_revenue) as other_revenue
+      FROM account_metrics_daily
       WHERE klaviyo_public_id = {klaviyo_public_id:String}
-        AND date >= {start_date:Date}
-        AND date <= {end_date:Date}
-      GROUP BY send_channel
+        AND date BETWEEN {start_date:Date} AND {end_date:Date}
+      ORDER BY date ASC
     `;
 
     // Execute queries
@@ -226,7 +223,7 @@ export async function GET(request) {
         format: 'JSONEachRow'
       }),
       clickhouse.query({
-        query: campaignRevenueQuery,
+        query: campaignStatsDetailQuery,
         query_params: {
           klaviyo_public_id: klaviyoPublicId,
           start_date: formatDate(startDate),
@@ -276,34 +273,29 @@ export async function GET(request) {
           end_date: formatDate(endDate)
         },
         format: 'JSONEachRow'
-      })
-    ];
-
-    // Add customer analysis query if needed
-    if (customerAnalysisQuery) {
-      queries.splice(3, 0, clickhouse.query({
-        query: customerAnalysisQuery,
+      }),
+      clickhouse.query({
+        query: revenueByDayQuery,
         query_params: {
           klaviyo_public_id: klaviyoPublicId,
           start_date: formatDate(startDate),
           end_date: formatDate(endDate)
         },
         format: 'JSONEachRow'
-      }));
-    }
+      })
+    ];
 
     const results = await Promise.all(queries);
 
-    // Parse results
-    let resultIndex = 0;
-    const orders = (await results[resultIndex++].json())[0] || {};
-    const campaigns = (await results[resultIndex++].json())[0] || {};
-    const flows = (await results[resultIndex++].json())[0] || {};
-    const customers = customerAnalysisQuery ? (await results[resultIndex++].json())[0] || {} : null;
-    const previous = (await results[resultIndex++].json())[0] || {};
-    const forms = (await results[resultIndex++].json())[0] || {};
-    const segments = (await results[resultIndex++].json())[0] || {};
-    const campaignStatsArray = await results[resultIndex++].json() || [];
+    // Parse results - V2 architecture doesn't need separate customer query
+    const orders = (await results[0].json())[0] || {};
+    const campaignsDetail = (await results[1].json())[0] || {};
+    const flows = (await results[2].json())[0] || {};
+    const previous = (await results[3].json())[0] || {};
+    const forms = (await results[4].json())[0] || {};
+    const segments = (await results[5].json())[0] || {};
+    const campaignStatsArray = await results[6].json() || [];
+    const revenueByDay = await results[7].json() || [];
 
     // Parse campaign stats by channel
     const campaignStatsByChannel = {};
@@ -311,24 +303,27 @@ export async function GET(request) {
       campaignStatsByChannel[stat.channel] = stat;
     }
 
-    // Calculate derived metrics
+    // Calculate derived metrics using V2 aggregated data
     const totalRevenue = parseFloat(orders.total_revenue || 0);
-    const campaignRevenue = parseFloat(campaigns.campaign_revenue || 0);
-    const flowRevenue = parseFloat(flows.flow_revenue || 0);
+
+    // Use channel revenue from account_metrics_daily (includes both campaign and flow)
+    const campaignRevenue = parseFloat(orders.campaign_revenue || 0);
+    const flowRevenue = parseFloat(orders.flow_revenue || 0);
+    const emailRevenue = parseFloat(orders.email_revenue || 0);
+    const smsRevenue = parseFloat(orders.sms_revenue || 0);
+    const pushRevenue = parseFloat(orders.push_revenue || 0);
+
+    // Separate campaign channel revenue
+    const campaignEmailRevenue = parseFloat(orders.campaign_email_revenue || 0);
+    const campaignSmsRevenue = parseFloat(orders.campaign_sms_revenue || 0);
+    const campaignPushRevenue = parseFloat(orders.campaign_push_revenue || 0);
+
     const attributedRevenue = campaignRevenue + flowRevenue;
     const attributedPercentage = totalRevenue > 0 ? (attributedRevenue / totalRevenue) * 100 : 0;
 
     const uniqueCustomers = parseInt(orders.unique_customers || 0);
-
-    // Use aggregated data if available, otherwise use calculated values
-    const newCustomers = useAggregatedTable ?
-      parseInt(orders.new_customers_count || 0) :
-      parseInt(customers?.new_customers || 0);
-
-    const returningCustomers = useAggregatedTable ?
-      parseInt(orders.returning_customers_count || 0) :
-      parseInt(customers?.returning_customers || 0);
-
+    const newCustomers = parseInt(orders.new_customers_count || 0);
+    const returningCustomers = parseInt(orders.returning_customers_count || 0);
     const repeatRate = uniqueCustomers > 0 ? (returningCustomers / uniqueCustomers) * 100 : 0;
 
     // Build response
@@ -344,14 +339,25 @@ export async function GET(request) {
       returning_customers: returningCustomers,
       repeat_rate: repeatRate,
 
-      // Channel breakdown
+      // Channel breakdown - enhanced with V2 channel revenue data
       channel_breakdown: {
         campaign_revenue: campaignRevenue,
         campaign_percentage: totalRevenue > 0 ? (campaignRevenue / totalRevenue) * 100 : 0,
         flow_revenue: flowRevenue,
         flow_percentage: totalRevenue > 0 ? (flowRevenue / totalRevenue) * 100 : 0,
         other_revenue: Math.max(0, totalRevenue - attributedRevenue),
-        other_percentage: totalRevenue > 0 ? Math.max(0, ((totalRevenue - attributedRevenue) / totalRevenue) * 100) : 0
+        other_percentage: totalRevenue > 0 ? Math.max(0, ((totalRevenue - attributedRevenue) / totalRevenue) * 100) : 0,
+        // V2 channel revenue breakdown
+        email_revenue: emailRevenue,
+        sms_revenue: smsRevenue,
+        push_revenue: pushRevenue,
+        // Campaign channel breakdown
+        campaign_email_revenue: campaignEmailRevenue,
+        campaign_email_percentage: totalRevenue > 0 ? (campaignEmailRevenue / totalRevenue) * 100 : 0,
+        campaign_sms_revenue: campaignSmsRevenue,
+        campaign_sms_percentage: totalRevenue > 0 ? (campaignSmsRevenue / totalRevenue) * 100 : 0,
+        campaign_push_revenue: campaignPushRevenue,
+        campaign_push_percentage: totalRevenue > 0 ? (campaignPushRevenue / totalRevenue) * 100 : 0
       },
 
       // Email/SMS campaign performance (check both lowercase and capitalized)
@@ -376,21 +382,21 @@ export async function GET(request) {
         }
       },
 
-      // Previous period for comparison
+      // Previous period for comparison (now includes attribution data from V2)
       previous_period: {
         overall_revenue: parseFloat(previous.total_revenue || 0),
-        attributed_revenue: 0, // Would need separate queries
+        attributed_revenue: parseFloat(previous.campaign_revenue || 0) + parseFloat(previous.flow_revenue || 0),
         total_orders: parseInt(previous.total_orders || 0),
         unique_customers: parseInt(previous.unique_customers || 0),
         avg_order_value: parseFloat(previous.avg_order_value || 0),
-        new_customers: 0, // Would need separate query
-        returning_customers: 0 // Would need separate query
+        new_customers: 0, // Could be added to previous period query if needed
+        returning_customers: 0 // Could be added to previous period query if needed
       },
 
       // Brand/Store info
       brand: {
         name: store.name,
-        total_campaigns: parseInt(campaigns.total_campaigns || 0),
+        total_campaigns: parseInt(campaignsDetail.total_campaigns || 0),
         active_flows: parseInt(flows.active_flows || 0),
         segments: parseInt(segments.total_segments || 0),
         active_forms: parseInt(forms.active_forms || 0),
@@ -405,9 +411,20 @@ export async function GET(request) {
         days: days
       },
 
+      // Daily revenue breakdown for charts
+      revenue_by_day: revenueByDay.map(day => ({
+        date: day.date,
+        revenue: parseFloat(day.revenue || 0),
+        attributed_revenue: parseFloat(day.attributed_revenue || 0),
+        email_campaign_revenue: parseFloat(day.email_campaign_revenue || 0),
+        sms_campaign_revenue: parseFloat(day.sms_campaign_revenue || 0),
+        flow_revenue: parseFloat(day.flow_revenue || 0),
+        other_revenue: parseFloat(day.other_revenue || 0)
+      })),
+
       // Metadata
       _metadata: {
-        using_aggregated_table: useAggregatedTable,
+        using_v2_architecture: true,
         query_timestamp: new Date().toISOString()
       }
     };

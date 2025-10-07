@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { AccountSelector } from "@/app/components/ui/account-selector"
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector"
 import { Loading } from "@/app/components/ui/loading"
 import { useStores } from "@/app/contexts/store-context"
-import { useCampaignData } from "@/app/contexts/campaign-data-context"
+// Campaign data will be fetched directly - no shared context
 import { useAI } from "@/app/contexts/ai-context"
+import { useCampaignData } from "@/app/hooks/useCampaignData"
 
 // Import tab components
 import RevenueTab from "./components/RevenueTab"
@@ -22,24 +23,75 @@ export default function AnalyticsPage() {
     const { updateAIState } = useAI()
     const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'revenue')
     
-    // Use shared campaign data context
-    const { getCampaignData, loading: contextLoading, errors: contextErrors } = useCampaignData()
-    const [campaignsData, setCampaignsData] = useState(null)
-    const [campaignsLoading, setCampaignsLoading] = useState(false)
-    const [campaignsError, setCampaignsError] = useState(null)
+    // Use the campaign data hook with stores
+    const {
+        recentCampaigns,
+        upcomingCampaigns,
+        loading: campaignsLoading,
+        error: campaignsError,
+        getFilteredCampaigns,
+        refreshCampaigns
+    } = useCampaignData(stores)
+
+    // Format campaigns data for the campaigns tab
+    const campaignsData = useMemo(() => {
+        const allCampaigns = [...(recentCampaigns || []), ...(upcomingCampaigns || [])]
+
+        // Calculate aggregate stats from campaigns
+        let aggregateStats = {
+            totalCampaigns: 0,
+            totalRecipients: 0,
+            totalOpens: 0,
+            totalClicks: 0,
+            totalConversions: 0,
+            totalRevenue: 0,
+            averageOpenRate: 0,
+            averageClickRate: 0,
+            averageConversionRate: 0,
+            averageRevenuePerRecipient: 0
+        }
+
+        if (allCampaigns.length > 0) {
+            // Sum up all the metrics
+            allCampaigns.forEach(campaign => {
+                aggregateStats.totalRecipients += campaign.recipients || 0
+                aggregateStats.totalOpens += campaign.opensUnique || 0
+                aggregateStats.totalClicks += campaign.clicksUnique || 0
+                aggregateStats.totalConversions += campaign.conversionUniques || campaign.conversions || 0
+                aggregateStats.totalRevenue += campaign.revenue || 0
+            })
+
+            // Calculate averages (weighted by recipients)
+            aggregateStats.totalCampaigns = allCampaigns.length
+
+            if (aggregateStats.totalRecipients > 0) {
+                aggregateStats.averageOpenRate = (aggregateStats.totalOpens / aggregateStats.totalRecipients) * 100
+                aggregateStats.averageClickRate = (aggregateStats.totalClicks / aggregateStats.totalRecipients) * 100
+                aggregateStats.averageConversionRate = (aggregateStats.totalConversions / aggregateStats.totalRecipients) * 100
+                aggregateStats.averageRevenuePerRecipient = aggregateStats.totalRevenue / aggregateStats.totalRecipients
+            }
+        }
+
+        // CampaignsTab expects this structure
+        return {
+            campaigns: allCampaigns,
+            aggregateStats,
+            chartData: [] // Can be populated if needed
+        }
+    }, [recentCampaigns, upcomingCampaigns])
     
     const [dateRangeSelection, setDateRangeSelection] = useState({
         period: "last90",
         comparisonType: "previous-period",
         ranges: {
             main: {
-                start: new Date('2025-06-11T00:00:00.000Z'),
-                end: new Date('2025-09-09T00:00:00.000Z'),
+                start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+                end: new Date(),
                 label: "Past 90 days"
             },
             comparison: {
-                start: new Date('2025-03-14T00:00:00.000Z'),
-                end: new Date('2025-06-11T00:00:00.000Z'),
+                start: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+                end: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
                 label: "Previous Period"
             }
         }
@@ -198,65 +250,6 @@ export default function AnalyticsPage() {
             setIsAccountsInitialized(true)
         }
     }, [stores, isAccountsInitialized, availableAccounts])
-    
-    // Function to fetch campaign data using shared context
-    const fetchCampaignData = useCallback(async (forceRefresh = false) => {
-        setCampaignsLoading(true)
-        setCampaignsError(null)
-
-        try {
-            // Get account IDs - IMPORTANT: Use store public_ids, not klaviyo_ids
-            // The API will convert store public_ids to klaviyo_public_ids
-            let accountIds = []
-            if (selectedAccounts && selectedAccounts.length > 0) {
-                if (selectedAccounts[0].value === 'all') {
-                    // Get all store public IDs (not Klaviyo IDs)
-                    accountIds = stores
-                        .filter(store => store.public_id)
-                        .map(store => store.public_id)
-                } else {
-                    // Use selected account IDs (these are already store public_ids)
-                    accountIds = selectedAccounts.map(acc => acc.value).filter(Boolean)
-                }
-            }
-
-            console.log('🔑 Fetching campaign data for store IDs:', accountIds)
-
-            if (accountIds.length === 0) {
-                setCampaignsData({ campaigns: [], aggregateStats: null })
-                setCampaignsLoading(false)
-                return
-            }
-
-            // Use date range from dateRangeSelection
-            const endDate = dateRangeSelection.ranges?.main?.end || new Date()
-            const startDate = dateRangeSelection.ranges?.main?.start || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-
-            // Use shared context to get campaign data with intelligent caching
-            const data = await getCampaignData(
-                startDate.toISOString(),
-                endDate.toISOString(),
-                accountIds,
-                { forceRefresh }
-            )
-
-            console.log('📊 Using cached/fetched campaign data:', data)
-            setCampaignsData(data)
-        } catch (error) {
-            console.error('Error fetching campaign data:', error)
-            setCampaignsError(error.message)
-        } finally {
-            setCampaignsLoading(false)
-        }
-    }, [selectedAccounts, stores, dateRangeSelection, getCampaignData])
-    
-    // Fetch campaign data when dependencies change
-    useEffect(() => {
-        // Only fetch if we're on a tab that needs campaign data and have stores
-        if ((activeTab === 'campaigns' || activeTab === 'deliverability') && stores.length > 0) {
-            fetchCampaignData(true)
-        }
-    }, [activeTab, stores, selectedAccounts, dateRangeSelection, fetchCampaignData])
     
     // Handle URL tab parameter changes
     useEffect(() => {
@@ -420,7 +413,7 @@ export default function AnalyticsPage() {
     
     
     return (
-        <div className="flex-1 space-y-4 p-4 pt-3">
+        <div className="flex-1 space-y-4 p-4 pt-3 overflow-x-hidden">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-baseline gap-3">
@@ -542,6 +535,9 @@ export default function AnalyticsPage() {
                         onDateRangeChange={handleDateRangeChange}
                         stores={stores}
                         availableAccounts={availableAccounts}
+                        campaignsData={campaignsData}
+                        campaignsLoading={campaignsLoading}
+                        campaignsError={campaignsError}
                     />
                 </TabsContent>
                 

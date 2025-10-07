@@ -181,6 +181,46 @@ const StoreSchema = new mongoose.Schema({
         type: String,
         trim: true,
     }],
+    // Shopify Platform Flag
+    isShopify: {
+        type: Boolean,
+        default: false
+    },
+    // Shopify Collections Data
+    shopifyCollections: {
+        type: [{
+            id: String,
+            handle: String,
+            title: String,
+            updated_at: String,
+            body_html: String,
+            published_at: String,
+            sort_order: String,
+            template_suffix: String,
+            products_count: Number,
+            collection_type: String,
+            published_scope: String,
+            admin_graphql_api_id: String,
+            image: {
+                created_at: String,
+                alt: String,
+                width: Number,
+                height: Number,
+                src: String
+            },
+            rules: [{
+                column: String,
+                relation: String,
+                condition: String
+            }],
+            disjunctive: Boolean
+        }],
+        default: []
+    },
+    shopifyCollectionsUpdatedAt: {
+        type: Date,
+        default: null
+    },
     shopify_integration: {
         status: { type: String, enum: ["connected", "disconnected", "error"], default: "disconnected" },
         access_token: { type: String, default: null }, // should be encrypted in production
@@ -206,6 +246,140 @@ const StoreSchema = new mongoose.Schema({
         connected_at: { type: Date, default: null },
         account: { type: mongoose.Schema.Types.Mixed, default: {} },
     },
+
+    // ========================================================================
+    // ADAPTIVE RFM V3.0 CONFIGURATION
+    // ========================================================================
+    adaptive_rfm_config: {
+        version: {
+            type: String,
+            enum: ["1.0", "2.0", "3.0"],
+            default: "3.0"
+        },
+        calculation_date: {
+            type: Date,
+            default: null
+        },
+
+        // Business Characteristics
+        business_characteristics: {
+            total_customers: { type: Number, default: 0 },
+            total_orders: { type: Number, default: 0 },
+            one_time_buyer_pct: { type: Number, default: 0 },
+            repeat_purchase_pct: { type: Number, default: 0 },
+            avg_orders_per_customer: { type: Number, default: 0 },
+            median_inter_purchase_days: { type: Number, default: null },
+            avg_order_value: { type: Number, default: 0 },
+            detected_template: {
+                type: String,
+                enum: ["low_repeat", "medium_repeat", "high_repeat"],
+                default: null
+            },
+            confidence_score: { type: Number, default: 0, min: 0, max: 1 }
+        },
+
+        // Calculated Criteria (V3.0)
+        calculated_criteria: {
+            // Frequency (Absolute Thresholds)
+            frequency: {
+                champion: {
+                    min_orders: { type: Number, default: null },
+                    baseline_used: { type: Number, default: null },
+                    adjusted: { type: Boolean, default: false },
+                    adjustment_reason: { type: String, default: null },
+                    pct_customers_meeting: { type: Number, default: 0 },
+                    expected_range: [{ type: Number }], // [min, max]
+                    is_healthy: { type: Boolean, default: true }
+                },
+                loyal: {
+                    min_orders: { type: Number, default: null },
+                    baseline_used: { type: Number, default: null },
+                    adjusted: { type: Boolean, default: false },
+                    adjustment_reason: { type: String, default: null },
+                    pct_customers_meeting: { type: Number, default: 0 },
+                    expected_range: [{ type: Number }],
+                    is_healthy: { type: Boolean, default: true }
+                },
+                active: {
+                    min_orders: { type: Number, default: null },
+                    pct_customers_meeting: { type: Number, default: 0 }
+                }
+            },
+
+            // Monetary (Percentile-based)
+            monetary: {
+                champion: {
+                    min_revenue: { type: Number, default: 0 },
+                    percentile_used: { type: Number, default: 0.90 },
+                    pct_customers_meeting: { type: Number, default: 0 }
+                },
+                loyal: {
+                    min_revenue: { type: Number, default: 0 },
+                    percentile_used: { type: Number, default: 0.75 },
+                    pct_customers_meeting: { type: Number, default: 0 }
+                },
+                active: {
+                    min_revenue: { type: Number, default: 0 },
+                    percentile_used: { type: Number, default: 0.60 },
+                    pct_customers_meeting: { type: Number, default: 0 }
+                }
+            },
+
+            // Recency (Inter-purchase based)
+            recency: {
+                hot: { type: Number, default: 30 },
+                warm: { type: Number, default: 60 },
+                cool: { type: Number, default: 90 },
+                at_risk: { type: Number, default: 180 },
+                lost: { type: Number, default: 365 },
+                calculation_method: {
+                    type: String,
+                    enum: ["inter_purchase_intervals", "default"],
+                    default: "inter_purchase_intervals"
+                }
+            }
+        },
+
+        // Segment Preview
+        segment_preview: {
+            type: Map,
+            of: {
+                count: { type: Number, default: 0 },
+                percentage: { type: Number, default: 0 },
+                criteria: { type: String, default: "" }
+            },
+            default: {}
+        },
+
+        // Validation Results
+        validation: {
+            distribution_healthy: { type: Boolean, default: true },
+            warnings: [{ type: String }],
+            recommendations: [{ type: String }],
+            confidence_score: { type: Number, default: 1.0, min: 0, max: 1 }
+        },
+
+        // User Overrides
+        overrides: {
+            enabled: { type: Boolean, default: false },
+            frequency: {
+                champion_min_orders: { type: Number, default: null },
+                loyal_min_orders: { type: Number, default: null }
+            },
+            monetary: {
+                champion_min_revenue: { type: Number, default: null },
+                loyal_min_revenue: { type: Number, default: null }
+            },
+            metadata: {
+                modified_by: { type: ObjectId, ref: "User", default: null },
+                modified_at: { type: Date, default: null },
+                reason: { type: String, default: null }
+            }
+        },
+
+        last_updated: { type: Date, default: null }
+    },
+
     // Stripe Billing (per store)
     stripe_customer_id: {
         type: String,
@@ -331,6 +505,10 @@ StoreSchema.index({ "team_members.user_id": 1 });
 StoreSchema.index({ "team_members.seat_id": 1 });
 StoreSchema.index({ is_active: 1, isActive: 1 });
 StoreSchema.index({ is_deleted: 1 });
+// V3.0 RFM indexes
+StoreSchema.index({ "adaptive_rfm_config.calculation_date": -1 });
+StoreSchema.index({ "adaptive_rfm_config.business_characteristics.detected_template": 1 });
+StoreSchema.index({ "adaptive_rfm_config.last_updated": -1 });
 
 // Static method to find stores by user (updated for ContractSeat architecture)
 StoreSchema.statics.findByUser = function (userId) {
@@ -621,6 +799,253 @@ StoreSchema.statics.findByUserSeats = async function(userId) {
         console.error('Error in findByUserSeats:', error);
         return [];
     }
+};
+
+// ========================================================================
+// V3.0 RFM HELPER METHODS
+// ========================================================================
+
+// Get RFM criteria with explainability
+StoreSchema.methods.getRFMCriteria = function() {
+    if (!this.adaptive_rfm_config || this.adaptive_rfm_config.version !== "3.0") {
+        return null;
+    }
+
+    return {
+        version: this.adaptive_rfm_config.version,
+        business_characteristics: this.adaptive_rfm_config.business_characteristics,
+        calculated_criteria: this.adaptive_rfm_config.calculated_criteria,
+        segment_preview: this.adaptive_rfm_config.segment_preview,
+        validation: this.adaptive_rfm_config.validation,
+        overrides: this.adaptive_rfm_config.overrides,
+        last_updated: this.adaptive_rfm_config.last_updated
+    };
+};
+
+// Check if RFM needs recalculation (older than 30 days)
+StoreSchema.methods.needsRFMRecalculation = function() {
+    if (!this.adaptive_rfm_config || !this.adaptive_rfm_config.last_updated) {
+        return true;
+    }
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    return this.adaptive_rfm_config.last_updated < thirtyDaysAgo;
+};
+
+// Get segment criteria for a specific segment
+StoreSchema.methods.getSegmentCriteria = function(segmentName) {
+    if (!this.adaptive_rfm_config || !this.adaptive_rfm_config.segment_preview) {
+        return null;
+    }
+
+    return this.adaptive_rfm_config.segment_preview.get(segmentName);
+};
+
+// Check if store has RFM overrides applied
+StoreSchema.methods.hasRFMOverrides = function() {
+    return this.adaptive_rfm_config?.overrides?.enabled === true;
+};
+
+// Get RFM segment definition for a given segment name
+StoreSchema.methods.getRFMSegmentDefinition = function(segmentName) {
+    if (!this.adaptive_rfm_config?.calculated_criteria) {
+        return null;
+    }
+
+    const criteria = this.adaptive_rfm_config.calculated_criteria;
+    const overrides = this.adaptive_rfm_config.overrides?.enabled ? this.adaptive_rfm_config.overrides : null;
+
+    // Build segment definition based on segment name
+    const definitions = {
+        'Champions': {
+            frequency: overrides?.frequency?.champion_min_orders || criteria.frequency.champion.min_orders,
+            monetary: overrides?.monetary?.champion_min_revenue || criteria.monetary.champion.min_revenue,
+            recency: criteria.recency.hot,
+            description: 'High frequency, high spend, recent purchases'
+        },
+        'Loyal Customers': {
+            frequency: overrides?.frequency?.loyal_min_orders || criteria.frequency.loyal.min_orders,
+            monetary: overrides?.monetary?.loyal_min_revenue || criteria.monetary.loyal.min_revenue,
+            recency: criteria.recency.warm,
+            description: 'Regular buyers with good lifetime value'
+        },
+        'Active Customers': {
+            frequency: criteria.frequency.active.min_orders,
+            monetary: criteria.monetary.active.min_revenue,
+            recency: criteria.recency.cool,
+            description: 'Recent purchasers, building loyalty'
+        },
+        'At Risk': {
+            frequency: criteria.frequency.active.min_orders,
+            monetary: criteria.monetary.active.min_revenue,
+            recency: criteria.recency.at_risk,
+            description: 'Previously active, now becoming inactive'
+        },
+        'Lost': {
+            frequency: null,
+            monetary: null,
+            recency: criteria.recency.lost,
+            description: 'No recent purchases, need re-engagement'
+        }
+    };
+
+    return definitions[segmentName] || null;
+};
+
+// Get business template information
+StoreSchema.methods.getBusinessTemplate = function() {
+    if (!this.adaptive_rfm_config?.business_characteristics) {
+        return null;
+    }
+
+    const chars = this.adaptive_rfm_config.business_characteristics;
+
+    return {
+        template: chars.detected_template,
+        confidence: chars.confidence_score,
+        metrics: {
+            total_customers: chars.total_customers,
+            total_orders: chars.total_orders,
+            repeat_rate: chars.repeat_purchase_pct,
+            avg_orders_per_customer: chars.avg_orders_per_customer,
+            median_days_between_purchases: chars.median_inter_purchase_days,
+            avg_order_value: chars.avg_order_value
+        }
+    };
+};
+
+// Update RFM configuration (used by calculation engine)
+StoreSchema.methods.updateRFMConfig = async function(configUpdate) {
+    if (!this.adaptive_rfm_config) {
+        this.adaptive_rfm_config = {};
+    }
+
+    // Merge the update
+    Object.assign(this.adaptive_rfm_config, configUpdate);
+
+    // Update timestamps
+    this.adaptive_rfm_config.last_updated = new Date();
+    this.adaptive_rfm_config.calculation_date = new Date();
+
+    return this.save();
+};
+
+// Apply user overrides to RFM criteria
+StoreSchema.methods.applyRFMOverrides = async function(overrides, userId, reason) {
+    if (!this.adaptive_rfm_config) {
+        throw new Error('RFM config not initialized');
+    }
+
+    this.adaptive_rfm_config.overrides = {
+        enabled: true,
+        frequency: overrides.frequency || {},
+        monetary: overrides.monetary || {},
+        metadata: {
+            modified_by: userId,
+            modified_at: new Date(),
+            reason: reason || 'Manual override'
+        }
+    };
+
+    return this.save();
+};
+
+// Remove user overrides and revert to calculated criteria
+StoreSchema.methods.removeRFMOverrides = async function() {
+    if (!this.adaptive_rfm_config) {
+        return this;
+    }
+
+    this.adaptive_rfm_config.overrides = {
+        enabled: false,
+        frequency: {},
+        monetary: {},
+        metadata: {
+            modified_by: null,
+            modified_at: null,
+            reason: null
+        }
+    };
+
+    return this.save();
+};
+
+// Get RFM health status
+StoreSchema.methods.getRFMHealthStatus = function() {
+    if (!this.adaptive_rfm_config?.validation) {
+        return {
+            healthy: false,
+            reason: 'RFM not configured'
+        };
+    }
+
+    const validation = this.adaptive_rfm_config.validation;
+
+    return {
+        healthy: validation.distribution_healthy,
+        confidence: validation.confidence_score,
+        warnings: validation.warnings || [],
+        recommendations: validation.recommendations || []
+    };
+};
+
+// Static method to find stores by RFM template
+StoreSchema.statics.findByRFMTemplate = function(template) {
+    return this.find({
+        "adaptive_rfm_config.business_characteristics.detected_template": template,
+        is_deleted: { $ne: true }
+    });
+};
+
+// Static method to find stores needing RFM recalculation
+StoreSchema.statics.findNeedingRFMRecalculation = function() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    return this.find({
+        $or: [
+            { "adaptive_rfm_config.last_updated": { $exists: false } },
+            { "adaptive_rfm_config.last_updated": null },
+            { "adaptive_rfm_config.last_updated": { $lt: thirtyDaysAgo } }
+        ],
+        is_deleted: { $ne: true }
+    });
+};
+
+// Static method to get RFM statistics across all stores
+StoreSchema.statics.getRFMStatistics = async function() {
+    const stores = await this.find({
+        "adaptive_rfm_config.version": "3.0",
+        is_deleted: { $ne: true }
+    });
+
+    const templates = {
+        low_repeat: 0,
+        medium_repeat: 0,
+        high_repeat: 0
+    };
+
+    let totalConfidence = 0;
+    let storesWithOverrides = 0;
+
+    stores.forEach(store => {
+        const template = store.adaptive_rfm_config?.business_characteristics?.detected_template;
+        if (template) {
+            templates[template]++;
+        }
+
+        totalConfidence += store.adaptive_rfm_config?.business_characteristics?.confidence_score || 0;
+
+        if (store.hasRFMOverrides()) {
+            storesWithOverrides++;
+        }
+    });
+
+    return {
+        total_stores: stores.length,
+        templates: templates,
+        avg_confidence: stores.length > 0 ? totalConfidence / stores.length : 0,
+        stores_with_overrides: storesWithOverrides
+    };
 };
 
 // Prevent model recompilation in development

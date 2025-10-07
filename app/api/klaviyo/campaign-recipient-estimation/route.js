@@ -9,7 +9,7 @@ import { klaviyoRequest } from '@/lib/klaviyo-api';
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const campaignId = searchParams.get('campaignId');
+    let campaignId = searchParams.get('campaignId');
     const storeId = searchParams.get('storeId');
 
     if (!campaignId || !storeId) {
@@ -17,6 +17,13 @@ export async function GET(request) {
         { error: 'Campaign ID and Store ID are required' },
         { status: 400 }
       );
+    }
+
+    // Strip any prefixes like 'upcoming-' or 'future-' from the campaign ID
+    if (campaignId.startsWith('upcoming-')) {
+      campaignId = campaignId.replace('upcoming-', '');
+    } else if (campaignId.startsWith('future-')) {
+      campaignId = campaignId.replace('future-', '');
     }
 
     // Verify user session

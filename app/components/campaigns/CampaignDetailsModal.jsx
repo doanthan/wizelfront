@@ -71,6 +71,49 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
     // Use campaignData if available, otherwise fall back to campaign prop
     const data = campaignData || campaign
 
+    // Debug what data we're working with
+    console.log('🔍 CampaignDetailsModal data inspection:', {
+        hasPerformance: !!data.performance,
+        performanceKeys: data.performance ? Object.keys(data.performance) : [],
+        samplePerformance: data.performance
+    });
+
+    // Extract performance metrics from performance object (API already mapped from statistics)
+    const performance = data.performance || {}
+    const recipients = performance.recipients || 0
+    const delivered = performance.delivered || recipients
+    const opens = performance.opens || 0
+    const opensUnique = performance.opensUnique || 0
+    const clicks = performance.clicks || 0
+    const clicksUnique = performance.clicksUnique || 0
+    const openRate = performance.openRate || 0
+    const clickRate = performance.clickRate || 0
+    const conversionRate = performance.conversionRate || 0
+    const conversions = performance.conversions || 0
+    const revenue = performance.revenue || 0
+    const bounced = performance.bounced || 0
+    const bounceRate = performance.bounceRate || 0
+    const failed = performance.failed || 0
+    const unsubscribes = performance.unsubscribes || 0
+    const unsubscribeRate = performance.unsubscribeRate || 0
+    const spamComplaints = performance.spamComplaints || 0
+    const spamComplaintRate = performance.spamComplaintRate || 0
+    const clickToOpenRate = performance.clickToOpenRate || 0
+    const revenuePerRecipient = performance.revenuePerRecipient || 0
+    const averageOrderValue = performance.averageOrderValue || 0
+    const deliveryRate = performance.deliveryRate || (delivered / Math.max(recipients, 1))
+
+    console.log('📊 Extracted metrics:', {
+        recipients,
+        delivered,
+        opensUnique,
+        clicksUnique,
+        openRate,
+        clickRate,
+        revenue,
+        conversions
+    });
+
     // Get store info for the campaign
     const campaignStore = stores?.find(s =>
         s.public_id === campaign?.store_public_id ||
@@ -119,26 +162,31 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
 
     // Calculate delivery health score
     const calculateDeliveryScore = () => {
-        const deliveryRate = data.deliveryRate || 0
-        const bounceRate = data.bounceRate || 0
-        const spamRate = data.spamComplaintRate || 0
-        const unsubRate = data.unsubscribeRate || 0
+        const deliveryRateScore = deliveryRate || 0
+        const bounceRateScore = bounceRate || 0
+        const spamRateScore = spamComplaintRate || 0
+        const unsubRateScore = unsubscribeRate || 0
         const isSMS = data.type === 'sms' || data.channel === 'sms'
         
         let score = 100
-        
+
         // Deduct points based on metrics
-        if (deliveryRate < 95) score -= 20
+        if (deliveryRateScore < 0.95 && deliveryRateScore > 1) score -= 20
+        else if (deliveryRateScore < 95 && deliveryRateScore <= 1) score -= 20
         
         // For SMS, bounces are less common but more severe when they happen
         if (isSMS) {
-            if (bounceRate > 1) score -= 35  // SMS bounce threshold is lower
+            if (bounceRateScore > 0.01 && bounceRateScore <= 1) score -= 35  // SMS bounce threshold is lower (1%)
+            else if (bounceRateScore > 1) score -= 35  // Handle percentage format
         } else {
-            if (bounceRate > 5) score -= 25  // Email bounce threshold
+            if (bounceRateScore > 0.05 && bounceRateScore <= 1) score -= 25  // Email bounce threshold (5%)
+            else if (bounceRateScore > 5) score -= 25  // Handle percentage format
         }
         
-        if (spamRate > 0.1) score -= 30
-        if (unsubRate > 2) score -= 15
+        if (spamRateScore > 0.001 && spamRateScore <= 1) score -= 30  // 0.1% threshold
+        else if (spamRateScore > 0.1) score -= 30  // Handle percentage format
+        if (unsubRateScore > 0.02 && unsubRateScore <= 1) score -= 15  // 2% threshold
+        else if (unsubRateScore > 2) score -= 15  // Handle percentage format
         
         return Math.max(0, score)
     }
@@ -295,7 +343,7 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                             )}
                                         </Badge>
                                         <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700">
-                                            {formatNumber(data.recipients)} Recipients
+                                            {formatNumber(recipients)} Recipients
                                         </Badge>
                                     </div>
                                     
@@ -366,22 +414,22 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                         <div className="grid grid-cols-4 gap-3">
                                                             <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sent</div>
-                                                                <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(data.recipients || 0)}</div>
+                                                                <div className="text-xl font-bold text-gray-900 dark:text-white">{formatNumber(recipients)}</div>
                                                             </div>
                                                             <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Delivered</div>
-                                                                <div className="text-xl font-bold text-green-600">{formatNumber(data.delivered || data.recipients || 0)}</div>
-                                                                <div className="text-xs text-green-600">{formatPercentage(data.deliveryRate || 100)}</div>
+                                                                <div className="text-xl font-bold text-green-600">{formatNumber(delivered)}</div>
+                                                                <div className="text-xs text-green-600">{formatPercentage(deliveryRate)}</div>
                                                             </div>
                                                             <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Failed</div>
-                                                                <div className="text-xl font-bold text-red-600">{formatNumber(data.failed || data.bounced || 0)}</div>
-                                                                <div className="text-xs text-red-600">{formatPercentage(data.failedRate || data.bounceRate || 0)}</div>
+                                                                <div className="text-xl font-bold text-red-600">{formatNumber(failed || bounced)}</div>
+                                                                <div className="text-xs text-red-600">{formatPercentage(bounceRate)}</div>
                                                             </div>
                                                             <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Opt-outs</div>
-                                                                <div className="text-xl font-bold text-blue-600">{formatNumber(data.unsubscribed || 0)}</div>
-                                                                <div className="text-xs text-blue-600">{formatPercentage(data.unsubscribeRate || 0)}</div>
+                                                                <div className="text-xl font-bold text-blue-600">{formatNumber(unsubscribes)}</div>
+                                                                <div className="text-xs text-blue-600">{formatPercentage(unsubscribeRate)}</div>
                                                             </div>
                                                         </div>
                                                     </CardContent>
@@ -400,22 +448,22 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                         <CardContent>
                                                             <div className="flex items-center justify-between mb-4">
                                                                 <div className="text-3xl font-bold text-green-600">
-                                                                    {Math.max(90, 100 - (data.failedRate || 0) * 10)}/100
+                                                                    {Math.max(90, 100 - (bounceRate || 0) * 10)}/100
                                                                 </div>
                                                                 <Badge className="bg-green-100 text-green-800">Excellent</Badge>
                                                             </div>
                                                             <div className="space-y-2 text-sm">
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-600 dark:text-gray-400">Delivery Rate</span>
-                                                                    <span className="text-green-600 font-medium">{formatPercentage(data.deliveryRate || 100)}</span>
+                                                                    <span className="text-green-600 font-medium">{formatPercentage(deliveryRate)}</span>
                                                                 </div>
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-600 dark:text-gray-400">Opt-out Rate</span>
-                                                                    <span className="text-blue-600 font-medium">{formatPercentage(data.unsubscribeRate || 0)}</span>
+                                                                    <span className="text-blue-600 font-medium">{formatPercentage(unsubscribeRate)}</span>
                                                                 </div>
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-600 dark:text-gray-400">Failed Rate</span>
-                                                                    <span className="text-red-600 font-medium">{formatPercentage(data.failedRate || data.bounceRate || 0)}</span>
+                                                                    <span className="text-red-600 font-medium">{formatPercentage(bounceRate)}</span>
                                                                 </div>
                                                             </div>
                                                         </CardContent>
@@ -467,22 +515,22 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                         <div className="grid grid-cols-4 gap-3">
                                                             <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Recipients</div>
-                                                                <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(data.recipients)}</div>
+                                                                <div className="text-lg font-bold text-gray-900 dark:text-white">{formatNumber(recipients)}</div>
                                                             </div>
                                                             <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Delivered</div>
-                                                                <div className="text-lg font-bold text-green-600">{formatNumber(data.delivered)}</div>
-                                                                <div className="text-xs text-green-600">{formatPercentage(data.deliveryRate)}</div>
+                                                                <div className="text-lg font-bold text-green-600">{formatNumber(delivered)}</div>
+                                                                <div className="text-xs text-green-600">{formatPercentage(deliveryRate)}</div>
                                                             </div>
                                                             <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Bounced</div>
-                                                                <div className="text-lg font-bold text-red-600">{formatNumber(data.bounced)}</div>
-                                                                <div className="text-xs text-red-600">{formatPercentage(data.bounceRate)}</div>
+                                                                <div className="text-lg font-bold text-red-600">{formatNumber(bounced)}</div>
+                                                                <div className="text-xs text-red-600">{formatPercentage(bounceRate)}</div>
                                                             </div>
                                                             <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                                                                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Spam</div>
-                                                                <div className="text-lg font-bold text-yellow-600">{formatNumber(data.spamReports || 0)}</div>
-                                                                <div className="text-xs text-yellow-600">{formatPercentage(data.spamComplaintRate || 0)}</div>
+                                                                <div className="text-lg font-bold text-yellow-600">{formatNumber(spamComplaints)}</div>
+                                                                <div className="text-xs text-yellow-600">{formatPercentage(spamComplaintRate)}</div>
                                                             </div>
                                                         </div>
                                                     </CardContent>
@@ -513,15 +561,15 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                             <div className="space-y-2 text-sm">
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-600 dark:text-gray-400">Bounce Rate</span>
-                                                                    <span className={data.bounceRate < 2 ? "text-green-600" : "text-red-600"}>{formatPercentage(data.bounceRate)}</span>
+                                                                    <span className={bounceRate < 0.02 || (bounceRate > 1 && bounceRate < 2) ? "text-green-600" : "text-red-600"}>{formatPercentage(bounceRate)}</span>
                                                                 </div>
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-600 dark:text-gray-400">Spam Rate</span>
-                                                                    <span className={data.spamComplaintRate < 0.1 ? "text-green-600" : "text-red-600"}>{formatPercentage(data.spamComplaintRate)}</span>
+                                                                    <span className={spamComplaintRate < 0.001 || (spamComplaintRate > 1 && spamComplaintRate < 0.1) ? "text-green-600" : "text-red-600"}>{formatPercentage(spamComplaintRate)}</span>
                                                                 </div>
                                                                 <div className="flex justify-between">
                                                                     <span className="text-gray-600 dark:text-gray-400">Unsubscribe Rate</span>
-                                                                    <span className={data.unsubscribeRate < 0.5 ? "text-green-600" : "text-yellow-600"}>{formatPercentage(data.unsubscribeRate)}</span>
+                                                                    <span className={unsubscribeRate < 0.005 || (unsubscribeRate > 1 && unsubscribeRate < 0.5) ? "text-green-600" : "text-yellow-600"}>{formatPercentage(unsubscribeRate)}</span>
                                                                 </div>
                                                             </div>
                                                         </CardContent>
@@ -537,19 +585,19 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                         </CardHeader>
                                                         <CardContent>
                                                             <div className="space-y-2">
-                                                                {data.bounceRate < 2 && (
+                                                                {(bounceRate < 0.02 || (bounceRate > 1 && bounceRate < 2)) && (
                                                                     <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
                                                                         <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
                                                                         <span className="text-green-700 dark:text-green-300">Excellent bounce rate</span>
                                                                     </div>
                                                                 )}
-                                                                {data.spamComplaintRate < 0.1 && (
+                                                                {(spamComplaintRate < 0.001 || (spamComplaintRate > 1 && spamComplaintRate < 0.1)) && (
                                                                     <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
                                                                         <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
                                                                         <span className="text-green-700 dark:text-green-300">Low spam complaints</span>
                                                                     </div>
                                                                 )}
-                                                                {data.deliveryRate > 95 && (
+                                                                {(deliveryRate > 0.95 || (deliveryRate > 1 && deliveryRate > 95)) && (
                                                                     <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm">
                                                                         <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
                                                                         <span className="text-green-700 dark:text-green-300">High delivery rate</span>
@@ -582,29 +630,29 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                 <MetricCard
                                                     icon={MessageSquare}
                                                     label="Delivered"
-                                                    value={formatNumber(data.delivered || data.recipients || 0)}
-                                                    subValue={`${formatPercentage(data.deliveryRate || 100)} rate`}
+                                                    value={formatNumber(delivered)}
+                                                    subValue={`${formatPercentage(deliveryRate)} rate`}
                                                     color="text-green-600"
                                                 />
                                                 <MetricCard
                                                     icon={MousePointer}
                                                     label="Clicks"
-                                                    value={formatNumber(data.clicksUnique || 0)}
-                                                    subValue={`${formatPercentage(data.clickRate)} rate`}
+                                                    value={formatNumber(clicksUnique)}
+                                                    subValue={`${formatPercentage(clickRate)} rate`}
                                                     color="text-purple-600"
                                                 />
                                                 <MetricCard
                                                     icon={DollarSign}
                                                     label="Revenue"
-                                                    value={formatCurrency(data.revenue || 0)}
-                                                    subValue={`${formatNumber(data.conversions || 0)} orders`}
+                                                    value={formatCurrency(revenue)}
+                                                    subValue={`${formatNumber(conversions)} orders`}
                                                     color="text-green-600"
                                                 />
                                                 <MetricCard
                                                     icon={TrendingUp}
                                                     label="Conversion"
-                                                    value={formatPercentage(data.conversionRate)}
-                                                    subValue={`${formatCurrency(data.revenuePerRecipient)}/recipient`}
+                                                    value={formatPercentage(conversionRate)}
+                                                    subValue={`${formatCurrency(revenuePerRecipient)}/recipient`}
                                                     color="text-green-600"
                                                 />
                                             </>
@@ -614,29 +662,29 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                 <MetricCard
                                                     icon={Eye}
                                                     label="Opens"
-                                                    value={formatNumber(data.opensUnique || 0)}
-                                                    subValue={`${formatPercentage(data.openRate)} rate`}
+                                                    value={formatNumber(opensUnique)}
+                                                    subValue={`${formatPercentage(openRate)} rate`}
                                                     color="text-blue-600"
                                                 />
                                                 <MetricCard
                                                     icon={MousePointer}
                                                     label="Clicks"
-                                                    value={formatNumber(data.clicksUnique || 0)}
-                                                    subValue={`${formatPercentage(data.clickRate)} rate`}
+                                                    value={formatNumber(clicksUnique)}
+                                                    subValue={`${formatPercentage(clickRate)} rate`}
                                                     color="text-purple-600"
                                                 />
                                                 <MetricCard
                                                     icon={DollarSign}
                                                     label="Revenue"
-                                                    value={formatCurrency(data.revenue || 0)}
-                                                    subValue={`${formatNumber(data.conversions || 0)} orders`}
+                                                    value={formatCurrency(revenue)}
+                                                    subValue={`${formatNumber(conversions)} orders`}
                                                     color="text-green-600"
                                                 />
                                                 <MetricCard
                                                     icon={TrendingUp}
                                                     label="Conversion"
-                                                    value={formatPercentage(data.conversionRate)}
-                                                    subValue={`${formatCurrency(data.revenuePerRecipient)}/recipient`}
+                                                    value={formatPercentage(conversionRate)}
+                                                    subValue={`${formatCurrency(revenuePerRecipient)}/recipient`}
                                                     color="text-green-600"
                                                 />
                                             </>
@@ -659,20 +707,20 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                     [
                                                         {
                                                             label: 'Delivered',
-                                                            value: data.delivered || data.recipients || 0,
+                                                            value: delivered,
                                                             percentage: 100,
                                                             color: 'bg-green-400'
                                                         },
                                                         {
                                                             label: 'Clicked',
-                                                            value: data.clicksUnique || 0,
-                                                            percentage: data.clickRate || 0,
+                                                            value: clicksUnique,
+                                                            percentage: clickRate,
                                                             color: 'bg-purple-500'
                                                         },
                                                         {
                                                             label: 'Converted',
-                                                            value: data.conversions || 0,
-                                                            percentage: data.conversionRate || 0,
+                                                            value: conversions,
+                                                            percentage: conversionRate,
                                                             color: 'bg-blue-500'
                                                         }
                                                     ]
@@ -681,26 +729,26 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                     [
                                                         {
                                                             label: 'Delivered',
-                                                            value: data.delivered || 0,
+                                                            value: delivered,
                                                             percentage: 100,
                                                             color: 'bg-blue-400'
                                                         },
                                                         {
                                                             label: 'Opened',
-                                                            value: data.opensUnique || 0,
-                                                            percentage: data.openRate || 0,
+                                                            value: opensUnique,
+                                                            percentage: openRate,
                                                             color: 'bg-blue-500'
                                                         },
                                                         {
                                                             label: 'Clicked',
-                                                            value: data.clicksUnique || 0,
-                                                            percentage: data.clickRate || 0,
+                                                            value: clicksUnique,
+                                                            percentage: clickRate,
                                                             color: 'bg-purple-500'
                                                         },
                                                         {
                                                             label: 'Converted',
-                                                            value: data.conversions || 0,
-                                                            percentage: data.conversionRate || 0,
+                                                            value: conversions,
+                                                            percentage: conversionRate,
                                                             color: 'bg-green-500'
                                                         }
                                                     ]
@@ -742,9 +790,9 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                         </span>
                                                     </div>
                                                     <span className="text-lg font-bold text-orange-600">
-                                                        {data.type === 'sms' || data.channel === 'sms' 
-                                                            ? formatPercentage(((data.clicksUnique || 0) / (data.delivered || data.recipients || 1)) * 100)
-                                                            : formatPercentage(data.ctor || data.clickToOpenRate || data.clickToOpen || 0)
+                                                        {data.type === 'sms' || data.channel === 'sms'
+                                                            ? formatPercentage((clicksUnique / Math.max(delivered, 1)) * 100)
+                                                            : formatPercentage(clickToOpenRate)
                                                         }
                                                     </span>
                                                 </div>
@@ -753,11 +801,11 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                                         <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Revenue</div>
-                                                        <div className="text-xl font-bold text-green-600">{formatCurrency(data.revenue || 0)}</div>
+                                                        <div className="text-xl font-bold text-green-600">{formatCurrency(revenue)}</div>
                                                     </div>
                                                     <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                                         <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Revenue/Recipient</div>
-                                                        <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.revenuePerRecipient || 0)}</div>
+                                                        <div className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(revenuePerRecipient)}</div>
                                                     </div>
                                                 </div>
 
@@ -775,14 +823,14 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                     <div className="grid grid-cols-2 gap-2 text-xs">
                                                         <div className="flex justify-between">
                                                             <span className="text-gray-600 dark:text-gray-400">Bounced</span>
-                                                            <span className={data.bounceRate < 2 ? "text-green-600" : "text-red-600"}>
-                                                                {formatPercentage(data.bounceRate)}
+                                                            <span className={bounceRate < 0.02 || (bounceRate > 1 && bounceRate < 2) ? "text-green-600" : "text-red-600"}>
+                                                                {formatPercentage(bounceRate)}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between">
                                                             <span className="text-gray-600 dark:text-gray-400">Unsubscribed</span>
-                                                            <span className={data.unsubscribeRate < 0.5 ? "text-green-600" : "text-yellow-600"}>
-                                                                {formatPercentage(data.unsubscribeRate)}
+                                                            <span className={unsubscribeRate < 0.005 || (unsubscribeRate > 1 && unsubscribeRate < 0.5) ? "text-green-600" : "text-yellow-600"}>
+                                                                {formatPercentage(unsubscribeRate)}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -798,21 +846,21 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                 <Users className="w-3 h-3 text-gray-600 dark:text-gray-400" />
                                                 <span className="text-xs text-gray-600 dark:text-gray-400">Total Recipients</span>
                                             </div>
-                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(data.recipients)}</div>
+                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(recipients)}</div>
                                         </div>
                                         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <CheckCircle className="w-3 h-3 text-green-600" />
                                                 <span className="text-xs text-gray-600 dark:text-gray-400">Delivered</span>
                                             </div>
-                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(data.delivered)}</div>
+                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(delivered)}</div>
                                         </div>
                                         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <XCircle className="w-3 h-3 text-red-600" />
                                                 <span className="text-xs text-gray-600 dark:text-gray-400">Bounced</span>
                                             </div>
-                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(data.bounced)}</div>
+                                            <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatNumber(bounced)}</div>
                                         </div>
                                         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                                             <div className="flex items-center gap-2 mb-1">

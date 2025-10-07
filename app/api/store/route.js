@@ -249,7 +249,7 @@ export async function POST(request) {
         user_id: session.user.id,
         contract_id: userContract._id
       });
-      
+
       if (!seat) {
         // Create new seat for the user
         seat = new ContractSeat({
@@ -258,10 +258,12 @@ export async function POST(request) {
           seat_type: 'included',
           default_role_id: ownerRole._id,
           invited_by: session.user.id,
-          status: 'active'
+          status: 'active',
+          // For owners, keep store_access empty (means access to ALL stores)
+          store_access: []
         });
         await seat.save();
-        
+
         // Update user's active_seats
         const storeOwner = await User.findById(session.user.id);
         if (storeOwner) {
@@ -269,10 +271,13 @@ export async function POST(request) {
           await storeOwner.save();
         }
       }
-      
-      // Grant store access with owner role
-      seat.grantStoreAccess(store._id, ownerRole._id, session.user.id);
-      await seat.save();
+
+      // Don't grant explicit store access for owners - empty array means all access
+      // Only grant explicit access for non-owner roles
+      if (ownerRole.name !== 'owner') {
+        seat.grantStoreAccess(store._id, ownerRole._id, session.user.id);
+        await seat.save();
+      }
       
       // Sync store team members
       await store.syncTeamMembers();
@@ -461,7 +466,7 @@ export async function GET(request) {
           const contractStores = await Store.find({
             contract_id: seat.contract_id,
             is_deleted: { $ne: true }
-          });
+          }).lean();
 
           console.log(`Contract ${seat.contract_id} has ${contractStores.length} stores`);
 

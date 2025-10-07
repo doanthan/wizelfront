@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Mail, MessageSquare, Bell, CheckSquare, Square } from 'lucide-react';
+import { Clock, Mail, MessageSquare, Bell, CheckSquare, Square, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getStoreColor } from '@/lib/calendar-colors';
@@ -41,11 +41,19 @@ export const CalendarTileContent = ({
         if (isScheduled) {
           // Scheduled campaigns: dashed border with store color
           campaignClasses = `${baseClasses} ${storeColor.bg} ${storeColor.text} border-dashed ${storeColor.border}`;
-          titleText = `📅 SCHEDULED: ${campaign.name}\n${store?.name || campaign.storeName || 'Unknown Store'}\n${campaign.channel.toUpperCase()}\nScheduled: ${format(new Date(campaign.date), 'MMM d, h:mm a')}`;
+          const statusLabel = campaign.status === 'Draft' ? 'DRAFT' :
+                            campaign.status === 'Sending' ? 'SENDING' :
+                            'SCHEDULED';
+          titleText = `📅 ${statusLabel}: ${campaign.name}\n${store?.name || campaign.storeName || 'Unknown Store'}\n${campaign.channel.toUpperCase()}\n${statusLabel === 'DRAFT' ? 'Created' : 'Scheduled'}: ${format(new Date(campaign.date), 'MMM d, h:mm a')}`;
         } else {
           // Sent campaigns: solid border, store color background
           campaignClasses = `${baseClasses} ${storeColor.bg} ${storeColor.text} ${storeColor.border}`;
-          titleText = `${campaign.name}\n${store?.name || campaign.storeName || 'Unknown Store'}\n${campaign.channel.toUpperCase()}\nOpen: ${(openRate * 100).toFixed(1)}%\nClick: ${(clickRate * 100).toFixed(1)}%\nRevenue: $${revenue.toFixed(2)}`;
+
+          // Format the metrics for display
+          const openRatePercent = openRate < 1 ? openRate * 100 : openRate;
+          const clickRatePercent = clickRate < 1 ? clickRate * 100 : clickRate;
+
+          titleText = `${campaign.name}\n${store?.name || campaign.storeName || 'Unknown Store'}\n${campaign.channel.toUpperCase()}\nOpen: ${openRatePercent.toFixed(1)}%\nClick: ${clickRatePercent.toFixed(1)}%\nRevenue: $${revenue.toFixed(2)}`;
         }
         
         const isSelected = selectedForComparison.includes(campaign.id);
@@ -76,7 +84,11 @@ export const CalendarTileContent = ({
               </div>
             )}
             <div className="truncate font-semibold text-xs flex items-center">
-              {isScheduled && <Clock className="h-3 w-3 mr-1 flex-shrink-0" />}
+              {isScheduled && (
+                campaign.status === 'Draft' ?
+                  <FileText className="h-3 w-3 mr-1 flex-shrink-0" /> :
+                  <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+              )}
               <span className="truncate">{campaign.name}</span>
             </div>
             <div className="flex justify-between items-center mt-0.5">
@@ -87,17 +99,16 @@ export const CalendarTileContent = ({
                 {store?.name || campaign.storeName || 'Unknown'}
               </span>
               <span className={`text-[10px] font-bold`}>
-                {isScheduled ? format(new Date(campaign.date), 'h:mm a') : `${(metricValue * 100).toFixed(1)}%`}
+                {isScheduled ? format(new Date(campaign.date), 'h:mm a') : (
+                  revenue > 0 ? `$${revenue >= 1000 ? `${(revenue/1000).toFixed(1)}k` : revenue.toFixed(0)}` : '$0'
+                )}
               </span>
             </div>
-            {!isScheduled && revenue > 0 && (
-              <div className="text-[10px] font-bold mt-0.5">
-                ${revenue >= 1000 ? `${(revenue/1000).toFixed(1)}k` : revenue.toFixed(0)}
-              </div>
-            )}
             {isScheduled && (
               <div className="text-[10px] font-medium mt-0.5 text-sky-blue">
-                Scheduled
+                {campaign.status === 'Draft' ? 'Draft' :
+                 campaign.status === 'Sending' ? 'Sending' :
+                 'Scheduled'}
               </div>
             )}
           </div>

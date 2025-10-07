@@ -33,8 +33,7 @@ import {
   Rss,
   Lightbulb,
   CheckCircle,
-  LayoutGrid,
-  ShoppingBag
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/app/contexts/theme-context";
@@ -69,13 +68,6 @@ const sidebarItemsConfig = [
     icon: Calendar,
     href: "/calendar",
     feature: FEATURES.CALENDAR,
-    action: ACTIONS.VIEW,
-  },
-  {
-    title: "Planner",
-    icon: LayoutGrid,
-    href: "/planner",
-    feature: FEATURES.CAMPAIGNS,
     action: ACTIONS.VIEW,
   },
   {

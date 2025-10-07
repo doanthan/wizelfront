@@ -42,26 +42,29 @@ const COMPARISON_PERIODS = [
   { value: "previous-year", label: "Previous year" },
 ];
 
-export function DateRangeSelector({ 
+export function DateRangeSelector({
   onDateChange,
   onDateRangeChange, // Accept both prop names for backward compatibility
   className,
   showComparison = true,
   storageKey,
-  initialDateRange
+  initialDateRange,
+  value // Accept 'value' as alias for 'initialDateRange'
 }) {
+  // Use 'value' if provided, otherwise fall back to 'initialDateRange'
+  const dateRangeValue = value || initialDateRange;
   const [open, setOpen] = React.useState(false);
   const [timePeriod, setTimePeriod] = React.useState(
-    initialDateRange?.period || "last30"
+    dateRangeValue?.period || "last30"
   );
   const [comparisonPeriod, setComparisonPeriod] = React.useState(
-    initialDateRange?.comparisonType || "previous-period"
+    dateRangeValue?.comparisonType || "previous-period"
   );
   const [dateRange, setDateRange] = React.useState(() => {
-    if (initialDateRange?.ranges?.main) {
+    if (dateRangeValue?.ranges?.main) {
       return {
-        from: initialDateRange.ranges.main.start,
-        to: initialDateRange.ranges.main.end,
+        from: dateRangeValue.ranges.main.start,
+        to: dateRangeValue.ranges.main.end,
       };
     }
     // Default to last 30 days - use current date, not future
@@ -80,10 +83,27 @@ export function DateRangeSelector({
   const [showCustomCalendar, setShowCustomCalendar] = React.useState(false);
   const [hasInitialized, setHasInitialized] = React.useState(false);
 
+  // Sync with parent's value prop when it changes
+  React.useEffect(() => {
+    if (dateRangeValue?.period && dateRangeValue.period !== timePeriod) {
+      console.log('📅 DateRangeSelector: Syncing timePeriod from parent', {
+        from: timePeriod,
+        to: dateRangeValue.period
+      });
+      setTimePeriod(dateRangeValue.period);
+    }
+    if (dateRangeValue?.comparisonType && dateRangeValue.comparisonType !== comparisonPeriod) {
+      setComparisonPeriod(dateRangeValue.comparisonType);
+    }
+  }, [dateRangeValue?.period, dateRangeValue?.comparisonType]);
+
   // Notify parent component when Apply is clicked
   const notifyDateChange = React.useCallback(() => {
-    if (!dateRange.from || !dateRange.to) return;
-    
+    if (!dateRange.from || !dateRange.to) {
+      console.log('📅 DateRangeSelector: Skipping notify - invalid date range', { dateRange });
+      return;
+    }
+
     // Always calculate comparison range
     const daysDiff = Math.ceil((dateRange.to - dateRange.from) / (1000 * 60 * 60 * 24));
     let comparisonRange = null;
@@ -131,6 +151,11 @@ export function DateRangeSelector({
       }
     };
 
+    console.log('📅 DateRangeSelector: Notifying date change', {
+      dateSelection,
+      hasCallback: !!(onDateRangeChange || onDateChange)
+    });
+
     // Save to localStorage if storageKey provided
     if (storageKey && typeof window !== 'undefined') {
       try {
@@ -171,11 +196,11 @@ export function DateRangeSelector({
 
   // Calculate date range based on selected period
   React.useEffect(() => {
-    // Skip if we have initial date range values
-    if (initialDateRange?.ranges?.main && timePeriod === initialDateRange.period) {
+    // Skip if we have initial date range values that match current period
+    if (dateRangeValue?.ranges?.main && timePeriod === dateRangeValue.period) {
       return;
     }
-    
+
     const today = endOfDay(new Date());
     let newRange = { from: today, to: today };
 
@@ -229,18 +254,25 @@ export function DateRangeSelector({
         break;
     }
 
+    console.log('📅 DateRangeSelector: Setting new date range:', { timePeriod, newRange });
     setDateRange(newRange);
-  }, [timePeriod, customDateRange, initialDateRange]);
+  }, [timePeriod, customDateRange, dateRangeValue]);
 
-  // Call notifyDateChange on initial mount
+  // Initialize on mount only - after that, only Apply button triggers updates
   React.useEffect(() => {
     if (!hasInitialized && dateRange.from && dateRange.to) {
+      console.log('📅 DateRangeSelector: Initial notification', { dateRange, timePeriod });
       notifyDateChange();
       setHasInitialized(true);
     }
-  }, [dateRange, hasInitialized, notifyDateChange]);
+  }, [hasInitialized, dateRange.from, dateRange.to, notifyDateChange]);
 
   const handleApply = () => {
+    console.log('📅 DateRangeSelector: Apply button clicked', {
+      timePeriod,
+      dateRange,
+      comparisonPeriod
+    });
     notifyDateChange();
     setOpen(false);
     setShowCustomCalendar(false);

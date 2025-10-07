@@ -51,7 +51,13 @@ export default function LoginPage() {
         // Get the session to access JWT token
         const session = await getSession();
         console.log("Login successful, JWT token in session:", session);
-        
+
+        // Clear old analytics data from localStorage for new user
+        localStorage.removeItem('analyticsSelectedAccounts');
+        localStorage.removeItem('analyticsKnownAccounts');
+        localStorage.removeItem('stores'); // Remove any cached stores
+        localStorage.removeItem('recentStoreIds'); // Clear recent stores
+
         // Redirect to dashboard
         router.push("/dashboard");
       }
@@ -149,9 +155,9 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Don't have an account?{" "}
-              <button 
+              <button
                 className="text-vivid-violet hover:text-deep-purple font-medium"
-                onClick={() => router.push("/register")}
+                onClick={() => router.push("/signup")}
               >
                 Sign up
               </button>

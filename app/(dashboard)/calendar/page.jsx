@@ -4,14 +4,10 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { InlineLoader } from '@/app/components/ui/loading';
-import { useCampaignData } from '@/app/contexts/campaign-data-context';
-import { resetColorAssignments, getStoreColor, getColorByIndex } from '@/lib/calendar-colors';
-import { cn } from '@/lib/utils';
+import { resetColorAssignments, getStoreColor } from '@/lib/calendar-colors';
 import { CalendarHeader } from './components/CalendarHeader';
+import { FilterCard } from './components/FilterCard';
 import { CalendarSkeleton } from './components/CalendarSkeleton';
-import { X, Mail, MessageSquare, Bell, Tag, Check } from 'lucide-react';
-import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
 import { MonthView, WeekView, DayView } from './components/CalendarViews';
 import { CampaignStats } from './components/CampaignStats';
 import { 
@@ -24,13 +20,6 @@ import 'react-calendar/dist/Calendar.css';
 import './calendar.css';
 
 // Dynamically import heavy components from shared location
-const EmailPreviewPanel = dynamic(
-  () => import('@/app/components/campaigns/EmailPreviewPanel').then(mod => mod.EmailPreviewPanel),
-  {
-    loading: () => <div className="flex items-center justify-center p-4"><InlineLoader showText={true} text="Loading preview..." /></div>,
-    ssr: false
-  }
-);
 
 // Import modals from shared location
 const CampaignDetailsModal = dynamic(() => import('@/app/components/campaigns/CampaignDetailsModal'), { ssr: false });
@@ -43,10 +32,7 @@ export default function CalendarPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
-  // Use shared campaign data context
-  const { getCampaignData } = useCampaignData();
-  
+
   // Core state
   const [date, setDate] = useState(() => {
     const dateParam = searchParams.get('date');
@@ -56,8 +42,7 @@ export default function CalendarPage() {
   const [view, setView] = useState(() => searchParams.get('view') || 'month');
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [futureLoading, setFutureLoading] = useState(false);
-  
+
   // Separate state for past and future campaigns to enable parallel loading
   const [pastCampaigns, setPastCampaigns] = useState([]);
   const [futureCampaigns, setFutureCampaigns] = useState([]);
@@ -97,10 +82,18 @@ export default function CalendarPage() {
   const [selectedForComparison, setSelectedForComparison] = useState([]);
   const [showStoreDropdown, setShowStoreDropdown] = useState(false);
   
-  // Cache for future campaigns only - use useRef to persist across navigations
+  // Smart caching for both past and future campaigns - use useRef to persist across navigations
   const futureCampaignCache = useRef({
     campaigns: new Map(), // Map<campaignId, campaignData> for efficient lookups
-    lastUpdated: null
+    lastUpdated: null,
+    allFetched: false // Track if we've fetched ALL future campaigns
+  });
+
+  // Smart cache for past campaigns - keyed by date range and store IDs
+  const pastCampaignCache = useRef({
+    campaigns: new Map(), // Map<cacheKey, Array<campaigns>>
+    ranges: new Map(), // Map<cacheKey, {startDate, endDate}> to track what ranges we have
+    lastStoreIds: null // Track store IDs to invalidate cache when stores change
   });
 
   // Cache for all audiences (segments and lists) across all stores
@@ -111,52 +104,6 @@ export default function CalendarPage() {
     loaded: false
   });
 
-  // Function to update audience cache with profile counts
-  const updateAudienceCache = useCallback((audienceId, klaviyoPublicId, audienceData) => {
-    setAudienceCache(prev => {
-      const newCache = { ...prev };
-
-      // Determine the type and create the key
-      const key = `${klaviyoPublicId}:${audienceData.type}:${audienceId}`;
-
-      // Update the index with the new/updated audience data
-      newCache.audienceIndex = {
-        ...newCache.audienceIndex,
-        [key]: {
-          ...newCache.audienceIndex[key],
-          ...audienceData,
-          profileCount: audienceData.profileCount || audienceData.profile_count || 0,
-          lastUpdated: new Date().toISOString()
-        }
-      };
-
-      // Also update in byStore if it exists
-      if (newCache.byStore[klaviyoPublicId]) {
-        const storeData = newCache.byStore[klaviyoPublicId];
-        const audienceArray = audienceData.type === 'segment' ? 'segments' : 'lists';
-
-        if (storeData[audienceArray]) {
-          const existingIndex = storeData[audienceArray].findIndex(a => a.id === audienceId);
-          if (existingIndex >= 0) {
-            storeData[audienceArray][existingIndex] = {
-              ...storeData[audienceArray][existingIndex],
-              ...audienceData,
-              profileCount: audienceData.profileCount || audienceData.profile_count || 0
-            };
-          }
-        }
-      }
-
-      console.log('📊 Updated audience cache with profile count:', {
-        audienceId,
-        name: audienceData.name,
-        profileCount: audienceData.profileCount || audienceData.profile_count || 0
-      });
-
-      return newCache;
-    });
-  }, []);
-  
   // Fetch all audiences for all stores at once
   const fetchAllAudiences = useCallback(async () => {
     // Only fetch if not already loaded or loading
@@ -263,112 +210,143 @@ export default function CalendarPage() {
   }, [date, view]);
 
   /**
-   * Load past campaigns using CampaignDataContext (runs first, shows immediately)
+   * Generate cache key for past campaigns based on date range
+   */
+  const generatePastCacheKey = useCallback((startDate, endDate) => {
+    // Create a cache key based on month/year to group related queries
+    const startKey = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+    const endKey = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+    return `${startKey}_${endKey}`;
+  }, []);
+
+  /**
+   * Check if we have cached data that covers the requested date range
+   */
+  const getCachedPastCampaigns = useCallback((startDate, endDate) => {
+    const cache = pastCampaignCache.current;
+
+    // Check each cached range to see if any covers our requested range
+    for (const [cacheKey, range] of cache.ranges.entries()) {
+      const cachedStart = new Date(range.startDate);
+      const cachedEnd = new Date(range.endDate);
+
+      // Check if cached range fully covers requested range
+      if (cachedStart <= startDate && cachedEnd >= endDate) {
+        const cachedCampaigns = cache.campaigns.get(cacheKey) || [];
+        console.log(`✅ Cache HIT for past campaigns: Found ${cachedCampaigns.length} campaigns in cache`);
+
+        // Filter the cached campaigns to the requested date range
+        return cachedCampaigns.filter(campaign => {
+          const campaignDate = new Date(campaign.date);
+          return campaignDate >= startDate && campaignDate <= endDate;
+        });
+      }
+    }
+
+    console.log('❌ Cache MISS for past campaigns: Need to fetch from API');
+    return null;
+  }, []);
+
+  /**
+   * Load past campaigns with smart caching
    */
   const loadPastCampaigns = useCallback(async () => {
     if (stores.length === 0) return;
-    
+
     try {
-      setPastLoading(true);
       const { startDate, endDate } = getDateRange();
       const now = new Date();
       let pastCampaignsData = [];
-      
-      // Load past campaigns from shared context
+
+      // Check if store IDs have changed (invalidate cache if they have)
+      const currentStoreIds = stores
+        .filter(store => store.klaviyo_integration?.public_id && store.public_id)
+        .map(store => store.public_id)
+        .sort()
+        .join(',');
+
+      if (pastCampaignCache.current.lastStoreIds !== currentStoreIds) {
+        console.log('🔄 Store IDs changed, clearing past campaign cache');
+        pastCampaignCache.current.campaigns.clear();
+        pastCampaignCache.current.ranges.clear();
+        pastCampaignCache.current.lastStoreIds = currentStoreIds;
+      }
+
+      // Load past campaigns
       if (startDate <= now) {
-        const klaviyoIds = stores
-          .filter(store => store.klaviyo_integration?.public_id)
-          .map(store => store.klaviyo_integration.public_id);
-        
-        if (klaviyoIds.length > 0) {
-          const pastEndDate = new Date(Math.min(endDate.getTime(), now.getTime()));
-          console.log('📅 Loading past campaigns from CampaignDataContext', {
-            dateRange: `${startDate.toDateString()} to ${pastEndDate.toDateString()}`,
-            cacheKey: `${startDate.toISOString().split('T')[0]}_${pastEndDate.toISOString().split('T')[0]}_${klaviyoIds.sort().join(',')}`,
+        const pastEndDate = endDate < now ? endDate : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        // Check cache first
+        const cachedData = getCachedPastCampaigns(startDate, pastEndDate);
+
+        if (cachedData) {
+          // Use cached data
+          pastCampaignsData = cachedData;
+          setPastLoading(false); // Don't show loading for cached data
+        } else {
+          // Need to fetch from API
+          setPastLoading(true);
+
+          // Expand the fetch range to cover the entire month(s) for better caching
+          const fetchStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1, 0, 0, 0, 0);
+          const fetchEndDate = new Date(pastEndDate.getFullYear(), pastEndDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+          console.log('📅 Fetching past campaigns from API', {
+            requestedRange: `${startDate.toDateString()} to ${pastEndDate.toDateString()}`,
+            fetchingRange: `${fetchStartDate.toDateString()} to ${fetchEndDate.toDateString()}`,
+            reason: 'Fetching entire month for better caching'
           });
-          
-          const contextData = await getCampaignData(
-            startDate.toISOString(),
-            pastEndDate.toISOString(),
-            klaviyoIds,
-            { forceRefresh: false, prefetch: true, subscribe: true }
-          );
-          
-          console.log('📅 Past campaigns loaded:', {
-            dataReceived: !!contextData,
-            campaignCount: contextData?.campaigns?.length || 0,
-            fromCache: contextData?.fromCache,
-            cacheHit: contextData?.cacheHit
+
+          const params = new URLSearchParams({
+            startDate: fetchStartDate.toISOString(),
+            endDate: fetchEndDate.toISOString()
           });
-          
+
+          const response = await fetch(`/api/calendar/campaigns?${params}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch campaigns');
+          }
+
+          const contextData = await response.json();
+
           if (contextData?.campaigns) {
-            pastCampaignsData = contextData.campaigns.map(campaign => ({
-              ...campaign,
-              id: campaign._id || campaign.id || campaign.campaignId,
-              messageId: campaign.groupings?.campaign_message_id || campaign.messageId,
-              name: campaign.campaign_name || campaign.name || 'Unnamed Campaign',
-              date: campaign.send_time || campaign.sentAt || campaign.scheduled_at || campaign.created_at || campaign.date,
-              channel: campaign.groupings?.send_channel || campaign.type || campaign.channel || 'email',
-              subject: campaign.subject_line || campaign.subject || '',
-              status: 'sent',
-              isScheduled: false,
-              klaviyo_public_id: campaign.accountId || campaign.klaviyo_public_id,
-              storeIds: campaign.storeIds || campaign.store_public_ids || [],
-              performance: {
-                // Recipients and delivery
-                recipients: campaign.recipients || campaign.statistics?.recipients || 0,
-                delivered: campaign.delivered || campaign.statistics?.delivered || 0,
-                
-                // Opens - convert from percentage back to decimal if needed
-                openRate: campaign.openRate ? campaign.openRate / 100 : (campaign.statistics?.open_rate || 0),
-                opensUnique: campaign.opensUnique || campaign.statistics?.opens_unique || 0,
-                opensTotal: campaign.opensTotal || campaign.statistics?.opens || 0,
-                
-                // Clicks - convert from percentage back to decimal if needed
-                clickRate: campaign.clickRate ? campaign.clickRate / 100 : (campaign.statistics?.click_rate || 0),
-                clicksUnique: campaign.clicksUnique || campaign.statistics?.clicks_unique || 0,
-                clicksTotal: campaign.clicksTotal || campaign.statistics?.clicks || 0,
-                clickToOpenRate: campaign.clickToOpenRate ? campaign.clickToOpenRate / 100 : (campaign.statistics?.click_to_open_rate || 0),
-                
-                // Conversions and revenue
-                conversionRate: campaign.conversionRate ? campaign.conversionRate / 100 : (campaign.statistics?.conversion_rate || 0),
-                conversions: campaign.conversions || campaign.conversionUniques || campaign.statistics?.conversions || 0,
-                revenue: campaign.revenue || campaign.statistics?.conversion_value || 0,
-                averageOrderValue: campaign.averageOrderValue || campaign.statistics?.average_order_value || 0,
-                revenuePerRecipient: campaign.revenuePerRecipient || campaign.statistics?.revenue_per_recipient || 0,
-                
-                // Delivery metrics
-                bounced: campaign.bounced || campaign.statistics?.bounced || 0,
-                bounceRate: campaign.bounceRate ? campaign.bounceRate / 100 : (campaign.statistics?.bounce_rate || 0),
-                failed: campaign.failed || campaign.statistics?.failed || 0,
-                
-                // Unsubscribes and complaints
-                unsubscribes: campaign.unsubscribes || campaign.statistics?.unsubscribes || 0,
-                unsubscribeRate: campaign.unsubscribeRate ? campaign.unsubscribeRate / 100 : (campaign.statistics?.unsubscribe_rate || 0),
-                spamComplaints: campaign.spamComplaints || campaign.statistics?.spam_complaints || 0,
-                spamComplaintRate: campaign.spamComplaintRate ? campaign.spamComplaintRate / 100 : (campaign.statistics?.spam_complaint_rate || 0),
-                
-                // Additional timing info
-                firstOpen: campaign.firstOpen || null,
-                lastOpen: campaign.lastOpen || null,
-                firstClick: campaign.firstClick || null,
-                lastClick: campaign.lastClick || null
-              },
-              // Audiences - properly map the audience objects with id, type, and name
-              audiences: {
-                included: campaign.includedAudiences || campaign.included_audiences || [],
-                excluded: campaign.excludedAudiences || campaign.excluded_audiences || []
-              },
-              // Tags
-              tags: campaign.tagNames || campaign.tags || [],
-              // From info
-              fromAddress: campaign.fromAddress || campaign.from_address || '',
-              fromLabel: campaign.fromLabel || campaign.from_label || ''
-            }));
+            // Process and cache ALL fetched campaigns
+            const allFetchedCampaigns = contextData.campaigns
+              .filter(campaign => {
+                const campaignDate = new Date(campaign.date);
+                const isInPast = campaignDate <= now;
+                const isScheduledStatus = campaign.isScheduled ||
+                                        campaign.status === 'Scheduled' ||
+                                        campaign.status === 'Draft' ||
+                                        campaign.status === 'Sending';
+                return isInPast && !isScheduledStatus;
+              })
+              .map(campaign => ({
+                ...campaign,
+                id: campaign.id || campaign._id || campaign.campaignId,
+                status: 'sent',
+                isScheduled: false
+              }));
+
+            // Cache the full month's data
+            const cacheKey = generatePastCacheKey(fetchStartDate, fetchEndDate);
+            pastCampaignCache.current.campaigns.set(cacheKey, allFetchedCampaigns);
+            pastCampaignCache.current.ranges.set(cacheKey, {
+              startDate: fetchStartDate.toISOString(),
+              endDate: fetchEndDate.toISOString()
+            });
+
+            console.log(`💾 Cached ${allFetchedCampaigns.length} past campaigns for range: ${cacheKey}`);
+
+            // Filter to just what we need for the current view
+            pastCampaignsData = allFetchedCampaigns.filter(campaign => {
+              const campaignDate = new Date(campaign.date);
+              return campaignDate >= startDate && campaignDate <= pastEndDate;
+            });
           }
         }
       }
-      
+
       setPastCampaigns(pastCampaignsData);
       console.log(`✅ Past campaigns ready: ${pastCampaignsData.length} campaigns`);
     } catch (error) {
@@ -377,48 +355,73 @@ export default function CalendarPage() {
     } finally {
       setPastLoading(false);
     }
-  }, [stores, getCampaignData, getDateRange]);
+  }, [stores, getDateRange, getCachedPastCampaigns, generatePastCacheKey]);
 
   /**
-   * Load future campaigns using Klaviyo API (runs in background)
-   * This should only fetch from API once per session, then filter from cache
+   * Load future campaigns with smart caching
+   * Fetches ALL scheduled/draft campaigns once, then uses cache
    */
   const loadFutureCampaigns = useCallback(async () => {
     const { startDate, endDate } = getDateRange();
-    
-    // Check if we have cached future campaigns from this session
-    const cachedFutureCampaigns = Array.from(futureCampaignCache.current.campaigns.values());
-    const hasCachedFutureCampaigns = cachedFutureCampaigns.length > 0;
-    
-    // Only fetch from API if we don't have any cached future campaigns
-    if (!hasCachedFutureCampaigns && !futureCampaignCache.current.lastUpdated) {
+
+    // Check if store IDs have changed (invalidate cache if they have)
+    const currentStoreIds = stores
+      .filter(store => store.klaviyo_integration?.public_id && store.public_id)
+      .map(store => store.public_id)
+      .sort()
+      .join(',');
+
+    if (pastCampaignCache.current.lastStoreIds !== currentStoreIds && futureCampaignCache.current.allFetched) {
+      console.log('🔄 Store IDs changed, clearing future campaign cache');
+      futureCampaignCache.current.campaigns.clear();
+      futureCampaignCache.current.lastUpdated = null;
+      futureCampaignCache.current.allFetched = false;
+    }
+
+    // Check if we've already fetched ALL future campaigns
+    if (!futureCampaignCache.current.allFetched) {
       setFutureLoadingState(true);
       try {
-        console.log('🔄 Loading ALL future campaigns from Klaviyo API (one-time fetch)...');
+        console.log('🚀 One-time fetch of ALL scheduled/draft campaigns...');
         const now = new Date();
-        
+
+        // Fetch from a date far in the past to catch ALL draft/scheduled campaigns
+        // (since drafts might have old creation dates)
         const params = new URLSearchParams({
-          startDate: now.toISOString(),
-          endDate: new Date('2030-12-31').toISOString()  // Get all future campaigns
+          startDate: new Date('2020-01-01').toISOString(),
+          endDate: new Date('2030-12-31').toISOString(),
+          statusFilter: 'scheduled,draft,sending' // Only get non-sent campaigns
         });
 
-        const response = await fetch(`/api/calendar/campaigns/future?${params}`);
+        const response = await fetch(`/api/calendar/campaigns?${params}`);
         if (response.ok) {
           const data = await response.json();
-          const freshFutureCampaigns = data.campaigns || [];
-          
-          console.log(`📥 Received ${freshFutureCampaigns.length} future campaigns from API`);
-          
-          // Populate the session cache with ALL future campaigns
+
+          // Get ALL scheduled, draft, or future campaigns
+          const allScheduledCampaigns = (data.campaigns || []).filter(c => {
+            const hasScheduledStatus = c.isScheduled ||
+                                       c.status === 'Scheduled' ||
+                                       c.status === 'Draft' ||
+                                       c.status === 'Sending';
+            const isInFuture = new Date(c.date) > now;
+
+            // Include if it has a scheduled status OR is in the future
+            return hasScheduledStatus || isInFuture;
+          });
+
+          console.log(`✅ Fetched ${allScheduledCampaigns.length} scheduled/draft campaigns`);
+
+          // Cache ALL scheduled/draft campaigns
           const campaignMap = futureCampaignCache.current.campaigns;
-          campaignMap.clear(); // Clear any existing entries
-          freshFutureCampaigns.forEach(campaign => {
-            const campaignKey = campaign.campaignId || campaign.id;
+          campaignMap.clear();
+          allScheduledCampaigns.forEach(campaign => {
+            const campaignKey = campaign.campaignId || campaign.id || `${campaign.name}-${campaign.date}`;
             campaignMap.set(campaignKey, campaign);
           });
-          
+
           futureCampaignCache.current.lastUpdated = Date.now();
-          console.log(`💾 Cached ${freshFutureCampaigns.length} future campaigns for entire session`);
+          futureCampaignCache.current.allFetched = true;
+          console.log(`💾 Cached ALL ${allScheduledCampaigns.length} scheduled/draft campaigns`);
         }
       } catch (error) {
         console.error('Error loading future campaigns:', error);
@@ -426,31 +429,21 @@ export default function CalendarPage() {
         setFutureLoadingState(false);
       }
     } else {
-      console.log('📦 Using cached future campaigns from session (no API call needed)');
+      console.log('✨ Using cached scheduled/draft campaigns (no API call)');
     }
-    
-    // Always filter cached future campaigns for current view
+
+    // Filter cached campaigns for current view
     const allFutureCampaigns = Array.from(futureCampaignCache.current.campaigns.values());
 
-    console.log('🔍 Future campaigns in cache:', allFutureCampaigns.map(c => ({
-      name: c.name,
-      date: c.date,
-      parsedDate: new Date(c.date).toISOString(),
-      status: c.status
-    })));
-
     const filteredFutureCampaigns = allFutureCampaigns.filter(c => {
-      const cDate = new Date(c.date).getTime();
-      const inRange = cDate >= startDate.getTime() && cDate <= endDate.getTime();
-      if (!inRange) {
-        console.log(`❌ Campaign "${c.name}" excluded - date ${c.date} outside range`);
-      }
-      return inRange;
+      const cDate = new Date(c.date);
+      const cTime = cDate.getTime();
+      return cTime >= startDate.getTime() && cTime <= endDate.getTime();
     });
 
     setFutureCampaigns(filteredFutureCampaigns);
-    console.log(`📅 Showing ${filteredFutureCampaigns.length} future campaigns for current view (from ${allFutureCampaigns.length} total cached)`);
-  }, [getDateRange]);
+    console.log(`📅 Showing ${filteredFutureCampaigns.length}/${allFutureCampaigns.length} scheduled campaigns in current view`);
+  }, [getDateRange, stores]);
 
   /**
    * Main campaign loading coordinator - runs both functions in parallel
@@ -499,26 +492,25 @@ export default function CalendarPage() {
     }
   }, [stores, audienceCache.loaded, audienceCache.loading, fetchAllAudiences]);
   
-  // Update visible campaigns when date/view changes (but don't re-fetch)
+  // Update visible campaigns when date/view changes
   useEffect(() => {
-    if (stores.length > 0 && futureCampaignCache.current.lastUpdated) {
-      // Just re-filter the cached future campaigns for the new view
-      const { startDate, endDate } = getDateRange();
-      const allFutureCampaigns = Array.from(futureCampaignCache.current.campaigns.values());
+    if (stores.length > 0) {
+      // For future campaigns, just re-filter from cache if we have it
+      if (futureCampaignCache.current.allFetched) {
+        const { startDate, endDate } = getDateRange();
+        const allFutureCampaigns = Array.from(futureCampaignCache.current.campaigns.values());
 
-      console.log('📅 View/Date change - re-filtering campaigns:', {
-        dateRange: { start: startDate.toISOString(), end: endDate.toISOString() },
-        cachedCampaigns: allFutureCampaigns.length
-      });
+        const filteredFutureCampaigns = allFutureCampaigns.filter(c => {
+          const cDate = new Date(c.date);
+          const cTime = cDate.getTime();
+          return cTime >= startDate.getTime() && cTime <= endDate.getTime();
+        });
 
-      const filteredFutureCampaigns = allFutureCampaigns.filter(c => {
-        const cDate = new Date(c.date).getTime();
-        return cDate >= startDate.getTime() && cDate <= endDate.getTime();
-      });
-      setFutureCampaigns(filteredFutureCampaigns);
-      console.log(`📅 View changed - showing ${filteredFutureCampaigns.length} future campaigns from cache`);
+        setFutureCampaigns(filteredFutureCampaigns);
+        console.log(`📅 View changed - showing ${filteredFutureCampaigns.length}/${allFutureCampaigns.length} scheduled from cache`);
+      }
 
-      // Also update past campaigns for the new view
+      // For past campaigns, load with smart caching (will use cache if available)
       loadPastCampaigns();
     }
   }, [date, view, getDateRange, loadPastCampaigns, stores]);
@@ -601,7 +593,24 @@ export default function CalendarPage() {
    * Handle campaign click
    */
   const handleCampaignClick = useCallback((campaign, source = 'calendar') => {
-    setSelectedCampaign({ ...campaign, navigationSource: source });
+    // Check if this is a future/scheduled campaign
+    // Future campaigns have IDs that start with 'future-' or have specific status values
+    // Show all future campaigns - either explicitly marked or with future date
+    const isFutureCampaign = campaign.id?.startsWith('future-') ||
+                             campaign.status === 'Scheduled' ||
+                             campaign.status === 'Draft' ||
+                             campaign.status === 'Sending' ||
+                             new Date(campaign.date) > new Date(); // Also check if date is in future
+
+    // Also check using the utility function
+    const isScheduled = isFutureCampaign || campaign.isScheduled || isCampaignScheduled(campaign);
+
+    // For future campaigns, ensure they have proper fields
+    if (isScheduled && !campaign.recipients && !campaign.estimated_recipients) {
+      campaign.estimated_recipients = 0; // Will be fetched by the modal
+    }
+
+    setSelectedCampaign({ ...campaign, isScheduled, navigationSource: source });
     setShowCampaignDetails(true);
   }, []);
   
@@ -624,30 +633,6 @@ export default function CalendarPage() {
     }
   }, [getCampaignsForDate, handleCampaignClick]);
   
-  // Filter handlers for inline chip removal
-  const handleStoreToggle = useCallback((storeId) => {
-    setSelectedStores(prev => prev.filter(id => id !== storeId));
-  }, []);
-  
-  const handleChannelToggle = useCallback((channel) => {
-    setSelectedChannels(prev => prev.filter(c => c !== channel));
-  }, []);
-  
-  const handleTagToggle = useCallback((tag) => {
-    setSelectedTags(prev => prev.filter(t => t !== tag));
-  }, []);
-  
-  const handleStatusToggle = useCallback((status) => {
-    setSelectedStatuses(prev => prev.filter(s => s !== status));
-  }, []);
-  
-  const clearAllFilters = useCallback(() => {
-    setSelectedStores([]);
-    setSelectedChannels([]);
-    setSelectedTags([]);
-    setSelectedStatuses([]);
-  }, []);
-  
   /**
    * Handle comparison toggle - limit to 5 campaigns
    */
@@ -667,10 +652,36 @@ export default function CalendarPage() {
   }, []);
 
   /**
-   * Get filtered campaigns for stats - apply all active filters
+   * Handle manual refresh - clears caches and reloads data
+   */
+  const handleRefresh = useCallback(async () => {
+    console.log('🔄 Manual refresh triggered - clearing all caches');
+
+    // Clear past campaign cache
+    pastCampaignCache.current.campaigns.clear();
+    pastCampaignCache.current.ranges.clear();
+
+    // Clear future campaign cache
+    futureCampaignCache.current.campaigns.clear();
+    futureCampaignCache.current.lastUpdated = null;
+    futureCampaignCache.current.allFetched = false;
+
+    // Reload all campaigns
+    await loadAllCampaigns();
+  }, [loadAllCampaigns]);
+
+  /**
+   * Get filtered campaigns for stats - apply all active filters AND date range
    */
   const getFilteredCampaigns = useCallback(() => {
     let filteredCampaigns = [...campaigns];
+
+    // First filter by current view's date range
+    const { startDate, endDate } = getDateRange();
+    filteredCampaigns = filteredCampaigns.filter(campaign => {
+      const campaignDate = new Date(campaign.date);
+      return campaignDate >= startDate && campaignDate <= endDate;
+    });
 
     // Apply store filter
     if (selectedStores.length > 0) {
@@ -721,7 +732,7 @@ export default function CalendarPage() {
     }
 
     return filteredCampaigns;
-  }, [campaigns, selectedStores, selectedChannels, selectedTags, selectedStatuses, stores]);
+  }, [campaigns, selectedStores, selectedChannels, selectedTags, selectedStatuses, stores, getDateRange]);
   
   return (
     <div className="space-y-4">
@@ -730,9 +741,26 @@ export default function CalendarPage() {
         <CampaignStats
           campaigns={getFilteredCampaigns()}
           isFiltered={selectedStores.length > 0 || selectedChannels.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0}
+          view={view}
+          date={date}
         />
       )}
       
+      {/* Filter Card - Above Calendar Header */}
+      <FilterCard
+        stores={stores.filter(store => store.klaviyo_integration?.public_id)}
+        campaigns={campaigns}
+        selectedStores={selectedStores}
+        setSelectedStores={setSelectedStores}
+        selectedChannels={selectedChannels}
+        setSelectedChannels={setSelectedChannels}
+        selectedTags={selectedTags}
+        setSelectedTags={setSelectedTags}
+        selectedStatuses={selectedStatuses}
+        setSelectedStatuses={setSelectedStatuses}
+        className="mb-4"
+      />
+
       {/* Calendar Header */}
       <CalendarHeader
         date={date}
@@ -758,154 +786,8 @@ export default function CalendarPage() {
         pastLoading={pastLoading}
         loading={loading}
         loadingStores={loadingStores}
+        onRefresh={handleRefresh}
       />
-      
-      {/* Filters and Store Legend Section */}
-      <div className="bg-gradient-to-r from-sky-50/50 to-purple-50/50 dark:from-gray-800/50 dark:to-gray-800/50 rounded-lg border border-sky-blue/30 dark:border-gray-700 p-3 space-y-2">
-        {/* Store Legend - Always visible */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-            STORES:
-          </span>
-          {stores
-            .filter(store => store.klaviyo_integration?.public_id)
-            .map((store, index) => {
-              const colorIndex = index * 3; // Skip 3 colors for differentiation
-              const storeColor = getColorByIndex(colorIndex);
-              const isFiltered = selectedStores.includes(store.public_id);
-              return (
-                <button
-                  key={store.public_id || store.id || store._id}
-                  onClick={() => {
-                    // Toggle this store as a filter
-                    if (isFiltered) {
-                      setSelectedStores(prev => prev.filter(id => id !== store.public_id));
-                    } else {
-                      setSelectedStores(prev => [...prev, store.public_id]);
-                    }
-                  }}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
-                    storeColor.bg,
-                    storeColor.text,
-                    storeColor.border,
-                    isFiltered ? "ring-2 ring-sky-blue shadow-sm" : "opacity-70 hover:opacity-100",
-                    "hover:scale-105"
-                  )}
-                  title={isFiltered ? `Click to show all ${store.name} campaigns` : `Click to filter by ${store.name}`}
-                >
-                  <div className={cn("w-2 h-2 rounded-full", storeColor.bg)} />
-                  {store.name}
-                  {isFiltered && (
-                    <Check className="h-3 w-3 ml-0.5" />
-                  )}
-                </button>
-              );
-            })
-          }
-          {selectedStores.length > 0 && (
-            <button
-              onClick={() => setSelectedStores([])}
-              className="text-xs text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 underline ml-2"
-            >
-              Show all stores
-            </button>
-          )}
-        </div>
-        
-        {/* Active Filters Row - Only show if filters exist */}
-        {(selectedChannels.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0) && (
-          <div className="flex flex-wrap gap-2 items-center border-t border-sky-blue/20 dark:border-gray-700 pt-2">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-              ACTIVE FILTERS:
-            </span>
-            
-            {/* Channel filters */}
-            {selectedChannels.map(channel => {
-              const channelInfo = {
-                email: { label: 'Email', icon: Mail, color: 'text-blue-600' },
-                sms: { label: 'SMS', icon: MessageSquare, color: 'text-green-600' },
-                'push-notification': { label: 'Push', icon: Bell, color: 'text-purple-600' }
-              }[channel];
-              const Icon = channelInfo?.icon;
-              return (
-                <Badge
-                  key={channel}
-                  variant="secondary"
-                  className="pl-1.5 pr-1 py-0.5 text-xs bg-gradient-to-r from-sky-tint to-lilac-mist/50 border-sky-blue/30 hover:border-sky-blue/50 transition-all"
-                >
-                  {Icon && <Icon className={cn("h-3 w-3 mr-1", channelInfo.color)} />}
-                  {channelInfo?.label}
-                  <button
-                    onClick={() => handleChannelToggle(channel)}
-                    className="ml-1 hover:bg-sky-blue/20 rounded-full p-0.5 transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              );
-            })}
-            
-            {/* Tag filters */}
-            {selectedTags.map(tag => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="pl-1.5 pr-1 py-0.5 text-xs bg-gradient-to-r from-sky-tint to-lilac-mist/50 border-sky-blue/30 hover:border-sky-blue/50 transition-all"
-              >
-                <Tag className="h-3 w-3 mr-1" />
-                {tag}
-                <button
-                  onClick={() => handleTagToggle(tag)}
-                  className="ml-1 hover:bg-sky-blue/20 rounded-full p-0.5 transition-colors"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            
-            {/* Status filters */}
-            {selectedStatuses.map(status => {
-              const statusInfo = {
-                sent: { label: 'Sent', color: 'text-gray-600' },
-                scheduled: { label: 'Scheduled', color: 'text-sky-blue' },
-                draft: { label: 'Draft', color: 'text-yellow-600' }
-              }[status];
-              return (
-                <Badge
-                  key={status}
-                  variant="secondary"
-                  className="pl-1.5 pr-1 py-0.5 text-xs bg-gradient-to-r from-sky-tint to-lilac-mist/50 border-sky-blue/30 hover:border-sky-blue/50 transition-all"
-                >
-                  {statusInfo?.label}
-                  <button
-                    onClick={() => handleStatusToggle(status)}
-                    className="ml-1 hover:bg-sky-blue/20 rounded-full p-0.5 transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              );
-            })}
-            
-            {/* Clear all button for non-store filters */}
-            {(selectedChannels.length + selectedTags.length + selectedStatuses.length) > 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                onClick={() => {
-                  setSelectedChannels([]);
-                  setSelectedTags([]);
-                  setSelectedStatuses([]);
-                }}
-              >
-                Clear filters
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
           
       
       {/* Loading indicators for future campaigns */}

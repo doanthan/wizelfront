@@ -85,55 +85,103 @@ export async function GET(request, context) {
     
     console.log('User role:', userRole, 'Can edit brands:', canEditBrands);
 
-    // Fetch collections for this store
-    const collectionsCollection = db.collection('collections');
-    console.log('Fetching collections for store_public_id:', storePublicId);
-    
-    // Also try to find collections with store_id field in case they use that
-    const collections = await collectionsCollection.find({
-      $or: [
-        { store_public_id: storePublicId },
-        { store_id: store._id }
-      ]
-    }).toArray();
-    
-    console.log(`Found ${collections.length} collections for store ${storePublicId}`);
+    // Check if this is a Shopify store
+    let formattedCollections = [];
 
-    // Format collections for frontend
-    const formattedCollections = collections.map(collection => ({
-      id: collection._id.toString(),
-      shopify_collection_id: collection.shopify_collection_id,
-      title: collection.title,
-      handle: collection.handle,
-      body_html: collection.body_html,
-      products_count: collection.products_count || 0,
-      status: collection.status || 'active',
-      sync_status: collection.sync_status || 'synced',
-      url_link: collection.url_link,
-      domain: collection.domain,
-      published_at: collection.published_at,
-      updated_at: collection.shopify_updated_at,
-      last_synced_at: collection.last_synced_at,
-      marketing: collection.marketing || {
-        tagline: '',
-        description: '',
-        key_benefits: [],
-        target_audience: '',
-        campaign_focus: null,
-        campaign_performance: {
-          total_emails_sent: 0,
-          avg_open_rate: 0,
-          avg_click_rate: 0,
-          last_updated: null
-        }
-      },
-      shopify_image: collection.shopify_image || {
-        src: null,
-        alt: null
-      },
-      collection_type: collection.collection_type || 'custom',
-      sort_order: collection.sort_order || ''
-    }));
+    if (store.isShopify && store.shopifyCollections && store.shopifyCollections.length > 0) {
+      // Use Shopify collections from the Store document
+      console.log(`Using Shopify collections for store ${storePublicId}: ${store.shopifyCollections.length} collections`);
+
+      formattedCollections = store.shopifyCollections.map(collection => ({
+        id: collection.id,
+        shopify_collection_id: collection.id,
+        title: collection.title,
+        handle: collection.handle,
+        body_html: collection.body_html,
+        products_count: collection.products_count || 0,
+        status: collection.published_scope === 'web' ? 'active' : 'draft',
+        sync_status: 'synced',
+        url_link: store.url ? `${store.url}/collections/${collection.handle}` : null,
+        domain: store.url || store.shopify_domain || store.domain,
+        published_at: collection.published_at,
+        updated_at: collection.updated_at,
+        last_synced_at: store.shopifyCollectionsUpdatedAt || collection.updated_at,
+        marketing: {
+          tagline: '',
+          description: collection.body_html || '',
+          key_benefits: [],
+          target_audience: '',
+          campaign_focus: null,
+          campaign_performance: {
+            total_emails_sent: 0,
+            avg_open_rate: 0,
+            avg_click_rate: 0,
+            last_updated: null
+          }
+        },
+        shopify_image: collection.image || {
+          src: null,
+          alt: null
+        },
+        collection_type: collection.collection_type || 'custom',
+        sort_order: collection.sort_order || '',
+        // Additional Shopify-specific fields
+        isShopifyCollection: true,
+        rules: collection.rules || [],
+        disjunctive: collection.disjunctive || false
+      }));
+    } else {
+      // Use regular collections from MongoDB collections collection
+      const collectionsCollection = db.collection('collections');
+      console.log('Fetching collections for store_public_id:', storePublicId);
+
+      // Also try to find collections with store_id field in case they use that
+      const collections = await collectionsCollection.find({
+        $or: [
+          { store_public_id: storePublicId },
+          { store_id: store._id }
+        ]
+      }).toArray();
+
+      console.log(`Found ${collections.length} collections for store ${storePublicId}`);
+
+      // Format collections for frontend
+      formattedCollections = collections.map(collection => ({
+        id: collection._id.toString(),
+        shopify_collection_id: collection.shopify_collection_id,
+        title: collection.title,
+        handle: collection.handle,
+        body_html: collection.body_html,
+        products_count: collection.products_count || 0,
+        status: collection.status || 'active',
+        sync_status: collection.sync_status || 'synced',
+        url_link: collection.url_link,
+        domain: collection.domain,
+        published_at: collection.published_at,
+        updated_at: collection.shopify_updated_at,
+        last_synced_at: collection.last_synced_at,
+        marketing: collection.marketing || {
+          tagline: '',
+          description: '',
+          key_benefits: [],
+          target_audience: '',
+          campaign_focus: null,
+          campaign_performance: {
+            total_emails_sent: 0,
+            avg_open_rate: 0,
+            avg_click_rate: 0,
+            last_updated: null
+          }
+        },
+        shopify_image: collection.shopify_image || {
+          src: null,
+          alt: null
+        },
+        collection_type: collection.collection_type || 'custom',
+        sort_order: collection.sort_order || '',
+        isShopifyCollection: false
+      }));
+    }
 
     return NextResponse.json({
       collections: formattedCollections,

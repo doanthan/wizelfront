@@ -16,6 +16,9 @@ import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import LoadingSpinner, { InlineLoading } from '@/app/components/ui/loading-spinner';
+import MorphingLoader from '@/app/components/ui/loading';
+import AccountPerformanceChart from '@/app/components/campaigns/AccountPerformanceChart';
+import SendTimeOptimizationMatrix from '@/app/components/campaigns/SendTimeOptimizationMatrix';
 import {
   Select,
   SelectContent,
@@ -82,7 +85,17 @@ const EmailPreviewPanel = ({ messageId, storeId }) => {
         }
       } catch (err) {
         console.error('Error fetching campaign content:', err);
-        setError(err.message);
+
+        // Provide more helpful error messages
+        if (err.message?.includes('does not exist')) {
+          setError('Campaign preview not available. The campaign message may have been deleted from Klaviyo.');
+        } else if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+          setError('Authentication failed. Please reconnect your Klaviyo account.');
+        } else if (err.message?.includes('404')) {
+          setError('Campaign not found. It may have been deleted or is no longer available.');
+        } else {
+          setError(err.message || 'Failed to load campaign preview');
+        }
       } finally {
         setLoading(false);
       }
@@ -101,10 +114,28 @@ const EmailPreviewPanel = ({ messageId, storeId }) => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-sm text-red-600 dark:text-red-400">Failed to load preview</p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{error}</p>
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="text-center max-w-md">
+          <div className="mb-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/20">
+              <Info className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Preview Unavailable
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+
+          {/* Show debug info in a subtle way */}
+          <details className="text-left bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+            <summary className="text-xs font-medium text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
+              Technical Details
+            </summary>
+            <div className="mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-500">
+              <p><strong>Message ID:</strong> {messageId || 'Not provided'}</p>
+              <p><strong>Store ID:</strong> {storeId || 'Not provided'}</p>
+            </div>
+          </details>
         </div>
       </div>
     );
@@ -113,7 +144,7 @@ const EmailPreviewPanel = ({ messageId, storeId }) => {
   if (!content) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-gray-600 dark:text-gray-400">No preview available</p>
+        <p className="text-sm text-gray-800 dark:text-gray-400">No preview available</p>
       </div>
     );
   }
@@ -167,7 +198,7 @@ const EmailPreviewPanel = ({ messageId, storeId }) => {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex-shrink-0">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 dark:text-gray-400">From:</span>
+            <span className="text-gray-700 dark:text-gray-400">From:</span>
             <span className="text-gray-900 dark:text-white">
               {content.fromLabel && content.fromEmail ? 
                 `${content.fromLabel} <${content.fromEmail}>` : 
@@ -175,7 +206,7 @@ const EmailPreviewPanel = ({ messageId, storeId }) => {
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Subject:</span>
+            <span className="text-gray-700 dark:text-gray-400">Subject:</span>
             <span className="text-gray-900 dark:text-white font-medium">
               {content.subject || 'No subject'}
             </span>
@@ -200,7 +231,7 @@ const EmailPreviewPanel = ({ messageId, storeId }) => {
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-gray-500 dark:text-gray-400">No content available</p>
+            <p className="text-sm text-gray-700 dark:text-gray-400">No content available</p>
           </div>
         )}
       </div>
@@ -267,20 +298,28 @@ const CampaignsTab = ({
     return null;
   }, [comparisonRange, dateRangeSelection]);
 
+  // State for analytics data that respects date filtering
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   // Memoize data from props to prevent infinite loops
   const campaigns = useMemo(() => {
-    return campaignsData?.campaigns || [];
-  }, [campaignsData?.campaigns]);
+    // Use fetched analytics data if available, otherwise fall back to campaignsData
+    return analyticsData?.campaigns || campaignsData?.campaigns || [];
+  }, [analyticsData?.campaigns, campaignsData?.campaigns]);
 
   const aggregateStats = useMemo(() => {
-    return campaignsData?.aggregateStats || null;
-  }, [campaignsData?.aggregateStats]);
+    // Use fetched analytics data if available, otherwise fall back to campaignsData
+    return analyticsData?.aggregateStats || campaignsData?.aggregateStats || null;
+  }, [analyticsData?.aggregateStats, campaignsData?.aggregateStats]);
 
   const chartData = useMemo(() => {
-    return campaignsData?.chartData || [];
-  }, [campaignsData?.chartData]);
+    // Use fetched analytics data if available, otherwise fall back to campaignsData
+    return analyticsData?.chartData || campaignsData?.chartData || [];
+  }, [analyticsData?.chartData, campaignsData?.chartData]);
+
   const [comparisonData, setComparisonData] = useState(null);
-  const loading = campaignsLoading || false;
+  const loading = campaignsLoading || analyticsLoading || false;
   const [chartGranularity, setChartGranularity] = useState('daily');
   const [selectedMetric, setSelectedMetric] = useState('recipients');
   const [chartViewMode, setChartViewMode] = useState('combined'); // 'combined' or 'separate'
@@ -304,7 +343,7 @@ const CampaignsTab = ({
     revenuePerRecipient: 0,
     engagement: 0
   });
-  
+
   // Campaign list section (now uses main page selections automatically)
   
   const [comparisonChartType, setComparisonChartType] = useState('bar');
@@ -327,11 +366,12 @@ const CampaignsTab = ({
   // Sorting state
   const [sortColumn, setSortColumn] = useState('sentAt');
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
-  
+
   // Email/SMS Preview Panel Component
   const EmailPreviewPanel = ({ messageId, storeId }) => {
     const [content, setContent] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
       const fetchContent = async () => {
@@ -342,24 +382,55 @@ const CampaignsTab = ({
         
         try {
           setLoading(true);
+          setError(null);
+
           // StoreId is required for the API
           if (!storeId) {
             console.error('StoreId is required to fetch campaign content');
+            setError('Store ID is required to fetch campaign content');
             setContent(null);
             setLoading(false);
             return;
           }
-          
+
+          console.log('Fetching campaign preview:', { messageId, storeId });
+
           const url = `/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`;
           const response = await fetch(url);
+
           if (response.ok) {
             const result = await response.json();
-            setContent(result.data || result);
+            if (result.success) {
+              setContent(result.data || result);
+            } else {
+              throw new Error(result.error || 'Failed to load content');
+            }
           } else {
-            console.error('Failed to fetch campaign content:', response.status);
+            // Get error details from response
+            let errorMessage = `Failed to fetch campaign content (${response.status})`;
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+              // If we can't parse the error, use the status code message
+            }
+
+            console.error('Failed to fetch campaign content:', response.status, errorMessage);
+            throw new Error(errorMessage);
           }
         } catch (error) {
           console.error('Error fetching content:', error);
+
+          // Provide more helpful error messages
+          if (error.message?.includes('does not exist')) {
+            setError('Campaign preview not available. The campaign message may have been deleted from Klaviyo.');
+          } else if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+            setError('Authentication failed. Please reconnect your Klaviyo account.');
+          } else if (error.message?.includes('404')) {
+            setError('Campaign not found. It may have been deleted or is no longer available.');
+          } else {
+            setError(error.message || 'Failed to load campaign preview');
+          }
         } finally {
           setLoading(false);
         }
@@ -371,7 +442,7 @@ const CampaignsTab = ({
     if (loading) {
       return (
         <div className="flex items-center justify-center h-full p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-blue"></div>
+          <MorphingLoader size="medium" showText={true} text="Loading campaign preview..." />
         </div>
       );
     }
@@ -379,7 +450,7 @@ const CampaignsTab = ({
     if (!content) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500">
-          <FileText className="h-12 w-12 mb-3 text-gray-400" />
+          <FileText className="h-12 w-12 mb-3 text-gray-600" />
           <p>No preview available</p>
         </div>
       );
@@ -426,11 +497,11 @@ const CampaignsTab = ({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-sky-blue" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">Email Preview</span>
+              <span className="text-xs text-gray-800 dark:text-gray-400">Email Preview</span>
             </div>
             <p className="font-medium text-gray-900 dark:text-white text-sm">{subject}</p>
             {previewText && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+              <p className="text-xs text-gray-700 dark:text-gray-400 italic">
                 Preview: {previewText}
               </p>
             )}
@@ -449,7 +520,7 @@ const CampaignsTab = ({
           ) : (
             <div className="flex items-center justify-center h-full p-8 text-gray-500 bg-gray-50">
               <div className="text-center">
-                <Mail className="h-12 w-12 mb-3 text-gray-400 mx-auto" />
+                <Mail className="h-12 w-12 mb-3 text-gray-600 mx-auto" />
                 <p className="text-gray-600">No email content available</p>
                 <p className="text-xs text-gray-500 mt-2">The email preview could not be loaded</p>
               </div>
@@ -462,7 +533,44 @@ const CampaignsTab = ({
   
   // Handler for campaign click
   const handleCampaignClick = (campaign) => {
-    setSelectedCampaignDetails(campaign);
+    console.log('===== CAMPAIGN CLICK DEBUG =====');
+    console.log('Full campaign object:', campaign);
+    console.log('Campaign structure:', {
+      id: campaign.id,
+      messageId: campaign.messageId,
+      campaignId: campaign.campaignId,
+      campaign_message_id: campaign.campaign_message_id,
+      groupings: campaign.groupings,
+      accountId: campaign.accountId,
+      klaviyo_public_id: campaign.klaviyo_public_id,
+      name: campaign.name
+    });
+
+    // The messageId should already be set by the API, but check other fields as fallback
+    // Priority order: messageId, id (which is set to groupings.campaign_message_id), then other fields
+    const messageId = campaign.messageId ||
+                     campaign.id ||
+                     campaign.message_id ||
+                     campaign.campaign_message_id ||
+                     campaign.groupings?.campaign_message_id;
+
+    console.log('EXTRACTED MESSAGE ID:', messageId);
+    console.log('STORE ID TO USE:', campaign.accountId || campaign.klaviyo_public_id);
+    console.log('================================');
+
+    if (!messageId) {
+      console.error('⚠️ No message ID found in campaign data!');
+      alert('Unable to load preview: No message ID found for this campaign.');
+      return;
+    }
+
+    // Set the campaign details including the messageId
+    setSelectedCampaignDetails({
+      ...campaign,
+      messageId: messageId,
+      klaviyo_public_id: campaign.accountId || campaign.klaviyo_public_id
+    });
+
     setShowCampaignDetails(true);
     setEmailPreviewContent(null);
     setLoadingPreview(false);
@@ -602,7 +710,7 @@ const CampaignsTab = ({
   // Helper to render sort icon
   const renderSortIcon = (column) => {
     if (sortColumn !== column) {
-      return <ArrowUpDown className="h-3 w-3 text-gray-400" />;
+      return <ArrowUpDown className="h-3 w-3 text-gray-600" />;
     }
     return sortDirection === 'asc' 
       ? <ArrowUp className="h-3 w-3 text-sky-blue" />
@@ -729,6 +837,7 @@ const CampaignsTab = ({
         return {
           ...metric,
           campaign,
+          campaignName: campaign.name || 'Unnamed Campaign',
           storeName: getStoreNameFromAccountId(campaign.accountId),
           ranking: `${idx + 1}/5`,
           position: idx + 1,
@@ -745,7 +854,33 @@ const CampaignsTab = ({
     
     return result;
   }, [campaigns, minRecipients, showBottomPerformers, getStoreNameFromAccountId]);
-  
+
+  // Auto-scroll effect for Top Performing Campaigns
+  useEffect(() => {
+    // Pause auto-scroll if modal is open or auto-sliding is disabled
+    if (!isAutoSliding || !topPerformingCampaigns || showCampaignDetails) return;
+
+    const interval = setInterval(() => {
+      setMetricSlides(prev => {
+        const newSlides = {};
+
+        // Update each metric's slide index
+        Object.keys(prev).forEach(metricId => {
+          const campaigns = topPerformingCampaigns[metricId];
+          if (campaigns && campaigns.length > 0) {
+            newSlides[metricId] = (prev[metricId] + 1) % campaigns.length;
+          } else {
+            newSlides[metricId] = 0;
+          }
+        });
+
+        return newSlides;
+      });
+    }, 4000); // Change slide every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [isAutoSliding, topPerformingCampaigns, showCampaignDetails]);
+
   // Available metrics for the chart
   const availableMetrics = [
     { id: 'campaigns', label: 'Campaign Count', color: '#60A5FA', yAxis: 'left' },
@@ -953,8 +1088,17 @@ const CampaignsTab = ({
 
   // Helper function to get date grouping key based on granularity
   const getDateGroupKey = useCallback((date, granularity) => {
+    // Handle invalid dates
+    if (!date) return null;
+
     const dateObj = new Date(date);
-    
+
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.warn('Invalid date provided to getDateGroupKey:', date);
+      return null;
+    }
+
     switch (granularity) {
       case 'weekly':
         const weekStart = startOfWeek(dateObj, { weekStartsOn: 0 }); // Sunday
@@ -970,8 +1114,17 @@ const CampaignsTab = ({
 
   // Helper function to format date display based on granularity
   const formatDateDisplay = useCallback((dateKey, granularity) => {
+    // Handle invalid dates
+    if (!dateKey) return 'Invalid Date';
+
     const dateObj = new Date(dateKey);
-    
+
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.warn('Invalid date provided to formatDateDisplay:', dateKey);
+      return 'Invalid Date';
+    }
+
     switch (granularity) {
       case 'weekly':
         const weekEnd = endOfWeek(dateObj, { weekStartsOn: 0 });
@@ -1021,6 +1174,67 @@ const CampaignsTab = ({
 
   // Data is now passed from parent, no need to fetch internally
 
+  // Fetch analytics data for dashboard stats that respects date filtering
+  const fetchAnalyticsData = useCallback(async () => {
+    if (!effectiveDateRange || !effectiveAccountIds?.length) {
+      setAnalyticsData(null);
+      return;
+    }
+
+    const cacheKey = getCacheKey(effectiveAccountIds, effectiveDateRange);
+    if (campaignDataCache.has(cacheKey)) {
+      const cachedData = campaignDataCache.get(cacheKey);
+      setAnalyticsData(cachedData);
+      return;
+    }
+
+    try {
+      setAnalyticsLoading(true);
+      const params = new URLSearchParams({
+        accountIds: effectiveAccountIds.join(','),
+        startDate: effectiveDateRange.from.toISOString(),
+        endDate: effectiveDateRange.to.toISOString(),
+      });
+
+      if (stores && stores.length > 0) {
+        const storeIds = stores.map(s => s.public_id || s.publicId).join(',');
+        params.append('storeIds', storeIds);
+      }
+
+      console.log('CampaignsTab: Fetching analytics data for date range', {
+        from: effectiveDateRange.from,
+        to: effectiveDateRange.to,
+        accountIds: effectiveAccountIds,
+        params: params.toString()
+      });
+
+      const response = await fetch(`/api/analytics/campaigns?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch analytics data');
+
+      const data = await response.json();
+
+      // Cache the results
+      campaignDataCache.set(cacheKey, {
+        campaigns: data.campaigns || [],
+        aggregateStats: data.aggregateStats || {},
+        chartData: data.chartData || [],
+        timestamp: Date.now()
+      });
+
+      setAnalyticsData({
+        campaigns: data.campaigns || [],
+        aggregateStats: data.aggregateStats || {},
+        chartData: data.chartData || []
+      });
+
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+      setAnalyticsData(null);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [effectiveAccountIds, effectiveDateRange, stores, getCacheKey]);
+
   // Fetch comparison data if comparison range exists
   const fetchComparisonData = useCallback(async () => {
     if (!effectiveComparisonRange || !effectiveAccountIds?.length) {
@@ -1043,13 +1257,13 @@ const CampaignsTab = ({
       });
 
       if (stores && stores.length > 0) {
-        const storeIds = stores.map(s => s.publicId).join(',');
+        const storeIds = stores.map(s => s.public_id || s.publicId).join(',');
         params.append('storeIds', storeIds);
       }
 
       const response = await fetch(`/api/analytics/campaigns?${params}`);
       if (!response.ok) throw new Error('Failed to fetch comparison data');
-      
+
       const data = await response.json();
       
       campaignDataCache.set(cacheKey, {
@@ -1078,6 +1292,15 @@ const CampaignsTab = ({
       error: campaignsError
     });
   }, [campaigns, aggregateStats, chartData, loading, campaignsError]);
+
+  // Fetch analytics data when date range or accounts change
+  useEffect(() => {
+    console.log('CampaignsTab: Date range or accounts changed, fetching analytics data', {
+      effectiveDateRange,
+      effectiveAccountIds
+    });
+    fetchAnalyticsData();
+  }, [fetchAnalyticsData]);
 
   // Fetch comparison data when needed
   useEffect(() => {
@@ -1155,6 +1378,10 @@ const CampaignsTab = ({
       const dateGroups = {};
       filteredCampaigns.forEach(campaign => {
         const dateKey = getDateGroupKey(campaign.sentAt, chartGranularity);
+
+        // Skip campaigns with invalid dates
+        if (!dateKey) return;
+
         if (!dateGroups[dateKey]) {
           dateGroups[dateKey] = {
             date: dateKey,
@@ -1211,13 +1438,17 @@ const CampaignsTab = ({
       filteredCampaigns.forEach(campaign => {
         const accountId = campaign.accountId;
         const dateKey = getDateGroupKey(campaign.sentAt, chartGranularity);
+
+        // Skip campaigns with invalid dates
+        if (!dateKey) return;
+
         const key = `${accountId}_${dateKey}`;
-        
+
         if (!accountGroups[key]) {
           accountGroups[key] = {
             date: dateKey,
             accountId,
-            accountName: accountNameMap[accountId] || accountId,
+            accountName: getStoreNameFromAccountId(accountId) || accountId,
             campaigns: 0,
             recipients: 0,
             delivered: 0,
@@ -1330,7 +1561,7 @@ const CampaignsTab = ({
   // Helper component for percentage change badges
   const PercentageBadge = ({ current, previous, isMain = false }) => {
     const change = calculatePercentageChange(current, previous);
-    const baseClasses = `flex items-center text-xs font-medium whitespace-nowrap ${isMain ? 'px-2 py-1 rounded-full' : ''}`;
+    const baseClasses = `flex items-center text-xs font-medium ${isMain ? 'px-2 py-1 rounded-full' : ''}`;
     const colorClasses = change > 0 
       ? isMain 
         ? 'text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/30'
@@ -1341,7 +1572,7 @@ const CampaignsTab = ({
         : 'text-red-600 dark:text-red-400'
       : isMain
       ? 'text-gray-700 bg-gray-100 dark:text-gray-400 dark:bg-gray-800'
-      : 'text-gray-600 dark:text-gray-400';
+      : 'text-gray-800 dark:text-gray-400';
 
     return (
       <span className={`${baseClasses} ${colorClasses}`}>
@@ -1417,7 +1648,7 @@ const CampaignsTab = ({
       if (!accountGroups[accountId]) {
         accountGroups[accountId] = {
           accountId,
-          accountName: accountNameMap[accountId] || accountId,
+          accountName: getStoreNameFromAccountId(accountId) || accountId,
           campaigns: 0,
           recipients: 0,
           delivered: 0,
@@ -1620,14 +1851,18 @@ const CampaignsTab = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-blue"></div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <MorphingLoader
+          size="large"
+          showText={true}
+          text="Loading campaigns..."
+        />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 w-full max-w-none">
+    <div className="space-y-6 w-full overflow-hidden">
 
       {/* Metrics Overview - 5 cards in a row */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -1636,13 +1871,13 @@ const CampaignsTab = ({
           <CardContent className="p-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Emails Sent</p>
+                <p className="text-sm text-gray-800 dark:text-gray-400">Emails Sent</p>
 <PercentageBadge current={metrics.emailsSent} previous={metrics.emailsSentPrev} isMain={true} />
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatNumber(metrics.emailsSent)}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-gray-800 dark:text-gray-400">
                 vs. {formatNumber(metrics.emailsSentPrev)} previous
               </p>
               <div className="pt-2 border-t">
@@ -1653,7 +1888,7 @@ const CampaignsTab = ({
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
                   {metrics.campaigns}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-800 dark:text-gray-400">
                   vs. {metrics.campaignsPrev} previous
                 </p>
               </div>
@@ -1666,13 +1901,13 @@ const CampaignsTab = ({
           <CardContent className="p-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Open Rate</p>
+                <p className="text-sm text-gray-800 dark:text-gray-400">Open Rate</p>
 <PercentageBadge current={metrics.openRate} previous={metrics.openRatePrev} isMain={true} />
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatPercentage(metrics.openRate)}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-gray-800 dark:text-gray-400">
                 vs. {formatPercentage(metrics.openRatePrev)} previous
               </p>
               <div className="pt-2 border-t">
@@ -1683,7 +1918,7 @@ const CampaignsTab = ({
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
                   {formatNumber(metrics.uniqueOpens)}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-800 dark:text-gray-400">
                   vs. {formatNumber(metrics.uniqueOpensPrev)} previous
                 </p>
               </div>
@@ -1696,13 +1931,13 @@ const CampaignsTab = ({
           <CardContent className="p-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Click Rate</p>
+                <p className="text-sm text-gray-800 dark:text-gray-400">Click Rate</p>
 <PercentageBadge current={metrics.clickRate} previous={metrics.clickRatePrev} isMain={true} />
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatPercentage(metrics.clickRate)}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-gray-800 dark:text-gray-400">
                 vs. {formatPercentage(metrics.clickRatePrev)} previous
               </p>
               <div className="pt-2 border-t">
@@ -1713,7 +1948,7 @@ const CampaignsTab = ({
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
                   {formatNumber(metrics.uniqueClicks)}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-800 dark:text-gray-400">
                   vs. {formatNumber(metrics.uniqueClicksPrev)} previous
                 </p>
               </div>
@@ -1726,13 +1961,13 @@ const CampaignsTab = ({
           <CardContent className="p-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Placed Order Rate</p>
+                <p className="text-sm text-gray-800 dark:text-gray-400">Placed Order Rate</p>
 <PercentageBadge current={metrics.placedOrderRate} previous={metrics.placedOrderRatePrev} isMain={true} />
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatPercentage(metrics.placedOrderRate)}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-gray-800 dark:text-gray-400">
                 vs. {formatPercentage(metrics.placedOrderRatePrev)} previous
               </p>
               <div className="pt-2 border-t">
@@ -1743,7 +1978,7 @@ const CampaignsTab = ({
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
                   {formatNumber(metrics.ordersPlaced)}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-800 dark:text-gray-400">
                   vs. {formatNumber(metrics.ordersPlacedPrev)} previous
                 </p>
               </div>
@@ -1756,13 +1991,13 @@ const CampaignsTab = ({
           <CardContent className="p-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
+                <p className="text-sm text-gray-800 dark:text-gray-400">Total Revenue</p>
 <PercentageBadge current={metrics.totalRevenue} previous={metrics.totalRevenuePrev} isMain={true} />
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatCurrency(metrics.totalRevenue)}
               </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+              <p className="text-xs text-gray-800 dark:text-gray-400">
                 vs. {formatCurrency(metrics.totalRevenuePrev)} previous
               </p>
               <div className="pt-2 border-t">
@@ -1773,7 +2008,7 @@ const CampaignsTab = ({
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
                   {formatCurrency(metrics.revenuePerEmail)}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-800 dark:text-gray-400">
                   vs. {formatCurrency(metrics.revenuePerEmailPrev)} previous
                 </p>
               </div>
@@ -1788,7 +2023,7 @@ const CampaignsTab = ({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-gray-900 dark:text-white">Campaign Performance Over Time</CardTitle>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-800 dark:text-gray-400 mt-1">
                 {chartViewMode === 'combined' ? 'Combined' : 'Separate account'} metrics 
                 {selectedChannel !== 'all' && ` • ${selectedChannel.charAt(0).toUpperCase() + selectedChannel.slice(1)} only`}
               </p>
@@ -1865,16 +2100,16 @@ const CampaignsTab = ({
         <CardContent>
           {processedChartData.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">
+              <p className="text-gray-800 dark:text-gray-400 text-lg font-medium">
                 No campaign performance data available
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+              <p className="text-sm text-gray-700 dark:text-gray-500 mt-2">
                 {metrics.campaigns} campaigns loaded
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
+              <p className="text-sm text-gray-700 dark:text-gray-500">
                 {processedChartData.length} data points generated
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
+              <p className="text-sm text-gray-700 dark:text-gray-500">
                 Total Sent: {metrics.emailsSent}
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">
@@ -2033,7 +2268,7 @@ const CampaignsTab = ({
                     <th className="text-left py-3 px-6 text-sm font-medium text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         Account
-                        <TrendingUp className="h-3 w-3 text-gray-400" />
+                        <TrendingUp className="h-3 w-3 text-gray-600" />
                       </div>
                     </th>
                     <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -2107,7 +2342,7 @@ const CampaignsTab = ({
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
                               {account.campaigns}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-700 dark:text-gray-400">
                               prev: {prevCampaigns}
                             </div>
                           </div>
@@ -2117,7 +2352,7 @@ const CampaignsTab = ({
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
                               {formatNumber(account.recipients)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-700 dark:text-gray-400">
                               prev: {formatNumber(prevRecipients)}
                             </div>
                           </div>
@@ -2127,7 +2362,7 @@ const CampaignsTab = ({
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
                               {formatPercentage(account.openRate)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-700 dark:text-gray-400">
                               prev: {formatPercentage(prevOpenRate)}
                             </div>
                           </div>
@@ -2137,7 +2372,7 @@ const CampaignsTab = ({
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
                               {formatPercentage(account.clickRate)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-700 dark:text-gray-400">
                               prev: {formatPercentage(prevClickRate)}
                             </div>
                           </div>
@@ -2147,7 +2382,7 @@ const CampaignsTab = ({
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
                               {formatPercentage(account.conversionRate)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-700 dark:text-gray-400">
                               prev: {formatPercentage(prevConvRate)}
                             </div>
                           </div>
@@ -2157,7 +2392,7 @@ const CampaignsTab = ({
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
                               {formatCurrency(account.revenue)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-700 dark:text-gray-400">
                               prev: {formatCurrency(prevRevenue)}
                             </div>
                           </div>
@@ -2167,7 +2402,7 @@ const CampaignsTab = ({
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
                               {formatCurrency(account.averageOrderValue)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-700 dark:text-gray-400">
                               prev: {formatCurrency(prevAOV)}
                             </div>
                           </div>
@@ -2193,6 +2428,19 @@ const CampaignsTab = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Advanced Reports Section */}
+      <div className="space-y-6">
+        {/* Account Performance Chart with dynamic benchmarking */}
+        {accountComparisonData.length > 0 && (
+          <AccountPerformanceChart
+            accountData={accountComparisonData}
+            dateRange={dateRangeSelection}
+          />
+        )}
+
+
+      </div>
 
       {/* Detailed Account Performance Charts */}
       {selectedAccountForDetails && (
@@ -2379,303 +2627,10 @@ const CampaignsTab = ({
         </Card>
       )}
 
-      {/* Enhanced Account Performance Comparison */}
-      {accountComparisonData.length > 0 && (
-        <>
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-4">
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-              <div>
-                <CardTitle>Campaign Performance by Account</CardTitle>
-                <CardDescription>
-                  Account-level metrics comparison across your stores
-                  {accountComparisonData.length === 10 && !showAllAccounts && (
-                    <span className="text-xs text-gray-500 ml-2">(Top 10 shown)</span>
-                  )}
-                </CardDescription>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Select
-                  value={sortBy}
-                  onValueChange={setSortBy}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Sort by..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="score-desc">Best Performance</SelectItem>
-                    <SelectItem value="score-asc">Needs Improvement</SelectItem>
-                    <SelectItem value="name">Account Name</SelectItem>
-                    <SelectItem value="primary-desc">Metric: High to Low</SelectItem>
-                    <SelectItem value="primary-asc">Metric: Low to High</SelectItem>
-                    <SelectItem value="revenue">Revenue</SelectItem>
-                    <SelectItem value="campaigns">Campaign Count</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={comparisonMetric.value}
-                  onValueChange={(value) => {
-                    const metric = comparisonMetricOptions.find(m => m.value === value);
-                    if (metric) setComparisonMetric(metric);
-                  }}
-                >
-                  <SelectTrigger className="w-[380px]">
-                    <SelectValue placeholder="Select metric comparison..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {comparisonMetricOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {/* Metric Interpretation Box - Now inside the card */}
-            {comparisonMetric && comparisonMetric.description && (
-              <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex items-start gap-3">
-                  <Info className="h-5 w-5 text-sky-600 dark:text-sky-400 mt-0.5 flex-shrink-0" />
-                  <div className="space-y-2 text-sm">
-                    <p className="text-gray-900 dark:text-gray-100">
-                      <span className="font-semibold text-gray-900 dark:text-white">What this shows:</span> {comparisonMetric.description}
-                    </p>
-                    <p className="text-gray-800 dark:text-gray-200">
-                      <span className="font-semibold text-gray-900 dark:text-white">How to interpret:</span> {comparisonMetric.interpretation}
-                    </p>
-                    <p className="text-gray-800 dark:text-gray-200">
-                      <span className="font-semibold text-gray-900 dark:text-white">Action to take:</span> {comparisonMetric.action}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Performance Scores */}
-            {accountComparisonData.length > 0 && (
-              <div className="px-6 pt-4 pb-2">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {comparisonMetric?.label || 'Performance'} Scores
-                    </h4>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
-                          <Info className="h-4 w-4" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700" align="start">
-                        <div className="space-y-3">
-                          <div>
-                            <h5 className="font-semibold text-gray-900 dark:text-white mb-1">How Scoring Works</h5>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {getScoreDescription(comparisonMetric?.value)}
-                            </p>
-                          </div>
-                          <div className="border-t pt-3">
-                            <h5 className="font-semibold text-gray-900 dark:text-white mb-2">Score Ranges</h5>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded bg-green-500"></div>
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
-                                  <span className="font-medium">70-100%:</span> Excellent - Top performers
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded bg-yellow-500"></div>
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
-                                  <span className="font-medium">40-69%:</span> Good - Room for improvement
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded bg-red-500"></div>
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
-                                  <span className="font-medium">0-39%:</span> Needs attention - Priority optimization
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="border-t pt-3">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Scores help identify which accounts to focus marketing efforts on based on their performance against industry benchmarks.
-                            </p>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Click scores to see details
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {accountComparisonData.slice(0, showAllAccounts ? accountComparisonData.length : 10).map((account, index) => (
-                    <div
-                      key={account.accountId || `account-card-${index}`}
-                      className={`px-3 py-2 rounded-lg border flex items-center gap-2 ${
-                        account.performanceScore >= 70 
-                          ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
-                          : account.performanceScore >= 40 
-                          ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                          : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
-                      }`}
-                    >
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{account.accountName}:</span>
-                      <span className={`text-sm font-bold ${
-                        account.performanceScore >= 70 
-                          ? 'text-green-700 dark:text-green-400' 
-                          : account.performanceScore >= 40 
-                          ? 'text-yellow-700 dark:text-yellow-400'
-                          : 'text-red-700 dark:text-red-400'
-                      }`}>
-                        {account.performanceScore}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Chart Container - Full width */}
-            <div className="w-full p-6" style={{ minHeight: '500px' }}>
-              <ResponsiveContainer 
-                width="100%" 
-                height={450}
-              >
-                <RechartsBarChart 
-                  data={accountComparisonData.slice(0, showAllAccounts ? accountComparisonData.length : 10)}
-                  margin={{ 
-                    top: 20, 
-                    right: accountComparisonData.length <= 2 ? 100 : 40, 
-                    left: accountComparisonData.length <= 2 ? 100 : 80, 
-                    bottom: accountComparisonData.length > 6 ? 120 : 80 
-                  }}
-                  barCategoryGap={accountComparisonData.length <= 2 ? "20%" : accountComparisonData.length <= 3 ? "30%" : accountComparisonData.length <= 6 ? "20%" : "10%"}
-                >
-                <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="account"
-                    tick={{ 
-                      fontSize: accountComparisonData.length > 20 ? 8 : 10,
-                      fill: '#4b5563' 
-                    }}
-                    angle={accountComparisonData.length > 10 ? -90 : -45}
-                    textAnchor="end"
-                    interval={0}
-                    height={accountComparisonData.length > 10 ? 120 : 100}
-                  />
-                <YAxis 
-                  yAxisId="left"
-                  orientation="left"
-                  domain={comparisonMetric.primary?.includes('Rate') || comparisonMetric.primary?.includes('unsub') ? [0, 'auto'] : [0, 'dataMax']}
-                  tickFormatter={(value) => {
-                    if (comparisonMetric.primary === 'revenue' || comparisonMetric.primary?.includes('revenue') || comparisonMetric.primary === 'averageOrderValue') {
-                      return formatCurrency(value).replace('$', '');
-                    }
-                    if (comparisonMetric.primary?.includes('Rate')) {
-                      return formatPercentage(value);
-                    }
-                    return formatNumber(value);
-                  }}
-                />
-                {comparisonMetric.secondaryAxis && (
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    domain={[0, 'auto']}
-                    tickFormatter={(value) => formatPercentage(value)}
-                  />
-                )}
-                <Tooltip 
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload || !payload.length) return null
-                    const data = payload[0]?.payload || {}
-                    
-                    const formatValue = (value, key) => {
-                      if (key === 'revenue' || key?.includes('revenue') || key === 'averageOrderValue') return formatCurrency(value)
-                      if (key?.includes('Rate')) return formatPercentage(value)
-                      return formatNumber(value)
-                    }
-                    
-                    return (
-                      <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-                        <p className="font-semibold mb-2">{label}</p>
-                        <div className="space-y-1">
-                          {payload.map((entry, index) => (
-                            <p key={index} className="text-sm flex items-center gap-2">
-                              <span 
-                                className="w-3 h-3 rounded-sm" 
-                                style={{ backgroundColor: entry.fill || entry.color }}
-                              />
-                              <span className="text-gray-600">
-                                {entry.name}: {formatValue(entry.value, entry.dataKey)}
-                              </span>
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  }}
-                />
-                <Legend 
-                  wrapperStyle={{ paddingTop: '10px' }}
-                  iconType="rect"
-                  iconSize={12}
-                />
-                  <Bar 
-                    dataKey={comparisonMetric.primary} 
-                    fill={comparisonMetric.primaryColor}
-                    name={comparisonMetric.primaryLabel}
-                    stackId={comparisonMetric.type === 'stacked' ? 'stack' : undefined}
-                    yAxisId="left"
-                    maxBarSize={accountComparisonData.length <= 2 ? 200 : accountComparisonData.length <= 3 ? 150 : accountComparisonData.length <= 6 ? 100 : 60}
-                  />
-                  {comparisonMetric.secondary && (
-                    <Bar 
-                      dataKey={comparisonMetric.secondary} 
-                      fill={comparisonMetric.secondaryColor}
-                      name={comparisonMetric.secondaryLabel}
-                      stackId={comparisonMetric.type === 'stacked' ? 'stack' : undefined}
-                      yAxisId={comparisonMetric.secondaryAxis ? 'right' : 'left'}
-                      maxBarSize={accountComparisonData.length <= 2 ? 200 : accountComparisonData.length <= 3 ? 150 : accountComparisonData.length <= 6 ? 100 : 60}
-                    />
-                  )}
-                  {comparisonMetric.tertiary && (
-                    <Bar 
-                      dataKey={comparisonMetric.tertiary} 
-                      fill={comparisonMetric.tertiaryColor || '#9333ea'}
-                      name={comparisonMetric.tertiaryLabel || 'Third Metric'}
-                      stackId={comparisonMetric.type === 'stacked' ? 'stack' : undefined}
-                      yAxisId="left"
-                      maxBarSize={accountComparisonData.length <= 2 ? 200 : accountComparisonData.length <= 3 ? 150 : accountComparisonData.length <= 6 ? 100 : 60}
-                    />
-                  )}
-                </RechartsBarChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* Show More/Less Button for Large Datasets */}
-            {accountComparisonData.length > 10 && (
-              <div className="mt-4 text-center">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowAllAccounts(!showAllAccounts)}
-                  className="text-xs"
-                >
-                  {showAllAccounts ? 'Show Top 10 Only' : `Show All ${accountComparisonData.length} Accounts`}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </>
+      {/* Send Time Optimization Matrix */}
+      {campaigns && campaigns.length > 0 && (
+        <SendTimeOptimizationMatrix campaignData={campaigns} />
       )}
-
 
       {/* Top Performing Campaigns Section */}
       <Card className="mb-6">
@@ -2700,7 +2655,7 @@ const CampaignsTab = ({
                   </Select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Show Bottom Performers</span>
+                  <span className="text-sm text-gray-800 dark:text-gray-400">Show Bottom Performers</span>
                   <button
                     onClick={() => setShowBottomPerformers(!showBottomPerformers)}
                     className={cn(
@@ -2718,24 +2673,38 @@ const CampaignsTab = ({
                 </div>
               </div>
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Showing campaigns in top 75% by send volume (filtered)
+            <div className="flex flex-col items-end gap-1">
+              <div className="text-sm text-gray-700 dark:text-gray-400">
+                Showing campaigns in top 75% by send volume (filtered)
+              </div>
+              {isAutoSliding && !showCampaignDetails && (
+                <div className="text-xs text-sky-blue dark:text-sky-blue flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-sky-blue rounded-full animate-pulse" />
+                  Auto-scrolling active • Hover to pause
+                </div>
+              )}
+              {showCampaignDetails && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+                  Auto-scroll paused
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {Object.keys(topPerformingCampaigns).length === 0 || Object.values(topPerformingCampaigns).every(arr => arr.length === 0) ? (
             <div className="text-center py-8">
-              <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No campaigns meet the minimum recipient threshold</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+              <Target className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-800 dark:text-gray-400">No campaigns meet the minimum recipient threshold</p>
+              <p className="text-sm text-gray-700 dark:text-gray-500 mt-2">
                 Adjust the minimum recipients or date range to see top performers
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Map through each metric type */}
-              {['openRate', 'clickRate', 'conversionRate', 'revenuePerRecipient', 'engagement'].map((metricId) => {
+              {['openRate', 'clickRate', 'conversionRate', 'revenuePerRecipient'].map((metricId) => {
                 const campaigns = topPerformingCampaigns[metricId] || [];
                 if (campaigns.length === 0) return null;
                 
@@ -2744,17 +2713,28 @@ const CampaignsTab = ({
                 if (!currentCampaign) return null;
                 
                 return (
-                  <div key={metricId} className="relative group">
+                  <div
+                    key={metricId}
+                    className="relative group"
+                    onMouseEnter={() => setIsAutoSliding(false)}
+                    onMouseLeave={() => setIsAutoSliding(true)}
+                  >
                     <div
                       className={cn(
-                        "relative p-4 rounded-lg border transition-all hover:shadow-md",
+                        "relative p-4 rounded-lg border transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer",
                         currentCampaign.bgColor,
                         currentCampaign.borderColor
                       )}
+                      onClick={() => {
+                        // Use the campaign click handler to open the modal
+                        handleCampaignClick(currentCampaign.campaign);
+                      }}
+                      title="Click to view campaign details and preview"
                     >
                       {/* Navigation Arrows - Only visible on hover */}
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent triggering campaign click
                           setMetricSlides(prev => ({
                             ...prev,
                             [metricId]: (currentIndex - 1 + campaigns.length) % campaigns.length
@@ -2762,10 +2742,11 @@ const CampaignsTab = ({
                         }}
                         className="absolute left-1 top-1/2 -translate-y-1/2 z-10 p-0.5 rounded-full bg-white/60 dark:bg-gray-800/60 opacity-0 group-hover:opacity-100 hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all"
                       >
-                        <ChevronLeft className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                        <ChevronLeft className="h-3 w-3 text-gray-700 dark:text-gray-400" />
                       </button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent triggering campaign click
                           setMetricSlides(prev => ({
                             ...prev,
                             [metricId]: (currentIndex + 1) % campaigns.length
@@ -2773,7 +2754,7 @@ const CampaignsTab = ({
                         }}
                         className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-0.5 rounded-full bg-white/60 dark:bg-gray-800/60 opacity-0 group-hover:opacity-100 hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all"
                       >
-                        <ChevronRight className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                        <ChevronRight className="h-3 w-3 text-gray-700 dark:text-gray-400" />
                       </button>
                       
                       {/* Header */}
@@ -2784,14 +2765,17 @@ const CampaignsTab = ({
                             {currentCampaign.name}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-gray-700 dark:text-gray-400">
                           {currentCampaign.ranking}
                         </span>
                       </div>
                       
-                      {/* Store Name */}
+                      {/* Campaign Name */}
                       <div className="mb-2">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={currentCampaign.campaignName}>
+                          {currentCampaign.campaignName}
+                        </p>
+                        <p className="text-xs text-gray-700 dark:text-gray-400">
                           {currentCampaign.storeName}
                         </p>
                       </div>
@@ -2804,7 +2788,7 @@ const CampaignsTab = ({
                         )}>
                           {currentCampaign.getDisplayValue(currentCampaign.campaign)}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-gray-800 dark:text-gray-400">
                           {currentCampaign.getSubValue(currentCampaign.campaign)}
                         </p>
                       </div>
@@ -2817,7 +2801,7 @@ const CampaignsTab = ({
                         )}>
                           #{currentCampaign.position}
                         </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-gray-700 dark:text-gray-400">
                           {currentCampaign.date}
                         </span>
                       </div>
@@ -2833,7 +2817,8 @@ const CampaignsTab = ({
                                 ? currentCampaign.dotColor
                                 : "bg-gray-300 dark:bg-gray-600"
                             )}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent triggering campaign click
                               setMetricSlides(prev => ({
                                 ...prev,
                                 [metricId]: dotIndex
@@ -2852,12 +2837,12 @@ const CampaignsTab = ({
       </Card>
 
       {/* Campaign List Section */}
-      <Card className="w-full max-w-none mx-auto">
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <div className="space-y-4">
             <div>
               <CardTitle className="text-gray-900 dark:text-white">Campaign Details</CardTitle>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-800 dark:text-gray-400 mt-1">
                 Individual campaigns contributing to the statistics
               </p>
             </div>
@@ -2868,7 +2853,7 @@ const CampaignsTab = ({
           <div className="mb-6 space-y-4">
             {/* Top Filter Row */}
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-sm text-gray-800 dark:text-gray-400">
                 Showing {filteredCampaigns.length} campaigns
               </div>
               <div className="flex items-center gap-3">
@@ -2898,7 +2883,7 @@ const CampaignsTab = ({
                       'px-4 py-2 text-sm font-medium rounded-md transition-all',
                       campaignChannelFilter === 'all' 
                         ? 'bg-white dark:bg-gray-700 text-vivid-violet shadow-sm' 
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        : 'text-gray-800 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     )}
                   >
                     All
@@ -2909,7 +2894,7 @@ const CampaignsTab = ({
                       'px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2',
                       campaignChannelFilter === 'email' 
                         ? 'bg-white dark:bg-gray-700 text-vivid-violet shadow-sm' 
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        : 'text-gray-800 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     )}
                   >
                     <Mail className="h-4 w-4" />
@@ -2921,7 +2906,7 @@ const CampaignsTab = ({
                       'px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2',
                       campaignChannelFilter === 'sms' 
                         ? 'bg-white dark:bg-gray-700 text-vivid-violet shadow-sm' 
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        : 'text-gray-800 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     )}
                   >
                     <MessageSquare className="h-4 w-4" />
@@ -2933,7 +2918,7 @@ const CampaignsTab = ({
                       'px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2',
                       campaignChannelFilter === 'push' 
                         ? 'bg-white dark:bg-gray-700 text-vivid-violet shadow-sm' 
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        : 'text-gray-800 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     )}
                   >
                     <Bell className="h-4 w-4" />
@@ -2976,18 +2961,18 @@ const CampaignsTab = ({
 
           {filteredCampaigns.length === 0 ? (
             <div className="text-center py-12">
-              <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No campaigns found</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+              <Mail className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-800 dark:text-gray-400">No campaigns found</p>
+              <p className="text-sm text-gray-700 dark:text-gray-500 mt-2">
                 Adjust your account selection or date range to see campaigns
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden">
-              <table className="w-full table-fixed">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                    <th className="text-left py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300" style={{width: '40px'}}>
+                    <th className="text-left py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 w-10">
                       <Checkbox
                         checked={selectedCampaigns.size === filteredCampaigns.length && filteredCampaigns.length > 0}
                         onCheckedChange={(checked) => {
@@ -3000,9 +2985,8 @@ const CampaignsTab = ({
                         className="data-[state=checked]:bg-sky-blue data-[state=checked]:border-sky-blue"
                       />
                     </th>
-                    <th 
-                      className="text-left py-2 px-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '110px'}}
+                    <th
+                      className="text-left py-2 px-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('account')}
                     >
                       <div className="flex items-center gap-1">
@@ -3010,7 +2994,7 @@ const CampaignsTab = ({
                         {renderSortIcon('account')}
                       </div>
                     </th>
-                    <th 
+                    <th
                       className="text-left py-3 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('campaign')}
                     >
@@ -3019,49 +3003,44 @@ const CampaignsTab = ({
                         {renderSortIcon('campaign')}
                       </div>
                     </th>
-                    <th 
-                      className="text-center py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '90px'}}
+                    <th
+                      className="text-center py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('sentAt')}
                     >
                       <div className="flex items-center justify-center gap-1">
-                        Sent Date
+                        Date
                         {renderSortIcon('sentAt')}
                       </div>
                     </th>
-                    <th 
-                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '95px'}}
+                    <th
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('recipients')}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        Sent Count
+                        Sent
                         {renderSortIcon('recipients')}
                       </div>
                     </th>
-                    <th 
-                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '85px'}}
+                    <th
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('openRate')}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        Open Rate
+                        Open
                         {renderSortIcon('openRate')}
                       </div>
                     </th>
-                    <th 
-                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '85px'}}
+                    <th
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('clickRate')}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        Click Rate
+                        Click
                         {renderSortIcon('clickRate')}
                       </div>
                     </th>
-                    <th 
-                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '75px'}}
+                    <th
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('ctor')}
                     >
                       <div className="flex items-center justify-end gap-1">
@@ -3076,13 +3055,13 @@ const CampaignsTab = ({
                           <PopoverContent className="w-80 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg" align="end">
                             <div className="space-y-2">
                               <h5 className="font-semibold text-gray-900 dark:text-white">Click-to-Open Rate (CTOR)</h5>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-sm text-gray-800 dark:text-gray-400">
                                 CTOR measures how many people who opened your email also clicked on something inside it.
                               </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-sm text-gray-800 dark:text-gray-400">
                                 <strong>Calculation:</strong> (Unique Clicks ÷ Unique Opens) × 100
                               </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-sm text-gray-800 dark:text-gray-400">
                                 A higher CTOR indicates that your email content is engaging and relevant to your audience.
                               </p>
                             </div>
@@ -3090,19 +3069,17 @@ const CampaignsTab = ({
                         </Popover>
                       </div>
                     </th>
-                    <th 
-                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '85px'}}
+                    <th
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('conversionRate')}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        Conv. Rate
+                        Conv.
                         {renderSortIcon('conversionRate')}
                       </div>
                     </th>
-                    <th 
-                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
-                      style={{width: '110px'}}
+                    <th
+                      className="text-right py-2 px-1 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort('revenue')}
                     >
                       <div className="flex items-center justify-end gap-1">
@@ -3126,10 +3103,11 @@ const CampaignsTab = ({
                       ? (campaign.clicksUnique / campaign.opensUnique) * 100 
                       : 0;
                     
-                    // Calculate AOV
-                    const aov = (campaign.conversionUniques && campaign.conversionUniques > 0) 
-                      ? campaign.revenue / campaign.conversionUniques 
-                      : 0;
+                    // Use AOV from MongoDB if available, otherwise calculate
+                    const aov = campaign.averageOrderValue ||
+                      ((campaign.conversionUniques && campaign.conversionUniques > 0)
+                        ? campaign.revenue / campaign.conversionUniques
+                        : 0);
                     
                     // Calculate revenue per recipient
                     const revenuePerRecipient = (campaign.recipients && campaign.recipients > 0) 
@@ -3143,7 +3121,6 @@ const CampaignsTab = ({
                           "border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
                           selectedCampaigns.has(campaign.id) && "bg-sky-tint/20 dark:bg-sky-blue/10"
                         )}
-                        style={{height: '65px'}}
                       >
                         {/* Checkbox Column */}
                         <td className="py-2 px-1">
@@ -3176,14 +3153,24 @@ const CampaignsTab = ({
                               {getCampaignIcon(campaign.type)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p 
+                              <p
                                 className="font-medium text-gray-900 dark:text-white text-sm leading-tight cursor-pointer hover:text-sky-blue transition-colors"
-                                onClick={() => handleCampaignClick(campaign)}
+                                onClick={() => {
+                                  console.log('Full campaign data on click:', campaign);
+                                  console.log('Campaign IDs:', {
+                                    id: campaign.id,
+                                    messageId: campaign.messageId,
+                                    campaignId: campaign.campaignId,
+                                    accountId: campaign.accountId,
+                                    klaviyo_public_id: campaign.klaviyo_public_id
+                                  });
+                                  handleCampaignClick(campaign);
+                                }}
                               >
                                 {campaign.name}
                               </p>
                               {campaign.subject && (
-                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                                <p className="text-xs text-gray-800 dark:text-gray-400 mt-1 line-clamp-2">
                                   {campaign.subject}
                                 </p>
                               )}
@@ -3199,7 +3186,7 @@ const CampaignsTab = ({
                               day: 'numeric'
                             })}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-700 dark:text-gray-400">
                             {new Date(campaign.sentAt).toLocaleDateString('en-US', {
                               year: 'numeric'
                             })}
@@ -3211,7 +3198,7 @@ const CampaignsTab = ({
                           <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatNumber(campaign.recipients || 0)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-700 dark:text-gray-400">
                             {formatNumber(campaign.delivered || 0)} delivered
                           </div>
                         </td>
@@ -3221,7 +3208,7 @@ const CampaignsTab = ({
                           <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(campaign.openRate || 0)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-700 dark:text-gray-400">
                             {formatNumber(campaign.opensUnique || 0)} unique
                           </div>
                         </td>
@@ -3231,7 +3218,7 @@ const CampaignsTab = ({
                           <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(campaign.clickRate || 0)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-700 dark:text-gray-400">
                             {formatNumber(campaign.clicksUnique || 0)} unique
                           </div>
                         </td>
@@ -3241,7 +3228,7 @@ const CampaignsTab = ({
                           <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(ctor)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-700 dark:text-gray-400">
                             engagement
                           </div>
                         </td>
@@ -3251,7 +3238,7 @@ const CampaignsTab = ({
                           <div className="text-sm font-semibold text-gray-900 dark:text-white font-mono">
                             {formatPercentage(campaign.conversionRate || 0)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-700 dark:text-gray-400">
                             {formatNumber(campaign.conversionUniques || 0)} orders
                           </div>
                         </td>
@@ -3261,7 +3248,7 @@ const CampaignsTab = ({
                           <div className="text-sm font-semibold text-green-600 dark:text-green-400 font-mono">
                             {formatCurrency(campaign.revenue || 0)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-700 dark:text-gray-400">
                             AOV: {formatCurrency(aov)}
                           </div>
                         </td>
@@ -3347,19 +3334,19 @@ const CampaignsTab = ({
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Details</h4>
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Account</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-400">Account</span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {getStoreNameFromAccountId(selectedCampaignDetails.accountId)}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Type</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-400">Type</span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
                               {selectedCampaignDetails.type}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Sent Date</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-400">Sent Date</span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {new Date(selectedCampaignDetails.sentAt).toLocaleDateString('en-US', {
                                 month: 'short',
@@ -3372,7 +3359,7 @@ const CampaignsTab = ({
                           </div>
                           {selectedCampaignDetails.tagNames && selectedCampaignDetails.tagNames.length > 0 && (
                             <div className="flex justify-between items-start">
-                              <span className="text-sm text-gray-600 dark:text-gray-400">Tags</span>
+                              <span className="text-sm text-gray-800 dark:text-gray-400">Tags</span>
                               <div className="flex flex-wrap gap-1 justify-end">
                                 {selectedCampaignDetails.tagNames.map((tag, idx) => (
                                   <Badge key={idx} variant="secondary" className="text-xs">
@@ -3391,13 +3378,13 @@ const CampaignsTab = ({
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Audience</h4>
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Recipients</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-400">Recipients</span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {formatNumber(selectedCampaignDetails.recipients || 0)}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Delivered</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-400">Delivered</span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {formatNumber(selectedCampaignDetails.delivered || 0)}
                               <span className="text-xs text-gray-500 ml-1">
@@ -3406,7 +3393,7 @@ const CampaignsTab = ({
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Bounced</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-400">Bounced</span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {formatNumber(selectedCampaignDetails.bounced || 0)}
                               <span className="text-xs text-gray-500 ml-1">
@@ -3439,7 +3426,7 @@ const CampaignsTab = ({
                           selectedCampaignDetails.audiences.included.map((audience, idx) => (
                             <div key={idx} className="flex items-center gap-2 pl-6">
                               <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                              <span className="text-sm text-gray-800 dark:text-gray-400">
                                 {audience.name || audience.id || 'Segment'}
                               </span>
                               {audience.count && (
@@ -3450,7 +3437,7 @@ const CampaignsTab = ({
                             </div>
                           ))
                         ) : (
-                          <div className="pl-6 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="pl-6 text-sm text-gray-700 dark:text-gray-400">
                             All subscribers
                           </div>
                         )}
@@ -3468,7 +3455,7 @@ const CampaignsTab = ({
                           {selectedCampaignDetails.audiences.excluded.map((audience, idx) => (
                             <div key={idx} className="flex items-center gap-2 pl-6">
                               <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                              <span className="text-sm text-gray-800 dark:text-gray-400">
                                 {audience.name || audience.id || 'Segment'}
                               </span>
                               {audience.count && (
@@ -3485,7 +3472,7 @@ const CampaignsTab = ({
                     {/* Estimated Recipients */}
                     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Estimated Recipients</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-400">Estimated Recipients</span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
                           {formatNumber(selectedCampaignDetails?.recipients || 0)}
                         </span>
@@ -3508,7 +3495,7 @@ const CampaignsTab = ({
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
                           {formatPercentage(selectedCampaignDetails.openRate || 0)}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-800 dark:text-gray-400 mt-1">
                           {formatNumber(selectedCampaignDetails.opensUnique || 0)} unique opens
                         </p>
                       </CardContent>
@@ -3524,7 +3511,7 @@ const CampaignsTab = ({
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
                           {formatPercentage(selectedCampaignDetails.clickRate || 0)}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-800 dark:text-gray-400 mt-1">
                           {formatNumber(selectedCampaignDetails.clicksUnique || 0)} unique clicks
                         </p>
                       </CardContent>
@@ -3544,7 +3531,7 @@ const CampaignsTab = ({
                               : 0
                           )}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-800 dark:text-gray-400 mt-1">
                           Click-to-open rate
                         </p>
                       </CardContent>
@@ -3560,7 +3547,7 @@ const CampaignsTab = ({
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
                           {formatPercentage(selectedCampaignDetails.conversionRate || 0)}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-800 dark:text-gray-400 mt-1">
                           {formatNumber(selectedCampaignDetails.conversionUniques || 0)} orders
                         </p>
                       </CardContent>
@@ -3581,7 +3568,7 @@ const CampaignsTab = ({
                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                           {formatCurrency(selectedCampaignDetails.revenue || 0)}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-800 dark:text-gray-400 mt-1">
                           From {formatNumber(selectedCampaignDetails.conversionUniques || 0)} orders
                         </p>
                       </CardContent>
@@ -3600,7 +3587,7 @@ const CampaignsTab = ({
                               : 0
                           )}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-800 dark:text-gray-400 mt-1">
                           Average order value
                         </p>
                       </CardContent>
@@ -3619,7 +3606,7 @@ const CampaignsTab = ({
                               : 0
                           )}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-800 dark:text-gray-400 mt-1">
                           Revenue per recipient
                         </p>
                       </CardContent>

@@ -16,9 +16,31 @@ export class DashboardCacheManager {
    */
   generateCacheKey(storeIds, dateRange, comparison = null) {
     const sortedStores = [...storeIds].sort().join(',');
-    const dateKey = `${dateRange.start}:${dateRange.end}`;
-    const compKey = comparison ? `${comparison.start}:${comparison.end}` : 'none';
-    return `${sortedStores}|${dateKey}|${compKey}`;
+
+    // Normalize dates to ISO strings for consistent cache keys
+    const startDate = dateRange.start instanceof Date
+      ? dateRange.start.toISOString()
+      : dateRange.start;
+    const endDate = dateRange.end instanceof Date
+      ? dateRange.end.toISOString()
+      : dateRange.end;
+
+    const dateKey = `${startDate}:${endDate}`;
+
+    let compKey = 'none';
+    if (comparison && comparison.start && comparison.end) {
+      const compStart = comparison.start instanceof Date
+        ? comparison.start.toISOString()
+        : comparison.start;
+      const compEnd = comparison.end instanceof Date
+        ? comparison.end.toISOString()
+        : comparison.end;
+      compKey = `${compStart}:${compEnd}`;
+    }
+
+    const key = `${sortedStores}|${dateKey}|${compKey}`;
+    console.log('📦 Generated cache key:', key);
+    return key;
   }
 
   /**
@@ -30,13 +52,26 @@ export class DashboardCacheManager {
       cachedEntry.storeIds.includes(store)
     );
 
+    // Normalize dates for comparison
+    const normalizeDate = (date) => date instanceof Date ? date.toISOString() : date;
+
     // Check if date ranges match
     const sameDateRange =
-      requestedDateRange.start === cachedEntry.dateRange.start &&
-      requestedDateRange.end === cachedEntry.dateRange.end;
+      normalizeDate(requestedDateRange.start) === normalizeDate(cachedEntry.dateRange.start) &&
+      normalizeDate(requestedDateRange.end) === normalizeDate(cachedEntry.dateRange.end);
 
     // Check if cache is not expired
     const notExpired = Date.now() - cachedEntry.timestamp < this.maxAge;
+
+    console.log('📦 Cache check:', {
+      hasAllStores,
+      sameDateRange,
+      notExpired,
+      requestedStart: normalizeDate(requestedDateRange.start),
+      cachedStart: normalizeDate(cachedEntry.dateRange.start),
+      requestedEnd: normalizeDate(requestedDateRange.end),
+      cachedEnd: normalizeDate(cachedEntry.dateRange.end)
+    });
 
     return hasAllStores && sameDateRange && notExpired;
   }

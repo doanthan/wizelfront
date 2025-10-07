@@ -1,0 +1,668 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useStores } from "@/app/contexts/store-context";
+import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
+import { useTheme } from "@/app/contexts/theme-context";
+import { Button } from "@/app/components/ui/button";
+import { Sun, Moon, Store, ArrowUpDown } from "lucide-react";
+import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils';
+import MorphingLoader from '@/app/components/ui/loading';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+import {
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, Cell
+} from 'recharts';
+import {
+  Package, TrendingUp, DollarSign,
+  ShoppingCart, Layers, Info
+} from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/app/components/ui/popover";
+
+// Design system colors
+const COLORS = [
+  '#60A5FA', // Sky blue
+  '#8B5CF6', // Vivid violet
+  '#10B981', // Success green
+  '#F59E0B', // Warning amber
+  '#EF4444', // Danger red
+  '#2563EB', // Royal blue
+  '#7C3AED', // Deep purple
+  '#34D399', // Emerald
+  '#EC4899'  // Pink
+];
+
+export default function StoreProductsReportPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { stores, isLoadingStores } = useStores();
+  const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [productsData, setProductsData] = useState(null);
+  const [error, setError] = useState(null);
+  const [storePublicId, setStorePublicId] = useState(null);
+  const [sortColumn, setSortColumn] = useState('revenue_last_30_days');
+  const [sortDirection, setSortDirection] = useState('desc');
+
+  // Calculate default dates
+  const getDefaultDateRange = () => {
+    const now = new Date();
+    const past30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const past60Days = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    return {
+      period: "last30",
+      comparisonType: "previous-period",
+      ranges: {
+        main: {
+          start: past30Days,
+          end: now,
+          label: "Past 30 days"
+        },
+        comparison: {
+          start: past60Days,
+          end: past30Days,
+          label: "Previous 30 days"
+        }
+      }
+    };
+  };
+
+  const [dateRangeSelection, setDateRangeSelection] = useState(getDefaultDateRange());
+
+  // Get storePublicId from params
+  useEffect(() => {
+    async function getStoreId() {
+      const resolvedParams = await params;
+      setStorePublicId(resolvedParams.storePublicId);
+    }
+    getStoreId();
+  }, [params]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Get current store
+  const currentStore = useMemo(() => {
+    if (!stores || !storePublicId) return null;
+    return stores.find(s => s.public_id === storePublicId);
+  }, [stores, storePublicId]);
+
+  // Handle date range changes
+  const handleDateRangeChange = (newDateRangeSelection) => {
+    setDateRangeSelection(newDateRangeSelection);
+  };
+
+  // Fetch products data
+  useEffect(() => {
+    async function fetchProductsData() {
+      if (!storePublicId) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Build query params with date range
+        const params = new URLSearchParams();
+        if (dateRangeSelection?.ranges?.main) {
+          params.append('startDate', dateRangeSelection.ranges.main.start.toISOString());
+          params.append('endDate', dateRangeSelection.ranges.main.end.toISOString());
+        }
+        if (dateRangeSelection?.ranges?.comparison) {
+          params.append('previousStartDate', dateRangeSelection.ranges.comparison.start.toISOString());
+          params.append('previousEndDate', dateRangeSelection.ranges.comparison.end.toISOString());
+        }
+
+        const response = await fetch(
+          `/api/store/${storePublicId}/report/products?${params.toString()}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch products data');
+        }
+
+        const data = await response.json();
+        setProductsData(data);
+      } catch (err) {
+        console.error('Error fetching products data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProductsData();
+  }, [storePublicId, dateRangeSelection]);
+
+  // Handle store selection change
+  const handleStoreChange = (newStoreId) => {
+    if (newStoreId && newStoreId !== storePublicId) {
+      router.push(`/store/${newStoreId}/report/products`);
+    }
+  };
+
+  // Sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const sortedProducts = useMemo(() => {
+    if (!productsData?.topProducts) return [];
+
+    return [...productsData.topProducts].sort((a, b) => {
+      let aVal = a[sortColumn];
+      let bVal = b[sortColumn];
+
+      // Handle numeric values
+      if (typeof aVal === 'string' && !isNaN(parseFloat(aVal))) {
+        aVal = parseFloat(aVal);
+        bVal = parseFloat(bVal);
+      }
+
+      if (sortDirection === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+  }, [productsData, sortColumn, sortDirection]);
+
+  const SortableHeader = ({ column, label, align = "left", tooltip, width }) => (
+    <TableHead
+      className={`text-xs ${align === "right" ? "text-right" : ""} ${width || ""}`}
+    >
+      <div className={`flex items-center gap-1 ${align === "right" ? "justify-end" : ""}`}>
+        <div
+          className="flex items-center gap-1 cursor-pointer hover:text-blue-600"
+          onClick={() => handleSort(column)}
+        >
+          {label}
+          <ArrowUpDown className={`h-3 w-3 ${sortColumn === column ? 'text-blue-600' : 'text-gray-400'}`} />
+        </div>
+        {tooltip && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="ml-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full p-0.5">
+                <Info className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg">
+              {tooltip}
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
+    </TableHead>
+  );
+
+  // Calculate days in period
+  const getDaysInPeriod = () => {
+    if (!dateRangeSelection?.ranges?.main) return 30;
+    const start = new Date(dateRangeSelection.ranges.main.start);
+    const end = new Date(dateRangeSelection.ranges.main.end);
+    return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+  };
+
+  // Calculate percentage change
+  const getPercentageChange = (current, previous) => {
+    if (!previous || previous === 0) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Component to display metric with comparison showing both current and previous values
+  const MetricWithComparison = ({ value, previousValue, formatter = (v) => v, hideComparison = false }) => {
+    const change = getPercentageChange(value, previousValue);
+    const hasChange = previousValue > 0 && !hideComparison;
+
+    return (
+      <div className="space-y-0.5">
+        <div className="text-gray-900 dark:text-gray-100 font-normal text-sm">
+          {formatter(value)}
+        </div>
+        {hasChange && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-gray-400 dark:text-gray-500">
+              {formatter(previousValue)}
+            </span>
+            <span className={`flex items-center gap-0.5 font-normal ${
+              change > 0 ? 'text-green-600 dark:text-green-500' :
+              change < 0 ? 'text-red-600 dark:text-red-500' :
+              'text-gray-500 dark:text-gray-400'
+            }`}>
+              {change > 0 ? '↑' : change < 0 ? '↓' : ''}
+              {Math.abs(change).toFixed(0)}%
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const MetricCard = ({ title, value, subtitle, icon: Icon, change, trend }) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">{title}</CardTitle>
+        {Icon && <Icon className="h-4 w-4 text-sky-blue" />}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
+        {change !== undefined && change !== null && (
+          <div className={`flex items-center gap-1 text-xs mt-2 ${
+            change > 0 ? 'text-green-600 dark:text-green-500' :
+            change < 0 ? 'text-red-600 dark:text-red-500' :
+            'text-gray-600 dark:text-gray-400'
+          }`}>
+            {change > 0 ? '↑' : change < 0 ? '↓' : ''}
+            {Math.abs(change).toFixed(1)}% vs previous period
+          </div>
+        )}
+        {subtitle && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="flex-1 space-y-4 p-4 pt-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Product Analytics</h2>
+          <p className="text-gray-600 dark:text-gray-400">Product performance and sales metrics</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={storePublicId || ""} onValueChange={handleStoreChange}>
+            <SelectTrigger className="w-[240px] h-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Store className="mr-2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <SelectValue placeholder="Select store" />
+            </SelectTrigger>
+            <SelectContent>
+              {stores?.map((store) => (
+                <SelectItem key={store.public_id} value={store.public_id}>
+                  {store.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DateRangeSelector
+            value={dateRangeSelection}
+            onDateRangeChange={handleDateRangeChange}
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleTheme}
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <MorphingLoader size="large" showText={true} text="Loading products data..." />
+        </div>
+      )}
+
+      {error && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600 dark:text-red-400">{error}</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!loading && !error && productsData && (
+        <>
+          {/* Key Metrics Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              title={`Total Revenue (${getDaysInPeriod()}d)`}
+              value={formatCurrency(productsData.summary.total_revenue_30d)}
+              icon={DollarSign}
+              change={productsData.summary.previous_revenue ?
+                getPercentageChange(productsData.summary.total_revenue_30d, productsData.summary.previous_revenue) :
+                null
+              }
+            />
+            <MetricCard
+              title={`Units Sold (${getDaysInPeriod()}d)`}
+              value={formatNumber(productsData.summary.total_units_30d)}
+              icon={ShoppingCart}
+              change={productsData.summary.previous_units ?
+                getPercentageChange(productsData.summary.total_units_30d, productsData.summary.previous_units) :
+                null
+              }
+            />
+            <MetricCard
+              title="Active Products"
+              value={productsData.summary.active_products}
+              icon={Package}
+              subtitle={`of ${productsData.summary.total_products} total`}
+              change={productsData.summary.previous_active ?
+                getPercentageChange(productsData.summary.active_products, productsData.summary.previous_active) :
+                null
+              }
+            />
+            <MetricCard
+              title="Avg Repeat Rate"
+              value={formatPercentage(productsData.summary.avg_repeat_rate)}
+              icon={TrendingUp}
+              subtitle="Customer retention"
+            />
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            {/* Category Performance */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Sales by Category</CardTitle>
+                <CardDescription>Revenue distribution across product categories</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={productsData.categories}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                    <XAxis
+                      dataKey="category"
+                      tick={{ fill: 'currentColor', fontSize: 11 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                    />
+                    <YAxis tick={{ fill: 'currentColor' }} />
+                    <Tooltip
+                      formatter={(value, name) => {
+                        if (name === 'revenue') return formatCurrency(value);
+                        return formatNumber(value);
+                      }}
+                      contentStyle={{
+                        backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                        border: '1px solid var(--tooltip-border, #e5e7eb)',
+                        borderRadius: '8px',
+                        color: 'var(--tooltip-text, #111827)'
+                      }}
+                      wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                    />
+                    <Legend />
+                    <Bar dataKey="revenue" fill="#60A5FA" name="Revenue" />
+                    <Bar dataKey="units_sold" fill="#8B5CF6" name="Units Sold" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Price Range Performance */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Price Range Performance</CardTitle>
+                <CardDescription>Sales distribution by price point</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={productsData.priceRanges} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                    <XAxis
+                      type="number"
+                      tick={{ fill: 'currentColor' }}
+                      tickFormatter={(value) => formatCurrency(value).replace('$', '')}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="price_range"
+                      tick={{ fill: 'currentColor', fontSize: 11 }}
+                      width={80}
+                    />
+                    <Tooltip
+                      formatter={(value) => formatCurrency(value)}
+                      contentStyle={{
+                        backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                        border: '1px solid var(--tooltip-border, #e5e7eb)',
+                        borderRadius: '8px',
+                        color: 'var(--tooltip-text, #111827)'
+                      }}
+                      wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                    />
+                    <Bar
+                      dataKey="revenue"
+                      fill="#8B5CF6"
+                      name="Revenue"
+                      radius={[0, 8, 8, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Products Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Products (Last {getDaysInPeriod()} Days)</CardTitle>
+              <CardDescription>Click column headers to sort • Green/red % shows change vs previous period</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-xs">
+                      <SortableHeader column="product_name" label="Product Name" width="w-64" />
+                      <SortableHeader column="sku" label="SKU" width="w-24" />
+                      <SortableHeader column="revenue_last_30_days" label={`Revenue (${getDaysInPeriod()}d)`} align="right" width="w-28" />
+                      <SortableHeader column="units_sold_30d" label={`Units (${getDaysInPeriod()}d)`} align="right" width="w-24" />
+                      <SortableHeader column="avg_price" label="Avg Price" align="right" width="w-24" />
+                      <SortableHeader column="unique_customers_30d" label="Customers" align="right" width="w-24" />
+                      <SortableHeader
+                        column="same_product_repurchase_rate"
+                        label={`Purchased Again (${getDaysInPeriod()}d)`}
+                        align="right"
+                        width="w-28"
+                        tooltip={
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Same-Product Repurchase Rate</h4>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                Of all customers who bought this product <span className="font-semibold">in the selected date range</span>, what percentage came back to buy <span className="font-semibold">the SAME product again</span> during the same period?
+                              </p>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Example:</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-semibold">15% Repurchase Rate</span> for "Scarlet" in the last 30 days means:
+                              </p>
+                              <ul className="text-sm text-gray-700 dark:text-gray-300 mt-2 space-y-1 list-disc list-inside ml-2">
+                                <li>100 customers bought "Scarlet" in the last 30 days</li>
+                                <li>15 of them bought "Scarlet" <span className="font-semibold">again</span> (2+ orders) within that same 30-day period</li>
+                                <li>This measures <span className="font-semibold">immediate product reordering behavior</span></li>
+                              </ul>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">How to use this:</p>
+                              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside">
+                                <li><span className="font-semibold">&gt;15%</span> = Consumable/high-frequency product, perfect for subscriptions</li>
+                                <li><span className="font-semibold">5-15%</span> = Moderate repeat purchase, consider reorder reminders</li>
+                                <li><span className="font-semibold">&lt;5%</span> = Durable/one-time purchase, focus on cross-sell instead</li>
+                              </ul>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-2 mt-2">
+                              <p className="text-xs text-blue-800 dark:text-blue-300">
+                                💡 <span className="font-medium">Pro tip:</span> High same-product repurchase rates indicate consumable products - perfect candidates for subscribe-and-save programs!
+                              </p>
+                            </div>
+                          </div>
+                        }
+                      />
+                      <SortableHeader
+                        column="any_product_repurchase_rate"
+                        label={`Another Purchase (${getDaysInPeriod()}d)`}
+                        align="right"
+                        width="w-28"
+                        tooltip={
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Any-Product Repurchase Rate</h4>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                Of all customers who bought this product <span className="font-semibold">in the selected date range</span>, what percentage made <span className="font-semibold">ANY other purchase</span> (of any product) during the same period?
+                              </p>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Example:</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-semibold">45.2%</span> means almost half of the customers who bought this product also made another purchase (could be the same product or a different one) within the selected time frame.
+                              </p>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">How to use this:</p>
+                              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside">
+                                <li><span className="font-semibold">&gt;40%</span> = Strong cross-sell potential, create product bundles and recommendation flows</li>
+                                <li><span className="font-semibold">25-40%</span> = Moderate engagement, good for post-purchase email sequences</li>
+                                <li><span className="font-semibold">15-25%</span> = Average retention, focus on incentives for second purchase</li>
+                                <li><span className="font-semibold">&lt;15%</span> = Low repeat behavior, may be one-time or gift purchases</li>
+                              </ul>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-2 mt-2">
+                              <p className="text-xs text-blue-800 dark:text-blue-300">
+                                💡 <span className="font-medium">Pro tip:</span> Compare this with "Purchased Again" - a big gap indicates customers buy the product once, then switch to other products in your catalog!
+                              </p>
+                            </div>
+                          </div>
+                        }
+                      />
+                      <SortableHeader
+                        column="ltv_multiplier"
+                        label="LTV Mult."
+                        align="right"
+                        width="w-24"
+                        tooltip={
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Lifetime Value Multiplier</h4>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                How much total revenue customers generate (on average) for every dollar spent on this product as their first purchase.
+                              </p>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Example:</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-semibold">3.61x LTV Multiplier</span> means customers who first bought this $70 product went on to spend an average of <span className="font-semibold">$253</span> ($70 × 3.61) in total across all future purchases.
+                              </p>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">How to use this:</p>
+                              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1 list-disc list-inside">
+                                <li><span className="font-semibold">&gt;3.0x</span> = Gateway product, invest more in acquisition</li>
+                                <li><span className="font-semibold">2.0-3.0x</span> = Good starter product for new customers</li>
+                                <li><span className="font-semibold">&lt;2.0x</span> = End-of-journey product or low cross-sell potential</li>
+                              </ul>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-2 mt-2">
+                              <p className="text-xs text-blue-800 dark:text-blue-300">
+                                💡 <span className="font-medium">Pro tip:</span> High LTV multiplier products make great lead magnets or first-purchase discounts
+                              </p>
+                            </div>
+                          </div>
+                        }
+                      />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedProducts.map((product, idx) => (
+                      <TableRow key={idx} className="border-b border-gray-100 dark:border-gray-800">
+                        <TableCell className="font-normal text-gray-900 dark:text-white py-4 text-sm align-top w-64">
+                          {product.product_name}
+                          {product.product_categories && product.product_categories.length > 0 && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-normal">
+                              {product.product_categories[0]}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400 py-4 font-mono text-xs align-top w-24">
+                          {product.sku || 'N/A'}
+                        </TableCell>
+                        <TableCell className="py-4 align-top w-28">
+                          <MetricWithComparison
+                            value={product.revenue_last_30_days}
+                            previousValue={product.prev_revenue}
+                            formatter={formatCurrency}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4 align-top w-24">
+                          <MetricWithComparison
+                            value={product.units_sold_30d}
+                            previousValue={product.prev_units}
+                            formatter={formatNumber}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4 align-top w-24">
+                          <MetricWithComparison
+                            value={product.avg_price}
+                            previousValue={product.prev_revenue && product.prev_units > 0 ? product.prev_revenue / product.prev_units : 0}
+                            formatter={formatCurrency}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4 align-top w-24">
+                          <MetricWithComparison
+                            value={product.unique_customers_30d}
+                            previousValue={product.prev_customers}
+                            formatter={formatNumber}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4 align-top w-28">
+                          <div className="text-gray-900 dark:text-gray-100 font-normal text-sm">
+                            {formatPercentage(product.same_product_repurchase_rate)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 align-top w-28">
+                          <div className="text-gray-900 dark:text-gray-100 font-normal text-sm">
+                            {formatPercentage(product.any_product_repurchase_rate)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right py-4 align-top w-24">
+                          <span className={`text-sm font-normal ${
+                            product.ltv_multiplier > 1.5 ? 'text-green-600 dark:text-green-500' :
+                            product.ltv_multiplier > 1.0 ? 'text-yellow-600 dark:text-yellow-500' :
+                            'text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {product.ltv_multiplier.toFixed(2)}x
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}

@@ -115,6 +115,42 @@ export async function GET(request) {
       });
     }
 
+
+    // Test 5: Check flow_statistics table structure
+    try {
+      const client = getClickHouseClient();
+      const result = await client.query({
+        query: `
+          SELECT
+            name,
+            type,
+            default_kind,
+            default_expression
+          FROM system.columns
+          WHERE database = currentDatabase()
+            AND table = 'flow_statistics'
+          ORDER BY position
+        `,
+        format: 'JSONEachRow'
+      });
+      const columns = await result.json();
+
+      debug.tests.push({
+        name: "Flow Statistics Table Structure",
+        success: true,
+        data: {
+          columnCount: columns.length,
+          columns: columns
+        }
+      });
+    } catch (error) {
+      debug.tests.push({
+        name: "Flow Statistics Table Structure",
+        success: false,
+        error: error.message
+      });
+    }
+
     return NextResponse.json({
       success: true,
       debug

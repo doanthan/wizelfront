@@ -121,16 +121,49 @@ export default function StoreIdeaGeneratorPage() {
     getParams();
   }, [params]);
 
+  // Fetch brands list for the store
+  useEffect(() => {
+    async function fetchBrands() {
+      if (!storeId) return;
+
+      try {
+        const response = await fetch(`/api/store/${storeId}/brands`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.brands && data.brands.length > 0) {
+            // Map brands to dropdown format
+            const brandOptions = data.brands.map(brand => ({
+              id: brand._id,
+              name: brand.brandName || brand.name,
+              slug: brand.slug,
+              isDefault: brand.isDefault
+            }));
+            setBrands(brandOptions);
+
+            // If no brand is selected in URL, auto-select the default brand
+            if (brandId === 'default' || !brandId) {
+              const defaultBrand = brandOptions.find(b => b.isDefault);
+              if (defaultBrand) {
+                setSelectedBrand(defaultBrand.id);
+                // Update URL with the default brand ID
+                router.push(`/store/${storeId}/idea-generator?brand=${defaultBrand.id}`);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching brands:', error);
+      }
+    }
+
+    fetchBrands();
+  }, [storeId]);
+
   // Fetch brand settings when brandId is available
   useEffect(() => {
     async function fetchBrandSettings() {
       if (!brandId || brandId === 'default') {
-        toast({
-          title: "Brand Required",
-          description: "Please select a brand to generate ideas.",
-          variant: "destructive"
-        });
-        return;
+        return; // Wait for brands to load and auto-select default
       }
 
       setLoadingBrandSettings(true);
@@ -1440,33 +1473,33 @@ Focus: Build emotional connection through brand narrative and customer stories.`
                 <CardContent>
 
             {/* Ideas Carousel */}
-            <div className="relative">
-              {/* Navigation Buttons */}
-              <div className="absolute inset-y-0 left-0 flex items-center z-10 -ml-4">
+            <div className="relative px-12">
+              {/* Navigation Buttons - Inside container */}
+              <div className="absolute inset-y-0 left-0 flex items-center z-10">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={prevCarousel}
                   disabled={currentCarouselIndex === 0}
-                  className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 shadow-lg disabled:opacity-50"
+                  className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 shadow-lg disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="absolute inset-y-0 right-0 flex items-center z-10 -mr-4">
+              <div className="absolute inset-y-0 right-0 flex items-center z-10">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={nextCarousel}
                   disabled={currentCarouselIndex === maxCarouselIndex}
-                  className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 shadow-lg disabled:opacity-50"
+                  className="h-10 w-10 rounded-full bg-white dark:bg-gray-800 shadow-lg disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
 
               {/* Carousel Container */}
-              <div className="overflow-visible px-2 pb-2 pt-3">
+              <div className="overflow-hidden px-2 pb-2 pt-3">
                 <div
                   className="flex transition-transform duration-300 ease-in-out gap-6"
                   style={{ transform: `translateX(-${currentCarouselIndex * 100}%)` }}

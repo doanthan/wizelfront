@@ -8,8 +8,10 @@ import { useTheme } from "@/app/contexts/theme-context";
 import { Button } from "@/app/components/ui/button";
 import { Sun, Moon } from "lucide-react";
 
-// Import dashboard component
+// Import dashboard components
 import SimpleDashboard from "./components/SimpleDashboard";
+import RecentCampaigns from "./components/RecentCampaigns";
+import UpcomingCampaigns from "./components/UpcomingCampaigns";
 
 export default function DashboardPage() {
   const { stores, isLoadingStores } = useStores();
@@ -100,10 +102,22 @@ export default function DashboardPage() {
             index === self.findIndex(a => a.value === account.value)
           );
           console.log('Parsed accounts:', parsed.length, 'Unique accounts:', uniqueAccounts.length);
-          setSelectedAccounts(uniqueAccounts);
+
+          // Validate that these accounts still exist by checking if they're 'all' or will be in availableAccounts
+          // For now, only set them if they include the 'all' option or we'll validate later
+          const hasAllOption = uniqueAccounts.some(a => a.value === 'all');
+          if (hasAllOption) {
+            setSelectedAccounts(uniqueAccounts);
+          } else {
+            // Clear invalid cached accounts
+            console.log('Clearing invalid cached accounts');
+            localStorage.removeItem('analyticsSelectedAccounts');
+            setSelectedAccounts([{ value: 'all', label: 'View All' }]);
+          }
         }
       } catch (e) {
         console.error('Error parsing saved accounts:', e);
+        localStorage.removeItem('analyticsSelectedAccounts');
       }
     }
   }, []);
@@ -126,13 +140,19 @@ export default function DashboardPage() {
   // Compute available accounts reactively from stores
   const availableAccounts = useMemo(() => {
     if (!stores || stores.length === 0) {
+      // If no stores, clear any invalid cached selections
+      if (selectedAccounts.length > 1 || (selectedAccounts.length === 1 && selectedAccounts[0].value !== 'all')) {
+        console.log('No stores available, resetting to View All');
+        setSelectedAccounts([{ value: 'all', label: 'View All' }]);
+        localStorage.removeItem('analyticsSelectedAccounts');
+      }
       return [];
     }
-    
+
     // Build accounts from stores - each store is an account
     const accounts = [];
     const tagsSet = new Set();
-    
+
     stores.forEach(store => {
       // Add store as an account using store's public_id
       const hasKlaviyo = store.klaviyo_integration?.public_id;
@@ -143,22 +163,22 @@ export default function DashboardPage() {
         storeTags: store.storeTags || [],
         hasKlaviyo: !!hasKlaviyo
       });
-      
+
       // Collect all unique tags
       if (store.storeTags && Array.isArray(store.storeTags)) {
         store.storeTags.forEach(tag => tagsSet.add(tag));
       }
     });
-    
+
     // Add tag groupings at the beginning
     const tagAccounts = Array.from(tagsSet).map(tag => ({
       value: `tag:${tag}`,
       label: `${tag} (Tag)`,
       isTag: true
     }));
-    
+
     const currentAccounts = [...tagAccounts, ...accounts];
-    
+
     // Update known accounts with any new ones
     const newKnownAccounts = { ...allKnownAccounts };
     let hasNewAccounts = false;
@@ -168,23 +188,75 @@ export default function DashboardPage() {
         hasNewAccounts = true;
       }
     });
-    
+
     if (hasNewAccounts) {
       setAllKnownAccounts(newKnownAccounts);
       if (typeof window !== 'undefined') {
         localStorage.setItem('analyticsKnownAccounts', JSON.stringify(newKnownAccounts));
       }
     }
-    
+
     return currentAccounts;
   }, [stores, allKnownAccounts]);
-  
-  
+
+  // Validate selected accounts when available accounts change
+  useEffect(() => {
+    // Only run validation after stores have loaded
+    if (!stores || isLoadingStores) {
+      return;
+    }
+
+    if (availableAccounts.length === 0 && stores.length === 0) {
+      // If no stores, ensure we're on "View All"
+      setSelectedAccounts(prev => {
+        if (prev.length !== 1 || prev[0].value !== 'all') {
+          console.log('No stores available, resetting selection to View All');
+          localStorage.removeItem('analyticsSelectedAccounts');
+          return [{ value: 'all', label: 'View All' }];
+        }
+        return prev;
+      });
+      return;
+    }
+
+    // Validate current selections against available accounts
+    const validAccountValues = new Set(availableAccounts.map(a => a.value));
+    validAccountValues.add('all'); // 'all' is always valid
+
+    setSelectedAccounts(prev => {
+      const invalidSelections = prev.filter(sa => !validAccountValues.has(sa.value));
+      if (invalidSelections.length > 0) {
+        console.log('Found invalid account selections:', invalidSelections);
+        // Filter out invalid selections
+        const validSelections = prev.filter(sa => validAccountValues.has(sa.value));
+        if (validSelections.length === 0) {
+          // If no valid selections remain, reset to 'View All'
+          const defaultSelection = [{ value: 'all', label: 'View All' }];
+          localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(defaultSelection));
+          return defaultSelection;
+        } else {
+          localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(validSelections));
+          return validSelections;
+        }
+      }
+      return prev;
+    });
+  }, [availableAccounts, stores, isLoadingStores]);
+
   // Handle date range changes from the date selector
   const handleDateRangeChange = (newDateRangeSelection) => {
-    console.log('Dashboard: Date range changed', newDateRangeSelection);
+    console.log('📅 Dashboard: Date range changed', {
+      old: dateRangeSelection,
+      new: newDateRangeSelection,
+      timestamp: new Date().toISOString(),
+      actualDates: {
+        start: newDateRangeSelection?.ranges?.main?.start,
+        end: newDateRangeSelection?.ranges?.main?.end
+      }
+    });
+
     setDateRangeSelection(newDateRangeSelection);
-    
+
     // Save to localStorage
     if (typeof window !== 'undefined') {
       try {
@@ -269,11 +341,21 @@ export default function DashboardPage() {
       
       {/* Main Dashboard Content */}
       <div className="space-y-4">
-        <SimpleDashboard 
+        <SimpleDashboard
           selectedAccounts={selectedAccounts}
           dateRangeSelection={dateRangeSelection}
           stores={stores}
         />
+
+        {/* Campaigns Section - Recent and Upcoming side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RecentCampaigns
+            stores={stores}
+          />
+          <UpcomingCampaigns
+            stores={stores}
+          />
+        </div>
       </div>
     </div>
   );

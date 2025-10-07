@@ -44,6 +44,7 @@ export function useCampaignData(stores) {
     name: s.name,
     public_id: s.public_id,
     klaviyo_integration: s.klaviyo_integration,
+    klaviyo_integration_public_id: s.klaviyo_integration?.public_id,
     klaviyo_public_id: s.klaviyo_public_id
   })) || 'none');
 
@@ -65,6 +66,11 @@ export function useCampaignData(stores) {
 
   const abortController = useRef(null);
   const isMountedRef = useRef(true);
+
+  // Reset mounted state on each render
+  useEffect(() => {
+    isMountedRef.current = true;
+  });
 
   // Memoize all klaviyo IDs from all stores for fetching ALL campaigns
   const allKlaviyoIds = useMemo(() => {
@@ -109,6 +115,8 @@ export function useCampaignData(stores) {
     // Don't fetch if stores haven't loaded yet (allKlaviyoIds is null)
     if (allKlaviyoIds === null) {
       console.log('🚨 useCampaignData: Waiting for stores to load...');
+      // Keep loading state true while waiting for stores
+      setLoading(true);
       return;
     }
 
@@ -131,10 +139,10 @@ export function useCampaignData(stores) {
       return;
     }
 
-    // Cancel previous request gracefully
+    // Cancel previous request if still pending
     if (abortController.current) {
-      // Don't abort - just mark it as cancelled
-      abortController.current = null;
+      console.log('📦 Aborting previous fetch request');
+      abortController.current.abort();
     }
     abortController.current = new AbortController();
 
@@ -145,7 +153,7 @@ export function useCampaignData(stores) {
 
     try {
       const now = new Date();
-      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Changed from 14 to 7 days
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
       console.log('🚀 Fetching ALL campaigns for caching (will filter client-side)');
@@ -154,23 +162,20 @@ export function useCampaignData(stores) {
       let allUpcoming = [];
       const currentFailedStores = new Set();
 
-      // Fetch recent campaigns (past 14 days) - graceful error handling
+      // Fetch recent campaigns (past 7 days) - graceful error handling
       try {
-        const recentParams = new URLSearchParams({
-          startDate: fourteenDaysAgo.toISOString(),
-          endDate: now.toISOString(),
-          storeIds: allKlaviyoIds.join(',')
-        });
-
-        const recentResponse = await fetch(`/api/calendar/campaigns?${recentParams}`, {
+        // Use MongoDB-only endpoint for recent campaigns
+        const recentResponse = await fetch(`/api/campaigns/recent?limit=500`, {
           signal: abortController.current.signal
         });
 
         if (!isMountedRef.current) return;
 
         if (recentResponse.ok) {
-          const { campaigns } = await recentResponse.json();
-          allRecent = campaigns || [];
+          console.log('📦 Recent response OK, parsing JSON...');
+          const data = await recentResponse.json();
+          console.log('📦 Recent campaigns response:', data);
+          allRecent = data.campaigns || [];
           console.log(`📦 Recent campaigns loaded: ${allRecent.length}`);
         } else {
           console.warn('❌ Recent campaigns API failed:', recentResponse.status);
@@ -183,33 +188,38 @@ export function useCampaignData(stores) {
         }
       }
 
-      // Fetch upcoming campaigns (next 30 days) - graceful error handling
-      try {
-        const upcomingParams = new URLSearchParams({
-          startDate: now.toISOString(),
-          endDate: thirtyDaysFromNow.toISOString(),
-          storeIds: allKlaviyoIds.join(','),
-          status: 'scheduled'
-        });
+      // Skip upcoming campaigns for now - we only want MongoDB data
+      // Upcoming campaigns require Klaviyo API which we want to avoid
+      const skipUpcoming = true;
 
-        const upcomingResponse = await fetch(`/api/calendar/campaigns?${upcomingParams}`, {
-          signal: abortController.current.signal
-        });
+      if (!skipUpcoming) {
+        // Disabled: Fetching from Klaviyo API
+        try {
+          const upcomingParams = new URLSearchParams({
+            startDate: now.toISOString(),
+            endDate: thirtyDaysFromNow.toISOString(),
+            status: 'scheduled'
+          });
 
-        if (!isMountedRef.current) return;
+          const upcomingResponse = await fetch(`/api/calendar/campaigns?${upcomingParams}`, {
+            signal: abortController.current.signal
+          });
 
-        if (upcomingResponse.ok) {
-          const { campaigns } = await upcomingResponse.json();
-          allUpcoming = campaigns || [];
-          console.log(`📦 Upcoming campaigns loaded: ${allUpcoming.length}`);
-        } else {
-          console.warn('❌ Upcoming campaigns API failed:', upcomingResponse.status);
-          // Don't throw error - just log and continue with empty data
-        }
-      } catch (upcomingError) {
-        if (upcomingError.name !== 'AbortError') {
-          console.warn('❌ Upcoming campaigns fetch failed:', upcomingError.message);
-          // Track that upcoming campaigns failed but continue
+          if (!isMountedRef.current) return;
+
+          if (upcomingResponse.ok) {
+            const { campaigns } = await upcomingResponse.json();
+            allUpcoming = campaigns || [];
+            console.log(`📦 Upcoming campaigns loaded: ${allUpcoming.length}`);
+          } else {
+            console.warn('❌ Upcoming campaigns API failed:', upcomingResponse.status);
+            // Don't throw error - just log and continue with empty data
+          }
+        } catch (upcomingError) {
+          if (upcomingError.name !== 'AbortError') {
+            console.warn('❌ Upcoming campaigns fetch failed:', upcomingError.message);
+            // Track that upcoming campaigns failed but continue
+          }
         }
       }
 
@@ -259,6 +269,10 @@ export function useCampaignData(stores) {
         console.log(`⚠️ ${currentFailedStores.size} stores failed to load campaigns`);
       }
 
+      console.log('📦 Setting campaigns:', {
+        recent: processedRecent.length,
+        upcoming: processedUpcoming.length
+      });
       setRecentCampaigns(processedRecent);
       setUpcomingCampaigns(processedUpcoming);
 
@@ -273,6 +287,7 @@ export function useCampaignData(stores) {
       }
     } finally {
       if (isMountedRef.current) {
+        console.log('📦 Setting loading to false');
         setLoading(false);
       }
     }
@@ -367,42 +382,68 @@ function processCampaigns(campaigns, stores, type) {
       );
     }
 
+    // Also check if the campaign already has a storeName from the API
+    const apiStoreName = campaign.storeName;
+
+    const sendDate = campaign.date || campaign.send_time || campaign.scheduled_at;
+
+    // Debug logging for campaign IDs
+    if (type === 'recent') {
+      console.log('Processing campaign:', {
+        original_id: campaign.id,
+        original_campaignId: campaign.campaignId,
+        original_messageId: campaign.messageId,
+        groupings_campaign_id: campaign.groupings?.campaign_id,
+        groupings_campaign_message_id: campaign.groupings?.campaign_message_id,
+        name: campaign.name || campaign.campaign_name
+      });
+    }
+
     return {
       // Basic info
-      id: campaign.campaignId || campaign.id || campaign._id,
-      campaignId: campaign.campaignId || campaign.id,
+      id: campaign.messageId || campaign.groupings?.campaign_message_id || campaign.id || campaign._id,
+      campaignId: campaign.campaignId || campaign.groupings?.campaign_id || campaign.id,
       messageId: campaign.messageId || campaign.groupings?.campaign_message_id,
       name: campaign.name || campaign.campaign_name || 'Unnamed Campaign',
       subject: campaign.subject || campaign.subject_line || '',
       channel: campaign.channel || campaign.groupings?.send_channel || 'email',
-      send_date: campaign.date || campaign.send_time || campaign.scheduled_at,
+      send_date: sendDate,
+
+      // CampaignsTab expects these fields
+      sentAt: sendDate, // CampaignsTab uses sentAt for date processing
+      type: campaign.channel || campaign.groupings?.send_channel || 'email', // type for channel filtering
+      accountId: campaign.klaviyo_public_id || campaignStore?.klaviyo_integration?.public_id || storePublicId, // Use klaviyo ID for account matching
+      conversionUniques: campaign.performance?.conversions || campaign.statistics?.conversions || 0, // CampaignsTab expects this
 
       // Store info
       store_public_id: storePublicId || campaignStore?.public_id || null,
-      store_name: campaignStore?.name || campaign.storeName || 'Unknown Store',
+      store_name: campaignStore?.name || apiStoreName || 'Unknown Store',
       klaviyo_public_id: campaign.klaviyo_public_id,
 
       // Preserve groupings for modal preview
       groupings: campaign.groupings,
 
-      // Performance metrics
-      recipients: campaign.performance?.recipients || campaign.statistics?.recipients || 0,
-      delivered: campaign.performance?.delivered || campaign.statistics?.delivered || campaign.performance?.recipients || 0,
-      opensUnique: campaign.performance?.opensUnique || campaign.statistics?.opens_unique || 0,
-      clicksUnique: campaign.performance?.clicksUnique || campaign.statistics?.clicks_unique || 0,
-      conversions: campaign.performance?.conversions || campaign.statistics?.conversions || 0,
-      revenue: campaign.performance?.revenue || campaign.statistics?.conversion_value || 0,
+      // Performance metrics (handle both nested and flat format)
+      recipients: campaign.recipients || campaign.performance?.recipients || campaign.statistics?.recipients || 0,
+      delivered: campaign.delivered || campaign.performance?.delivered || campaign.statistics?.delivered || campaign.performance?.recipients || 0,
+      opensUnique: campaign.opensUnique || campaign.performance?.opensUnique || campaign.statistics?.opens_unique || 0,
+      clicksUnique: campaign.clicksUnique || campaign.performance?.clicksUnique || campaign.statistics?.clicks_unique || 0,
+      conversions: campaign.conversions || campaign.performance?.conversions || campaign.statistics?.conversions || 0,
+      revenue: campaign.revenue || campaign.performance?.revenue || campaign.statistics?.conversion_value || 0,
 
-      // Rates
-      openRate: campaign.performance?.openRate || campaign.statistics?.open_rate || 0,
-      clickRate: campaign.performance?.clickRate || campaign.statistics?.click_rate || 0,
-      conversionRate: campaign.performance?.conversionRate || campaign.statistics?.conversion_rate || 0,
+      // Rates (handle both nested and flat format)
+      openRate: campaign.openRate || campaign.performance?.openRate || campaign.statistics?.open_rate || 0,
+      clickRate: campaign.clickRate || campaign.performance?.clickRate || campaign.statistics?.click_rate || 0,
+      conversionRate: campaign.conversionRate || campaign.performance?.conversionRate || campaign.statistics?.conversion_rate || 0,
       clickToOpenRate: campaign.performance?.clickToOpenRate || campaign.statistics?.click_to_open_rate || 0,
 
       // Additional metrics
       bounced: campaign.performance?.bounced || campaign.statistics?.bounced || 0,
       unsubscribes: campaign.performance?.unsubscribes || campaign.statistics?.unsubscribes || 0,
       spamComplaints: campaign.performance?.spamComplaints || campaign.statistics?.spam_complaints || 0,
+
+      // Average Order Value from MongoDB
+      averageOrderValue: campaign.statistics?.average_order_value || campaign.average_order_value || 0,
 
       // Other info
       tags: campaign.tags || [],

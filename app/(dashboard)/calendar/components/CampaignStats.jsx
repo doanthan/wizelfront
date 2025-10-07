@@ -1,14 +1,50 @@
 "use client";
 
 import { useMemo } from 'react';
-import { Mail, Eye, MousePointer, DollarSign, Send, Clock } from 'lucide-react';
+import { Mail, Eye, MousePointer, DollarSign, Send, Clock, Users, TrendingUp } from 'lucide-react';
+import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils';
 
-export const CampaignStats = ({ campaigns, isFiltered = false }) => {
+export const CampaignStats = ({ campaigns, isFiltered = false, view = 'month', date = new Date() }) => {
+  // Get period text based on view
+  const getPeriodText = () => {
+    if (isFiltered) return 'Filtered';
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    if (view === 'day') {
+      // Format: "Sep 25"
+      return `${monthNames[date.getMonth()]} ${date.getDate()}`;
+    } else if (view === 'week') {
+      // Get week start and end dates
+      const weekStart = new Date(date);
+      const dayOfWeek = weekStart.getDay();
+      weekStart.setDate(weekStart.getDate() - dayOfWeek);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+
+      // Format: "Sep 22-28" or "Sep 29 - Oct 5"
+      if (weekStart.getMonth() === weekEnd.getMonth()) {
+        return `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()}-${weekEnd.getDate()}`;
+      } else {
+        return `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()} - ${monthNames[weekEnd.getMonth()]} ${weekEnd.getDate()}`;
+      }
+    } else {
+      // Month view - Format: "September"
+      const fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                             'July', 'August', 'September', 'October', 'November', 'December'];
+      return fullMonthNames[date.getMonth()];
+    }
+  };
+
+  const periodText = getPeriodText();
+
   const stats = useMemo(() => {
     if (!campaigns || campaigns.length === 0) {
       return {
         totalSent: 0,
         totalScheduled: 0,
+        totalRecipients: 0,
         avgOpenRate: 0,
         avgClickRate: 0,
         totalRevenue: 0,
@@ -18,27 +54,134 @@ export const CampaignStats = ({ campaigns, isFiltered = false }) => {
       };
     }
 
+    // Debug logging to see what we're working with
+    console.log('📊 CampaignStats calculating from campaigns:', {
+      totalCampaigns: campaigns.length,
+      firstCampaign: campaigns[0],
+      samplePerformance: campaigns[0]?.performance,
+      allStatuses: [...new Set(campaigns.map(c => c.status))],
+      allChannels: [...new Set(campaigns.map(c => c.channel))],
+      // Check performance data availability
+      hasPerformanceObject: campaigns.filter(c => c.performance).length,
+      sampleCampaignData: campaigns.slice(0, 2).map(c => ({
+        name: c.name,
+        performance: c.performance
+      }))
+    });
+
     // Separate sent and scheduled campaigns
-    const sentCampaigns = campaigns.filter(c => !c.isScheduled && c.status !== 'scheduled');
-    const scheduledCampaigns = campaigns.filter(c => c.isScheduled || c.status === 'scheduled');
+    // Campaigns are considered "sent" if they're not scheduled/draft and have performance data
+    const sentCampaigns = campaigns.filter(c => {
+      // First check if explicitly scheduled or draft
+      const isScheduledOrDraft = c.isScheduled ||
+                                 c.status === 'scheduled' ||
+                                 c.status === 'Scheduled' ||
+                                 c.status === 'draft' ||
+                                 c.status === 'Draft' ||
+                                 c.status === 'Sending' 
+
+      // If it's scheduled or draft, it's not sent
+      if (isScheduledOrDraft) {
+        return false;
+      }
+
+      // A campaign is "sent" if it has performance data (recipients > 0)
+      return c.performance && c.performance.recipients > 0;
+    });
+
+    const scheduledCampaigns = campaigns.filter(c => {
+      // Check explicit scheduled/draft statuses
+      const hasScheduledStatus = c.isScheduled ||
+                                 c.status === 'scheduled' ||
+                                 c.status === 'Scheduled' ||
+                                 c.status === 'draft' ||
+                                 c.status === 'Draft' ||
+                                 c.status === 'Sending' 
+
+      // Check if campaign date is in the future
+      const campaignDate = new Date(c.date);
+      const now = new Date();
+      const isInFuture = campaignDate > now;
+
+      // A campaign is scheduled if it has scheduled status OR is in the future
+      return hasScheduledStatus || isInFuture;
+    });
+
+    console.log('📈 Campaign breakdown:', {
+      sent: sentCampaigns.length,
+      scheduled: scheduledCampaigns.length,
+      firstSentCampaign: sentCampaigns[0],
+      sentCampaignNames: sentCampaigns.slice(0, 3).map(c => c.name),
+      scheduledCampaignNames: scheduledCampaigns.slice(0, 5).map(c => c.name),
+      scheduledCampaignDetails: scheduledCampaigns.slice(0, 3).map(c => ({
+        name: c.name,
+        date: c.date,
+        status: c.status,
+        isScheduled: c.isScheduled,
+        isInFuture: new Date(c.date) > new Date()
+      })),
+      allCampaignStatuses: campaigns.map(c => ({
+        name: c.name,
+        status: c.status,
+        isScheduled: c.isScheduled,
+        date: c.date,
+        isFuture: new Date(c.date) > new Date()
+      })),
+      sentCampaignData: sentCampaigns.slice(0, 2).map(c => ({
+        name: c.name,
+        hasPerf: !!c.performance,
+        recipients: c.performance?.recipients || c.recipients || 0,
+        revenue: c.performance?.revenue || c.revenue || 0,
+        opensUnique: c.performance?.opensUnique || c.opensUnique || 0
+      }))
+    });
 
     const totalSent = sentCampaigns.length;
     const totalScheduled = scheduledCampaigns.length;
-    const totalRevenue = sentCampaigns.reduce((sum, c) => sum + (c.performance?.revenue || 0), 0);
 
-    // Calculate weighted averages for rates (only for sent campaigns)
-    const totalRecipients = sentCampaigns.reduce((sum, c) => sum + (c.performance?.recipients || 0), 0);
-    const totalOpens = sentCampaigns.reduce((sum, c) => sum + (c.performance?.opensUnique || 0), 0);
-    const totalClicks = sentCampaigns.reduce((sum, c) => sum + (c.performance?.clicksUnique || 0), 0);
-    const totalConversions = sentCampaigns.reduce((sum, c) => sum + (c.performance?.conversions || 0), 0);
+    // Calculate totals from sent campaigns using performance object
+    const totalRecipients = sentCampaigns.reduce((sum, c) => {
+      return sum + (c.performance?.recipients || 0);
+    }, 0);
 
+    const totalRevenue = sentCampaigns.reduce((sum, c) => {
+      return sum + (c.performance?.revenue || 0);
+    }, 0);
+
+    const totalOpens = sentCampaigns.reduce((sum, c) => {
+      return sum + (c.performance?.opensUnique || 0);
+    }, 0);
+
+    const totalClicks = sentCampaigns.reduce((sum, c) => {
+      return sum + (c.performance?.clicksUnique || 0);
+    }, 0);
+
+    const totalConversions = sentCampaigns.reduce((sum, c) => {
+      return sum + (c.performance?.conversions || 0);
+    }, 0);
+
+    // Calculate weighted averages for rates
     const avgOpenRate = totalRecipients > 0 ? (totalOpens / totalRecipients) : 0;
     const avgClickRate = totalRecipients > 0 ? (totalClicks / totalRecipients) : 0;
     const conversionRate = totalRecipients > 0 ? (totalConversions / totalRecipients) : 0;
 
+    console.log('📊 Final stats calculated:', {
+      totalSent,
+      totalScheduled,
+      totalRecipients,
+      totalRevenue,
+      totalOpens,
+      totalClicks,
+      avgOpenRate: (avgOpenRate * 100).toFixed(1) + '%',
+      avgClickRate: (avgClickRate * 100).toFixed(1) + '%',
+      totalConversions,
+      conversionRate: (conversionRate * 100).toFixed(1) + '%'
+    });
+
     return {
       totalSent,
       totalScheduled,
+      totalRecipients,
       avgOpenRate,
       avgClickRate,
       totalRevenue,
@@ -49,8 +192,8 @@ export const CampaignStats = ({ campaigns, isFiltered = false }) => {
   }, [campaigns]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-      {/* Total Campaigns Sent */}
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
+      {/* Campaigns Sent */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-600 dark:text-gray-400">Campaigns Sent</span>
@@ -60,11 +203,11 @@ export const CampaignStats = ({ campaigns, isFiltered = false }) => {
           {stats.totalSent}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {isFiltered ? 'Filtered' : 'This month'}
+          {periodText}
         </div>
       </div>
 
-      {/* Total Campaigns Scheduled */}
+      {/* Scheduled */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-600 dark:text-gray-400">Scheduled</span>
@@ -74,7 +217,21 @@ export const CampaignStats = ({ campaigns, isFiltered = false }) => {
           {stats.totalScheduled}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {isFiltered ? 'Filtered' : 'Upcoming'}
+          {periodText}
+        </div>
+      </div>
+
+      {/* Total Recipients */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Recipients</span>
+          <Users className="h-4 w-4 text-blue-600" />
+        </div>
+        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          {formatNumber(stats.totalRecipients)}
+        </div>
+        <div className="text-xs text-gray-500 mt-1">
+          Total reached
         </div>
       </div>
 
@@ -85,10 +242,10 @@ export const CampaignStats = ({ campaigns, isFiltered = false }) => {
           <Eye className="h-4 w-4 text-green-600" />
         </div>
         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-          {(stats.avgOpenRate * 100).toFixed(0)}%
+          {formatPercentage(stats.avgOpenRate * 100)}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {stats.totalOpens.toLocaleString()} opens
+          {formatNumber(stats.totalOpens)} opens
         </div>
       </div>
 
@@ -99,10 +256,10 @@ export const CampaignStats = ({ campaigns, isFiltered = false }) => {
           <MousePointer className="h-4 w-4 text-vivid-violet" />
         </div>
         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-          {(stats.avgClickRate * 100).toFixed(0)}%
+          {formatPercentage(stats.avgClickRate * 100)}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {stats.totalClicks.toLocaleString()} clicks
+          {formatNumber(stats.totalClicks)} clicks
         </div>
       </div>
 
@@ -113,10 +270,10 @@ export const CampaignStats = ({ campaigns, isFiltered = false }) => {
           <DollarSign className="h-4 w-4 text-orange-500" />
         </div>
         <div className="text-2xl font-bold text-gray-900 dark:text-white">
-          ${stats.totalRevenue.toLocaleString()}
+          {formatCurrency(stats.totalRevenue)}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {(stats.conversionRate * 100).toFixed(0)}% conv
+          {formatPercentage(stats.conversionRate * 100)} conv
         </div>
       </div>
     </div>

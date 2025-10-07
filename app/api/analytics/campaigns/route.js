@@ -123,36 +123,58 @@ export async function GET(request) {
       // Opens
       opensUnique: campaign.statistics?.opens_unique || 0,
       opensTotal: campaign.statistics?.opens || 0,
-      openRate: (campaign.statistics?.open_rate || 0) * 100, // Convert to percentage
-      
+      // Fix: If open_rate is stored as 0.00335 (meaning 0.335%), multiply by 10000 to get 33.5%
+      // Check if the rate seems too small (< 0.01 would be < 1% which is unusually low)
+      openRate: campaign.statistics?.open_rate < 0.01 && campaign.statistics?.opens_unique > 0
+        ? (campaign.statistics?.open_rate || 0) * 10000  // Stored as 0.00335, needs *10000 to become 33.5%
+        : (campaign.statistics?.open_rate || 0) * 100,   // Normal case: 0.335 * 100 = 33.5%
+
       // Clicks
       clicksUnique: campaign.statistics?.clicks_unique || 0,
       clicksTotal: campaign.statistics?.clicks || 0,
-      clickRate: (campaign.statistics?.click_rate || 0) * 100,
-      clickToOpenRate: (campaign.statistics?.click_to_open_rate || 0) * 100,
-      
+      // Apply same fix to click rate
+      clickRate: campaign.statistics?.click_rate < 0.01 && campaign.statistics?.clicks_unique > 0
+        ? (campaign.statistics?.click_rate || 0) * 10000
+        : (campaign.statistics?.click_rate || 0) * 100,
+      clickToOpenRate: campaign.statistics?.click_to_open_rate < 0.1 && campaign.statistics?.clicks_unique > 0
+        ? (campaign.statistics?.click_to_open_rate || 0) * 10000
+        : (campaign.statistics?.click_to_open_rate || 0) * 100,
+
       // Conversions and Revenue
       conversions: campaign.statistics?.conversions || 0,
       conversionUniques: campaign.statistics?.conversion_uniques || 0,
-      conversionRate: (campaign.statistics?.conversion_rate || 0) * 100,
+      // Apply same fix to conversion rate
+      conversionRate: campaign.statistics?.conversion_rate < 0.01 && campaign.statistics?.conversion_uniques > 0
+        ? (campaign.statistics?.conversion_rate || 0) * 10000
+        : (campaign.statistics?.conversion_rate || 0) * 100,
       revenue: campaign.statistics?.conversion_value || 0,
       averageOrderValue: campaign.statistics?.average_order_value || 0,
       revenuePerRecipient: campaign.statistics?.revenue_per_recipient || 0,
       
       // Delivery metrics
       bounced: campaign.statistics?.bounced || 0,
-      bounceRate: (campaign.statistics?.bounce_rate || 0) * 100,
+      bounceRate: campaign.statistics?.bounce_rate < 0.01 && campaign.statistics?.bounced > 0
+        ? (campaign.statistics?.bounce_rate || 0) * 10000
+        : (campaign.statistics?.bounce_rate || 0) * 100,
       failed: campaign.statistics?.failed || 0,
-      failedRate: (campaign.statistics?.failed_rate || 0) * 100,
-      deliveryRate: (campaign.statistics?.delivery_rate || 0) * 100,
-      
+      failedRate: campaign.statistics?.failed_rate < 0.01 && campaign.statistics?.failed > 0
+        ? (campaign.statistics?.failed_rate || 0) * 10000
+        : (campaign.statistics?.failed_rate || 0) * 100,
+      deliveryRate: campaign.statistics?.delivery_rate > 0.01
+        ? (campaign.statistics?.delivery_rate || 0) * 100     // Normal: 0.99 * 100 = 99%
+        : (campaign.statistics?.delivery_rate || 0) * 10000,  // Error case: 0.0099 * 10000 = 99%
+
       // Unsubscribes
       unsubscribes: campaign.statistics?.unsubscribes || 0,
-      unsubscribeRate: (campaign.statistics?.unsubscribe_rate || 0) * 100,
-      
+      unsubscribeRate: campaign.statistics?.unsubscribe_rate < 0.0001 && campaign.statistics?.unsubscribes > 0
+        ? (campaign.statistics?.unsubscribe_rate || 0) * 10000
+        : (campaign.statistics?.unsubscribe_rate || 0) * 100,
+
       // Spam complaints
       spamComplaints: campaign.statistics?.spam_complaints || 0,
-      spamComplaintRate: (campaign.statistics?.spam_complaint_rate || 0) * 100,
+      spamComplaintRate: campaign.statistics?.spam_complaint_rate < 0.0001 && campaign.statistics?.spam_complaints > 0
+        ? (campaign.statistics?.spam_complaint_rate || 0) * 10000
+        : (campaign.statistics?.spam_complaint_rate || 0) * 100,
       
       // Metadata
       sentAt: campaign.send_time || campaign.scheduled_at || new Date(),

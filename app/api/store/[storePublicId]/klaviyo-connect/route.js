@@ -89,14 +89,14 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
           try {
             const syncPayload = {
               klaviyo_public_id: store.klaviyo_integration.public_id,
-              store_public_id: store.public_id,
+              force_full:true,
               do_not_order_sync: !isShopifyPlacedOrder,
               env: process.env.NODE_ENV
             };
 
             console.log("Triggering report server sync:", syncPayload);
 
-            await fetch(`${reportServerUrl}/api/v1/reports/full_sync`, {
+            await fetch(`${reportServerUrl}/api/v2/reports/full_sync`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -127,40 +127,77 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
 }
 
 async function validatePermissions(userId, storeId) {
-  // Find the user's contract seat for this store
+  // First, get the store to find its contract
+  const store = await Store.findById(storeId);
+  if (!store) {
+    return { hasPermission: false, error: 'Store not found' };
+  }
+
+  // Special case: Check if user is the store owner directly
+  if (store.owner_id && store.owner_id.toString() === userId.toString()) {
+    return { hasPermission: true };
+  }
+
+  // Find the user's contract seat for this store's contract
   const contractSeat = await ContractSeat.findOne({
     user_id: userId,
-    'store_access.store_id': storeId
+    contract_id: store.contract_id,
+    status: 'active'
   }).populate('default_role_id');
 
   if (!contractSeat) {
     return { hasPermission: false, error: 'User not associated with this store' };
   }
 
+  // Use the hasStoreAccess method to check if user has access to this store
+  // Empty store_access array means access to all stores in the contract
+  if (!contractSeat.hasStoreAccess(storeId)) {
+    return { hasPermission: false, error: 'User does not have access to this store' };
+  }
+
   // Get the role for this specific store or default role
-  const storeAccess = contractSeat.store_access?.find(access => 
+  const storeAccess = contractSeat.store_access?.find(access =>
     access.store_id.toString() === storeId.toString()
   );
-  
-  const roleToCheck = storeAccess ? 
-    await Role.findById(storeAccess.role_id) : 
+
+  const roleToCheck = storeAccess ?
+    await Role.findById(storeAccess.role_id) :
     contractSeat.default_role_id;
-    
+
   if (!roleToCheck) {
-    return { 
-      hasPermission: false, 
-      error: 'No valid role found for this store' 
+    return {
+      hasPermission: false,
+      error: 'No valid role found for this store'
     };
   }
-  
+
+  // According to PERMISSIONS_GUIDE.md:
+  // - owner (level 100) has manage_integrations: true
+  // - admin (level 80) has manage_integrations: true
+  // - manager (level 60) has manage_integrations: false
+
   // Check if user has manage_integrations permission
-  const hasManageIntegrations = roleToCheck.permissions?.stores?.manage_integrations;
-  
-  // Only owners (100) and admins (80) can manage integrations
-  if (!hasManageIntegrations || roleToCheck.level < 80) {
-    return { 
-      hasPermission: false, 
-      error: 'Insufficient permissions. Manage integrations requires owner or admin role.' 
+  // For owner and admin roles, default to true if not explicitly set
+  const hasManageIntegrations = roleToCheck.permissions?.stores?.manage_integrations !== false;
+
+  // Check role level or name
+  const isOwnerOrAdmin = (roleToCheck.level && roleToCheck.level >= 80) ||
+                         roleToCheck.name === 'owner' ||
+                         roleToCheck.name === 'admin';
+
+  if (!isOwnerOrAdmin) {
+    return {
+      hasPermission: false,
+      error: 'Insufficient permissions. Manage integrations requires owner or admin role.'
+    };
+  }
+
+  // For owner/admin roles, we don't need to check manage_integrations explicitly
+  // as they should always have this permission
+  if (!hasManageIntegrations && roleToCheck.level < 80) {
+    return {
+      hasPermission: false,
+      error: 'This role does not have manage_integrations permission.'
     };
   }
 
@@ -461,7 +498,7 @@ export async function POST(request, { params }) {
             const syncPayload = {
               klaviyo_public_id: store.klaviyo_integration.public_id,
               store_public_id: store.public_id,
-               "run_aggregations": true,
+              force_full:true,
               env: process.env.NODE_ENV
             };
             

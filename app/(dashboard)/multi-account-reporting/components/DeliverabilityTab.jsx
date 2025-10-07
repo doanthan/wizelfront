@@ -1,1048 +1,929 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { MultiSelect } from '@/app/components/ui/multi-select';
-import CampaignDetailsModal from './CampaignDetailsModal';
-import { Progress } from '@/app/components/ui/progress';
-import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
-import LoadingSpinner from '@/app/components/ui/loading-spinner';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Mail, 
-  AlertTriangle, 
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Users,
-  Activity,
-  BarChart3,
-  Search,
-  MessageSquare,
-  Bell,
-  ChevronUp,
-  ChevronDown
-} from 'lucide-react';
-import { formatNumber, formatPercentage } from '@/lib/utils';
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
+import { Button } from "@/app/components/ui/button"
+import { Badge } from "@/app/components/ui/badge"
+import { Input } from "@/app/components/ui/input"
+import { ScrollArea } from "@/app/components/ui/scroll-area"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select"
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/app/components/ui/tooltip"
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar
-} from 'recharts';
+} from "recharts"
+import {
+  Mail,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Search,
+  Download,
+  RefreshCw,
+  Info,
+  ChevronUp,
+  ChevronDown,
+  MousePointer,
+  Eye,
+  Target
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { formatNumber, formatCurrency, formatPercentage } from "@/lib/utils"
+import MorphingLoader from "@/app/components/ui/loading"
+import DeliverabilityDetailsModal from "./DeliverabilityDetailsModal"
 
-// Bell curve distribution function for color coding rates
-const getColorForRate = (value, rateType, channel = 'Email') => {
-    if (value === null || value === undefined || isNaN(value)) {
-        return "text-gray-500 bg-gray-50"
-    }
-    
-    // Special handling for SMS metrics
-    if (channel && channel.toLowerCase() === 'sms') {
-        switch (rateType) {
-            case 'open':
-                // SMS doesn't track opens, so 0% is normal - show as gray
-                return "text-gray-500 bg-gray-50"
-            case 'click':
-                // SMS click rates are much higher than email
-                if (value >= 15) return "text-green-800 bg-green-50 font-medium"
-                else if (value >= 8) return "text-orange-800 bg-orange-50 font-medium"
-                else return "text-red-800 bg-red-50 font-medium"
-            case 'clickToOpen':
-                // CTOR doesn't apply to SMS since we can't track opens
-                return "text-gray-500 bg-gray-50"
-            case 'delivery':
-                // SMS delivery is similar to email
-                if (value >= 97) return "text-green-800 bg-green-50 font-medium"
-                else if (value >= 95) return "text-orange-800 bg-orange-50 font-medium"
-                else return "text-red-800 bg-red-50 font-medium"
-            // Other metrics use same logic as email
-        }
-    }
+// Fetch deliverability data from API
+const fetchDeliverabilityData = async (stores, selectedAccounts, dateRange) => {
+  try {
+    // Get store public IDs from selected accounts
+    const storePublicIds = selectedAccounts
+      .filter(acc => acc.value !== 'all' && !acc.value.startsWith('tag:'))
+      .map(acc => acc.value);
 
-    let mean, stdDev, isInverse = false
-    
-    // Define bell curve parameters for different rate types (email)
-    switch (rateType) {
-        case 'delivery':
-            mean = 98.5  // 98.5% is excellent delivery
-            stdDev = 2.5
-            break
-        case 'open':
-            mean = 25    // 25% is good open rate
-            stdDev = 8
-            break
-        case 'click':
-            mean = 3.5   // 3.5% is good click rate for email
-            stdDev = 2
-            break
-        case 'clickToOpen':
-            mean = 15    // 15% is good click-to-open rate
-            stdDev = 7
-            break
-        case 'bounce':
-            mean = 2     // 2% bounce rate (lower is better)
-            stdDev = 2
-            isInverse = true
-            break
-        case 'spam':
-            mean = 0.1   // 0.1% spam rate (lower is better)
-            stdDev = 0.3
-            isInverse = true
-            break
-        case 'unsubscribe':
-            mean = 0.5   // 0.5% unsubscribe rate (lower is better)
-            stdDev = 0.8
-            isInverse = true
-            break
-        case 'conversion':
-            mean = 2.5   // 2.5% conversion rate
-            stdDev = 2
-            break
-        default:
-            return "text-gray-900 bg-white"
+    // If "View All" is selected, use all store IDs
+    const storeIds = selectedAccounts.some(acc => acc.value === 'all')
+      ? stores.map(s => s.public_id)
+      : storePublicIds;
+
+    // Build query params
+    const params = new URLSearchParams({
+      stores: storeIds.join(','),
+      startDate: dateRange.ranges?.main?.start?.toISOString() || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+      endDate: dateRange.ranges?.main?.end?.toISOString() || new Date().toISOString()
+    });
+
+    const response = await fetch(`/api/multi-account-reporting/deliverability?${params}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch deliverability data');
     }
 
-    // Calculate standard deviations from mean
-    const deviation = Math.abs(value - mean) / stdDev
-    
-    // For inverse metrics (bounce, spam, unsubscribe), flip the logic
-    let score
-    if (isInverse) {
-        // For inverse metrics, values closer to 0 are better
-        if (value <= mean) {
-            score = 1 - (value / mean) * 0.3  // 0.7 to 1.0 for values at or below mean
-        } else {
-            score = Math.max(0, 0.7 - (deviation * 0.35))  // Decrease score for values above mean
-        }
-    } else {
-        // For normal metrics, values closer to mean are better
-        if (deviation <= 1) {
-            score = 1 - (deviation * 0.3)  // 0.7 to 1.0 for within 1 std dev
-        } else if (deviation <= 2) {
-            score = 0.7 - ((deviation - 1) * 0.35)  // 0.35 to 0.7 for 1-2 std dev
-        } else {
-            score = Math.max(0, 0.35 - ((deviation - 2) * 0.175))  // 0 to 0.35 for 2+ std dev
-        }
+    const data = await response.json();
+    return {
+      campaigns: data.campaigns || [],
+      summary: data.summary || {},
+      dailyData: []
+    };
+  } catch (error) {
+    console.error('Error fetching deliverability data:', error);
+    return { campaigns: [], summary: {}, dailyData: [] };
+  }
+};
+
+// Legacy mock generator (kept for reference, not used)
+const generateMockDeliverabilityData_OLD = (stores, selectedAccounts, dateRange) => {
+  const campaigns = [
+    {
+      campaign_id: "camp_1",
+      campaign_name: "Black Friday Mega Sale",
+      store_public_id: "store_1",
+      store_name: "Acme Fashion",
+      account_name: "Acme Fashion",
+      send_date: "2024-01-20",
+      channel: "Email",
+      tags: ["promotional", "holiday"],
+      color: "#3B82F6"
+    },
+    {
+      campaign_id: "camp_2",
+      campaign_name: "Welcome Series - Email 1",
+      store_public_id: "store_1",
+      store_name: "Acme Fashion",
+      account_name: "Acme Fashion",
+      send_date: "2024-01-18",
+      channel: "Email",
+      tags: ["automation", "welcome"],
+      color: "#10B981"
+    },
+    {
+      campaign_id: "camp_3",
+      campaign_name: "Product Launch Announcement",
+      store_public_id: "store_2",
+      store_name: "Beauty Boutique",
+      account_name: "Beauty Boutique",
+      send_date: "2024-01-15",
+      channel: "Email",
+      tags: ["product", "announcement"],
+      color: "#8B5CF6"
+    },
+    {
+      campaign_id: "camp_4",
+      campaign_name: "Customer Winback Campaign",
+      store_public_id: "store_2",
+      store_name: "Beauty Boutique",
+      account_name: "Beauty Boutique",
+      send_date: "2024-01-12",
+      channel: "Email",
+      tags: ["winback", "retention"],
+      color: "#F59E0B"
+    },
+    {
+      campaign_id: "camp_5",
+      campaign_name: "Weekly Newsletter #47",
+      store_public_id: "store_3",
+      store_name: "Tech Store",
+      account_name: "Tech Store",
+      send_date: "2024-01-10",
+      channel: "Email",
+      tags: ["newsletter", "content"],
+      color: "#EC4899"
+    },
+    {
+      campaign_id: "camp_6",
+      campaign_name: "Flash Sale - 2 Hours Only",
+      store_public_id: "store_1",
+      store_name: "Acme Fashion",
+      account_name: "Acme Fashion",
+      send_date: "2024-01-08",
+      channel: "Email",
+      tags: ["sale", "urgent"],
+      color: "#EF4444"
+    }
+  ]
+
+  // Generate performance data for each campaign with realistic deliverability scenarios
+  const campaignData = []
+
+  campaigns.forEach(campaign => {
+    // Create different deliverability scenarios
+    let deliveryRate, bounceRate, spamRate, unsubscribeRate, openRate, clickRate
+
+    switch (campaign.campaign_id) {
+      case "camp_1": // Excellent performance
+        deliveryRate = 99.2
+        bounceRate = 0.8
+        spamRate = 0.05
+        unsubscribeRate = 0.3
+        openRate = 28.5
+        clickRate = 4.2
+        break
+      case "camp_2": // Good performance
+        deliveryRate = 98.8
+        bounceRate = 1.2
+        spamRate = 0.08
+        unsubscribeRate = 0.4
+        openRate = 32.1
+        clickRate = 3.8
+        break
+      case "camp_3": // Average performance
+        deliveryRate = 97.5
+        bounceRate = 2.5
+        spamRate = 0.12
+        unsubscribeRate = 0.6
+        openRate = 23.7
+        clickRate = 2.9
+        break
+      case "camp_4": // Poor performance - high bounces
+        deliveryRate = 94.2
+        bounceRate = 5.8
+        spamRate = 0.25
+        unsubscribeRate = 1.2
+        openRate = 18.3
+        clickRate = 1.8
+        break
+      case "camp_5": // Warning performance - spam issues
+        deliveryRate = 96.8
+        bounceRate = 3.2
+        spamRate = 0.18
+        unsubscribeRate = 0.8
+        openRate = 21.4
+        clickRate = 2.3
+        break
+      case "camp_6": // Critical performance - multiple issues
+        deliveryRate = 91.5
+        bounceRate = 8.5
+        spamRate = 0.35
+        unsubscribeRate = 1.8
+        openRate = 15.2
+        clickRate = 1.1
+        break
+      default:
+        deliveryRate = 98.0
+        bounceRate = 2.0
+        spamRate = 0.1
+        unsubscribeRate = 0.5
+        openRate = 25.0
+        clickRate = 3.0
     }
 
-    // Convert score to color classes
-    if (score >= 0.7) {
-        return "text-green-800 bg-green-50 font-medium"  // Green for excellent
-    } else if (score >= 0.35) {
-        return "text-orange-800 bg-orange-50 font-medium"  // Orange for moderate
-    } else {
-        return "text-red-800 bg-red-50 font-medium"  // Red for poor
-    }
+    const recipients = Math.floor(Math.random() * 50000) + 10000
+    const delivered = Math.floor(recipients * (deliveryRate / 100))
+    const bounced = Math.floor(recipients * (bounceRate / 100))
+    const opens = Math.floor(delivered * (openRate / 100))
+    const clicks = Math.floor(delivered * (clickRate / 100))
+    const spamComplaints = Math.floor(delivered * (spamRate / 100))
+    const unsubscribes = Math.floor(delivered * (unsubscribeRate / 100))
+    const conversions = Math.floor(clicks * 0.08) // 8% conversion rate from clicks
+    const revenue = conversions * (150 + Math.random() * 200) // $150-350 AOV
+
+    campaignData.push({
+      ...campaign,
+      recipients,
+      delivered,
+      bounced,
+      opens,
+      clicks,
+      spam_complaints: spamComplaints,
+      unsubscribes,
+      conversions,
+      revenue,
+      delivery_rate: deliveryRate,
+      bounce_rate: bounceRate,
+      spam_rate: spamRate,
+      unsubscribe_rate: unsubscribeRate,
+      open_rate: openRate,
+      click_rate: clickRate,
+      click_to_open_rate: opens > 0 ? (clicks / opens) * 100 : 0,
+      conversion_rate: delivered > 0 ? (conversions / delivered) * 100 : 0,
+      revenue_per_recipient: recipients > 0 ? revenue / recipients : 0,
+      // Deliverability health score (0-100)
+      health_score: Math.min(100,
+        (deliveryRate - 90) * 5 + // Delivery rate weight
+        Math.max(0, (2 - bounceRate) * 10) + // Bounce rate weight (inverse)
+        Math.max(0, (0.3 - spamRate) * 50) + // Spam rate weight (inverse)
+        Math.max(0, (1 - unsubscribeRate) * 20) // Unsubscribe rate weight (inverse)
+      )
+    })
+  })
+
+  return { campaigns: campaignData, dailyData: [] }
 }
 
-export default function DeliverabilityTab({ 
-  selectedAccounts, 
-  stores,
-  campaignsData,
-  campaignsLoading,
-  campaignsError
+// Color coding function for deliverability metrics
+const getDeliverabilityColor = (value, metricType) => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return "text-gray-500 bg-gray-50"
+  }
+
+  switch (metricType) {
+    case 'delivery_rate':
+      if (value >= 98.5) return "text-green-800 bg-green-50 font-medium"
+      else if (value >= 95) return "text-orange-800 bg-orange-50 font-medium"
+      else return "text-red-800 bg-red-50 font-medium"
+
+    case 'bounce_rate':
+      if (value <= 2) return "text-green-800 bg-green-50 font-medium"
+      else if (value <= 5) return "text-orange-800 bg-orange-50 font-medium"
+      else return "text-red-800 bg-red-50 font-medium"
+
+    case 'spam_rate':
+      if (value <= 0.1) return "text-green-800 bg-green-50 font-medium"
+      else if (value <= 0.3) return "text-orange-800 bg-orange-50 font-medium"
+      else return "text-red-800 bg-red-50 font-medium"
+
+    case 'unsubscribe_rate':
+      if (value <= 0.5) return "text-green-800 bg-green-50 font-medium"
+      else if (value <= 1.0) return "text-orange-800 bg-orange-50 font-medium"
+      else return "text-red-800 bg-red-50 font-medium"
+
+    case 'open_rate':
+      if (value >= 25) return "text-green-800 bg-green-50 font-medium"
+      else if (value >= 20) return "text-orange-800 bg-orange-50 font-medium"
+      else return "text-red-800 bg-red-50 font-medium"
+
+    case 'click_rate':
+      if (value >= 3) return "text-green-800 bg-green-50 font-medium"
+      else if (value >= 2) return "text-orange-800 bg-orange-50 font-medium"
+      else return "text-red-800 bg-red-50 font-medium"
+
+    case 'health_score':
+      if (value >= 80) return "text-green-800 bg-green-50 font-medium"
+      else if (value >= 60) return "text-orange-800 bg-orange-50 font-medium"
+      else return "text-red-800 bg-red-50 font-medium"
+
+    default:
+      return "text-gray-900 bg-white"
+  }
+}
+
+export default function DeliverabilityTab({
+    selectedAccounts,
+    dateRangeSelection,
+    stores
 }) {
-  const [selectedMetric, setSelectedMetric] = useState('delivered');
-  const [sortField, setSortField] = useState('send_date');
-  const [sortDirection, setSortDirection] = useState('desc');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('all');
-  const [selectedSegments, setSelectedSegments] = useState([{ value: 'all', label: 'All Segments' }]);
-  const [selectedTags, setSelectedTags] = useState([{ value: 'all', label: 'All Tags' }]);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Transform campaign data for deliverability view
-  const campaigns = useMemo(() => {
-    if (!campaignsData?.campaigns || campaignsData.campaigns.length === 0) {
-      return [];
-    }
-    
-    // Use all campaigns passed from parent (already filtered by date range)
-    const filteredCampaigns = campaignsData.campaigns;
-    
-    // Transform campaign data for deliverability metrics
-    const campaignsWithDeliverability = filteredCampaigns.map(campaign => ({
-      campaign_name: campaign.name,
-      send_date: campaign.sentAt,
-      recipients: campaign.recipients || 0,
-      delivered: campaign.delivered || (campaign.recipients - (campaign.bounced || 0)),
-      bounced: campaign.bounced || 0,
-      spamReports: campaign.spamComplaints || 0,
-      unsubscribed: campaign.unsubscribes || 0,
-      bounceRate: campaign.bounceRate || 0,
-      deliveryRate: campaign.deliveryRate || ((campaign.delivered || campaign.recipients - campaign.bounced) / campaign.recipients * 100),
-      spamComplaintRate: campaign.spamComplaintRate || 0,
-      unsubscribeRate: campaign.unsubscribeRate || 0,
-      openRate: campaign.openRate || 0,
-      clickRate: campaign.clickRate || 0,
-      ctor: (campaign.opensUnique && campaign.opensUnique > 0) 
-        ? (campaign.clicksUnique / campaign.opensUnique) * 100 
-        : 0,
-      conversionRate: campaign.conversionRate || 0,
-      revenuePerRecipient: campaign.revenuePerRecipient || 0,
-      type: campaign.type || 'email',
-      includedAudiences: campaign.includedAudiences || [],
-      tagNames: campaign.tagNames || []
-    }));
-    
-    // Apply filters
-    let filtered = campaignsWithDeliverability;
-    
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(campaign => 
-        campaign.campaign_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Channel filter
-    if (selectedChannel && selectedChannel !== 'all') {
-      filtered = filtered.filter(campaign => 
-        campaign.type?.toLowerCase() === selectedChannel.toLowerCase()
-      );
-    }
-    
-    // Segment/Audience filter (multi-select)
-    if (selectedSegments && selectedSegments.length > 0) {
-      // Check if "all" is selected
-      const hasViewAll = selectedSegments.some(s => s.value === 'all');
-      if (!hasViewAll) {
-        filtered = filtered.filter(campaign => 
-          campaign.includedAudiences?.some(audience => 
-            selectedSegments.some(selected => 
-              selected.value === audience.name?.toLowerCase()
+    const [loading, setLoading] = useState(true)
+    const [deliverabilityData, setDeliverabilityData] = useState({ campaigns: [], dailyData: [] })
+    const [searchQuery, setSearchQuery] = useState("")
+    const [sortConfig, setSortConfig] = useState({ key: "health_score", direction: "desc" })
+    const [filterPerformance, setFilterPerformance] = useState("all") // all, excellent, good, warning, critical
+    const [selectedCampaign, setSelectedCampaign] = useState(null)
+    const [showCampaignDetails, setShowCampaignDetails] = useState(false)
+
+    // Load deliverability data
+    useEffect(() => {
+        const loadDeliverabilityData = async () => {
+            setLoading(true)
+            try {
+                // Fetch real data from API
+                const data = await fetchDeliverabilityData(stores, selectedAccounts, dateRangeSelection)
+                setDeliverabilityData(data)
+            } catch (error) {
+                console.error("Error loading deliverability data:", error)
+                setDeliverabilityData({ campaigns: [], summary: {}, dailyData: [] })
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        if (stores.length > 0 && selectedAccounts.length > 0) {
+            loadDeliverabilityData()
+        }
+    }, [stores, selectedAccounts, dateRangeSelection])
+
+    // Calculate aggregate metrics from API summary data
+    const calculateAggregateMetrics = useCallback((data) => {
+        if (data.length === 0) return {
+            totalRecipients: 0,
+            totalDelivered: 0,
+            deliveryRate: 0,
+            bounceRate: 0,
+            spamRate: 0,
+            unsubscribeRate: 0,
+            openRate: 0,
+            clickRate: 0,
+            totalRevenue: 0,
+            revenuePerRecipient: 0,
+            avgHealthScore: 0,
+            campaignCount: 0
+        }
+
+        const totals = data.reduce((acc, item) => {
+            acc.recipients += item.recipients || 0
+            acc.delivered += item.delivered || 0
+            acc.bounced += item.bounced || 0
+            acc.spam_complaints += item.spam_complaints || 0
+            acc.unsubscribes += item.unsubscribes || 0
+            acc.opens += item.opens_unique || 0
+            acc.clicks += item.clicks_unique || 0
+            acc.revenue += item.revenue || 0
+            return acc
+        }, {
+            recipients: 0, delivered: 0, bounced: 0, spam_complaints: 0,
+            unsubscribes: 0, opens: 0, clicks: 0, revenue: 0
+        })
+
+        const avgHealthScore = data.reduce((sum, item) => sum + (item.health_score || 0), 0) / data.length
+
+        return {
+            totalRecipients: totals.recipients,
+            totalDelivered: totals.delivered,
+            deliveryRate: totals.recipients > 0 ? (totals.delivered / totals.recipients) * 100 : 0,
+            bounceRate: totals.recipients > 0 ? (totals.bounced / totals.recipients) * 100 : 0,
+            spamRate: totals.delivered > 0 ? (totals.spam_complaints / totals.delivered) * 100 : 0,
+            unsubscribeRate: totals.delivered > 0 ? (totals.unsubscribes / totals.delivered) * 100 : 0,
+            openRate: totals.delivered > 0 ? (totals.opens / totals.delivered) * 100 : 0,
+            clickRate: totals.delivered > 0 ? (totals.clicks / totals.delivered) * 100 : 0,
+            totalRevenue: totals.revenue,
+            revenuePerRecipient: totals.recipients > 0 ? totals.revenue / totals.recipients : 0,
+            avgHealthScore: avgHealthScore,
+            campaignCount: data.length
+        }
+    }, [])
+
+    // Filter and sort data
+    const filteredData = useMemo(() => {
+        let filtered = deliverabilityData.campaigns
+
+        // Search filter
+        if (searchQuery) {
+            filtered = filtered.filter(campaign =>
+                campaign.campaign_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                campaign.store_name.toLowerCase().includes(searchQuery.toLowerCase())
             )
-          )
-        );
-      }
+        }
+
+        // Performance filter
+        if (filterPerformance !== "all") {
+            filtered = filtered.filter(campaign => {
+                const score = campaign.health_score
+                switch (filterPerformance) {
+                    case "excellent": return score >= 80
+                    case "good": return score >= 60 && score < 80
+                    case "warning": return score >= 40 && score < 60
+                    case "critical": return score < 40
+                    default: return true
+                }
+            })
+        }
+
+        // Sort data
+        if (sortConfig.key) {
+            filtered.sort((a, b) => {
+                let aValue = a[sortConfig.key]
+                let bValue = b[sortConfig.key]
+
+                if (aValue === null || aValue === undefined) return 1
+                if (bValue === null || bValue === undefined) return -1
+
+                if (typeof aValue === 'string') {
+                    aValue = aValue.toLowerCase()
+                    bValue = bValue.toLowerCase()
+                }
+
+                if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1
+                if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1
+                return 0
+            })
+        }
+
+        return filtered
+    }, [deliverabilityData.campaigns, searchQuery, filterPerformance, sortConfig])
+
+    // Aggregate metrics for filtered data
+    const metrics = useMemo(() => {
+        return calculateAggregateMetrics(filteredData)
+    }, [filteredData, calculateAggregateMetrics])
+
+    // Handle sorting
+    const handleSort = (key) => {
+        let direction = "asc"
+        if (sortConfig.key === key && sortConfig.direction === "asc") {
+            direction = "desc"
+        }
+        setSortConfig({ key, direction })
     }
-    
-    // Tag filter (multi-select)
-    if (selectedTags && selectedTags.length > 0) {
-      // Check if "all" is selected
-      const hasViewAll = selectedTags.some(t => t.value === 'all');
-      if (!hasViewAll) {
-        filtered = filtered.filter(campaign => 
-          campaign.tagNames?.some(tag => 
-            selectedTags.some(selected => 
-              selected.value === tag?.toLowerCase()
-            )
-          )
-        );
-      }
+
+    // Get sort icon
+    const getSortIcon = (columnKey) => {
+        if (sortConfig.key !== columnKey) {
+            return <ChevronUp className="h-4 w-4 text-gray-300" />
+        }
+        return sortConfig.direction === "asc" ? (
+            <ChevronUp className="h-4 w-4 text-gray-600" />
+        ) : (
+            <ChevronDown className="h-4 w-4 text-gray-600" />
+        )
     }
-    
-    // Sort campaigns
-    const sorted = [...filtered].sort((a, b) => {
-      let aVal, bVal;
-      
-      switch(sortField) {
-        case 'campaign_name':
-          aVal = a.campaign_name || '';
-          bVal = b.campaign_name || '';
-          return sortDirection === 'asc' 
-            ? aVal.localeCompare(bVal)
-            : bVal.localeCompare(aVal);
-        case 'send_date':
-          aVal = new Date(a.send_date).getTime();
-          bVal = new Date(b.send_date).getTime();
-          break;
-        case 'recipients':
-          aVal = a.recipients || 0;
-          bVal = b.recipients || 0;
-          break;
-        case 'deliveryRate':
-          aVal = a.deliveryRate || 0;
-          bVal = b.deliveryRate || 0;
-          break;
-        case 'bounceRate':
-          aVal = a.bounceRate || 0;
-          bVal = b.bounceRate || 0;
-          break;
-        case 'spamComplaintRate':
-          aVal = a.spamComplaintRate || 0;
-          bVal = b.spamComplaintRate || 0;
-          break;
-        case 'unsubscribeRate':
-          aVal = a.unsubscribeRate || 0;
-          bVal = b.unsubscribeRate || 0;
-          break;
-        case 'openRate':
-          aVal = a.openRate || 0;
-          bVal = b.openRate || 0;
-          break;
-        case 'clickRate':
-          aVal = a.clickRate || 0;
-          bVal = b.clickRate || 0;
-          break;
-        case 'ctor':
-          aVal = a.ctor || 0;
-          bVal = b.ctor || 0;
-          break;
-        case 'conversionRate':
-          aVal = a.conversionRate || 0;
-          bVal = b.conversionRate || 0;
-          break;
-        case 'revenuePerRecipient':
-          aVal = a.revenuePerRecipient || 0;
-          bVal = b.revenuePerRecipient || 0;
-          break;
-        default:
-          aVal = new Date(a.send_date).getTime();
-          bVal = new Date(b.send_date).getTime();
-      }
-      
-      if (typeof aVal === 'string') {
-        return sortDirection === 'asc' 
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
-      }
-      
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-    });
-    
-    console.log('Transformed deliverability campaigns:', sorted);
-    return sorted;
-  }, [campaignsData, sortField, sortDirection, searchTerm, selectedChannel, selectedSegments, selectedTags]);
-  
-  // Handle sort
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
+
+    if (loading) {
+        return (
+            <div className="space-y-4">
+                <Card>
+                    <CardContent className="flex items-center justify-center h-96">
+                        <MorphingLoader size="large" showText={true} text="Loading deliverability data..." />
+                    </CardContent>
+                </Card>
+            </div>
+        )
     }
-  };
 
-  // Calculate deliverability metrics
-  const deliverabilityMetrics = useMemo(() => {
-    console.log('Calculating metrics for campaigns:', campaigns);
-    if (!campaigns.length) return null;
-
-    const totalSent = campaigns.reduce((sum, c) => sum + (c.recipients || 0), 0);
-    const totalDelivered = campaigns.reduce((sum, c) => sum + (c.delivered || 0), 0);
-    const totalBounced = campaigns.reduce((sum, c) => sum + (c.bounced || 0), 0);
-    const totalSpamReports = campaigns.reduce((sum, c) => sum + (c.spamReports || 0), 0);
-    const totalUnsubscribes = campaigns.reduce((sum, c) => sum + (c.unsubscribed || 0), 0);
-
-    const deliveryRate = totalSent > 0 ? (totalDelivered / totalSent) * 100 : 0;
-    const bounceRate = totalSent > 0 ? (totalBounced / totalSent) * 100 : 0;
-    const spamRate = totalDelivered > 0 ? (totalSpamReports / totalDelivered) * 100 : 0;
-    const unsubscribeRate = totalDelivered > 0 ? (totalUnsubscribes / totalDelivered) * 100 : 0;
-
-    return {
-      deliveryRate,
-      bounceRate,
-      spamRate,
-      unsubscribeRate,
-      totalSent,
-      totalDelivered,
-      totalBounced,
-      totalSpamReports,
-      totalUnsubscribes
-    };
-  }, [campaigns]);
-
-  // Prepare chart data
-  const chartData = useMemo(() => {
-    if (!campaigns.length) return [];
-
-    // Group campaigns by date
-    const groupedByDate = campaigns.reduce((acc, campaign) => {
-      const date = new Date(campaign.send_date).toISOString().split('T')[0]; // Use ISO date format for better sorting
-      if (!acc[date]) {
-        acc[date] = {
-          date,
-          sent: 0,
-          delivered: 0,
-          bounced: 0,
-          spamReports: 0,
-          unsubscribed: 0
-        };
-      }
-      acc[date].sent += campaign.recipients || 0;
-      acc[date].delivered += campaign.delivered || 0;
-      acc[date].bounced += campaign.bounced || 0;
-      acc[date].spamReports += campaign.spamReports || 0;
-      acc[date].unsubscribed += campaign.unsubscribed || 0;
-      return acc;
-    }, {});
-
-    return Object.values(groupedByDate)
-      .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sort by date
-      .map(day => ({
-        ...day,
-        deliveryRate: day.sent > 0 ? parseFloat(((day.delivered / day.sent) * 100).toFixed(2)) : 0,
-        bounceRate: day.sent > 0 ? parseFloat(((day.bounced / day.sent) * 100).toFixed(2)) : 0,
-        spamRate: day.delivered > 0 ? parseFloat(((day.spamReports / day.delivered) * 100).toFixed(2)) : 0,
-        unsubscribeRate: day.delivered > 0 ? parseFloat(((day.unsubscribed / day.delivered) * 100).toFixed(2)) : 0
-      }));
-  }, [campaigns]);
-
-  // Get health score and status
-  const getHealthScore = (metrics) => {
-    if (!metrics) return { score: 0, status: 'unknown', color: 'gray' };
-    
-    let score = 100;
-    
-    // Deduct points based on metrics
-    if (metrics.deliveryRate < 95) score -= 20;
-    if (metrics.bounceRate > 5) score -= 25;
-    if (metrics.spamRate > 0.1) score -= 30;
-    if (metrics.unsubscribeRate > 2) score -= 15;
-    
-    if (score >= 90) return { score, status: 'Excellent', color: 'green' };
-    if (score >= 75) return { score, status: 'Good', color: 'blue' };
-    if (score >= 60) return { score, status: 'Fair', color: 'yellow' };
-    return { score, status: 'Poor', color: 'red' };
-  };
-
-  const healthScore = getHealthScore(deliverabilityMetrics);
-
-  if (campaignsLoading) {
-    return <LoadingSpinner message="Loading deliverability data..." />;
-  }
-  
-  if (campaignsError) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center h-64">
-          <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Error loading deliverability data</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">{campaignsError}</p>
-        </CardContent>
-      </Card>
-    );
-  }
+        <div className="space-y-4 max-w-full overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-lg font-semibold text-slate-gray dark:text-white">
+                        Email Deliverability Analytics
+                    </h3>
+                    <p className="text-sm text-neutral-gray dark:text-gray-400">
+                        Monitor sender reputation and delivery performance across accounts
+                    </p>
+                </div>
 
-  if (!campaigns || campaigns.length === 0) {
-    console.log('No campaigns to display, campaigns:', campaigns);
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center h-64">
-          <Mail className="h-12 w-12 text-gray-400 mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">No deliverability data available</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-            {selectedAccounts && selectedAccounts.length > 0 
-              ? 'No campaign data found for the selected date range'
-              : 'Select accounts to view deliverability metrics'}
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                    </Button>
+                    <Button variant="outline" size="sm">
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
 
-  return (
-    <div className="space-y-6">
-      {/* Header with title */}
-      <div className="px-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Deliverability metrics and campaign performance
-        </h2>
-      </div>
+            {/* Metrics Cards - First Row */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {/* Delivery Rate */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Delivery Rate</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className={`text-2xl font-bold ${getDeliverabilityColor(metrics.deliveryRate, 'delivery_rate').split(' ').slice(0, 2).join(' ')}`}>
+                            {formatPercentage(metrics.deliveryRate || 0)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Target: 98.5%+
+                        </p>
+                    </CardContent>
+                </Card>
 
-      {/* Top Metrics Cards - matching the design */}
-      <div className="px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {/* Total Sent Card */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sent</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {formatNumber(deliverabilityMetrics.totalSent)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatNumber(0)} previous
-              </p>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Campaigns</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {campaignsData?.campaigns?.length || campaigns.length}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {0} previous
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                {/* Bounce Rate */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Bounce Rate</CardTitle>
+                        <TrendingDown className="h-4 w-4 text-orange-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className={`text-2xl font-bold ${getDeliverabilityColor(metrics.bounceRate, 'bounce_rate').split(' ').slice(0, 2).join(' ')}`}>
+                            {formatPercentage(metrics.bounceRate || 0)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Target: &lt;2%
+                        </p>
+                    </CardContent>
+                </Card>
 
-        {/* Delivery Rate Card */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Delivery Rate</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {formatPercentage(deliverabilityMetrics.deliveryRate)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatPercentage(0)} previous
-              </p>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Delivered</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatNumber(deliverabilityMetrics.totalDelivered)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatNumber(0)} previous
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                {/* Spam Rate */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Spam Rate</CardTitle>
+                        <Shield className="h-4 w-4 text-red-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className={`text-2xl font-bold ${getDeliverabilityColor(metrics.spamRate, 'spam_rate').split(' ').slice(0, 2).join(' ')}`}>
+                            {formatPercentage(metrics.spamRate || 0)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Target: &lt;0.1%
+                        </p>
+                    </CardContent>
+                </Card>
 
-        {/* Bounce Rate Card */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Bounce Rate</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {formatPercentage(deliverabilityMetrics.bounceRate)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatPercentage(0)} previous
-              </p>
+                {/* Unsubscribe Rate */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Unsubscribe Rate</CardTitle>
+                        <XCircle className="h-4 w-4 text-purple-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className={`text-2xl font-bold ${getDeliverabilityColor(metrics.unsubscribeRate, 'unsubscribe_rate').split(' ').slice(0, 2).join(' ')}`}>
+                            {formatPercentage(metrics.unsubscribeRate || 0)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Target: &lt;0.5%
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Bounced</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatNumber(deliverabilityMetrics.totalBounced)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatNumber(0)} previous
-              </p>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Spam Rate Card */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Spam Rate</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {formatPercentage(deliverabilityMetrics.spamRate)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatPercentage(0)} previous
-              </p>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Spam Complaints</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatNumber(deliverabilityMetrics.totalSpamReports)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatNumber(0)} previous
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Metrics Cards - Second Row */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {/* Open Rate */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Avg Open Rate</CardTitle>
+                        <Eye className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            {formatPercentage(metrics.openRate || 0)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            engagement metric
+                        </p>
+                    </CardContent>
+                </Card>
 
-        {/* Unsubscribe Rate Card */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Unsubscribe Rate</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {formatPercentage(deliverabilityMetrics.unsubscribeRate)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatPercentage(0)} previous
-              </p>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Unsubscribes</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatNumber(deliverabilityMetrics.totalUnsubscribes)}
-              </p>
-              <p className="text-xs text-gray-500">
-                vs. {formatNumber(0)} previous
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        </div>
-      </div>
+                {/* Click Rate */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Avg Click Rate</CardTitle>
+                        <MousePointer className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            {formatPercentage(metrics.clickRate || 0)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            engagement metric
+                        </p>
+                    </CardContent>
+                </Card>
 
-      {/* Trends Chart */}
-      <div className="px-6">
-        <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Deliverability Trends</h3>
-              <p className="text-sm text-gray-500 mt-1">Track deliverability metrics over time</p>
+                {/* Health Score */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Health Score</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className={`text-2xl font-bold ${getDeliverabilityColor(metrics.avgHealthScore, 'health_score').split(' ').slice(0, 2).join(' ')}`}>
+                            {Math.round(metrics.avgHealthScore || 0)}/100
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            overall performance
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* Total Revenue */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Total Revenue</CardTitle>
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            {formatCurrency(metrics.totalRevenue || 0)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            from {metrics.campaignCount || 0} campaigns
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
-            <Select value="daily" onValueChange={() => {}}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Daily" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="date" 
-                stroke="#666"
-                fontSize={12}
-                tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              />
-              <YAxis 
-                stroke="#666"
-                fontSize={12}
-                tickFormatter={(value) => `${value}%`}
-                domain={[0, 'auto']}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #ccc',
-                  borderRadius: '6px'
+
+            {/* Filters and Search */}
+            <Card className="overflow-hidden max-w-full">
+                <CardHeader>
+                    <CardTitle className="text-lg">Campaign Deliverability Performance</CardTitle>
+                    <CardDescription>
+                        Detailed deliverability metrics for each campaign with color-coded performance indicators
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="px-0 pb-0 max-w-full">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6 px-6">
+                        <div className="relative flex-1 max-w-md">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Search campaigns..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+
+                        <Select value={filterPerformance} onValueChange={setFilterPerformance}>
+                            <SelectTrigger className="w-48">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Performance</SelectItem>
+                                <SelectItem value="excellent">Excellent (80-100)</SelectItem>
+                                <SelectItem value="good">Good (60-79)</SelectItem>
+                                <SelectItem value="warning">Warning (40-59)</SelectItem>
+                                <SelectItem value="critical">Critical (&lt;40)</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {filteredData.length} campaigns
+                        </div>
+                    </div>
+
+                    {/* Performance Table */}
+                    <div className="overflow-x-auto max-w-full">
+                        <div className="inline-block min-w-full align-middle">
+                            <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b">
+                                    <th
+                                        className="text-left p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[25%] min-w-[180px]"
+                                        onClick={() => handleSort("campaign_name")}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Campaign
+                                            {getSortIcon("campaign_name")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-left p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[15%] min-w-[100px]"
+                                        onClick={() => handleSort("store_name")}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Store
+                                            {getSortIcon("store_name")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-center p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[8%]"
+                                        onClick={() => handleSort("send_date")}
+                                    >
+                                        <div className="flex items-center justify-center gap-1">
+                                            Date
+                                            {getSortIcon("send_date")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[8%]"
+                                        onClick={() => handleSort("recipients")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Recip.
+                                            {getSortIcon("recipients")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[6%]"
+                                        onClick={() => handleSort("delivery_rate")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Deliv.
+                                            <TooltipProvider>
+                                                <UITooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        <p className="font-semibold mb-1">Delivery Rate</p>
+                                                        <p>Percentage of emails successfully delivered to recipients' inboxes. Industry standard: 98.5%+</p>
+                                                    </TooltipContent>
+                                                </UITooltip>
+                                            </TooltipProvider>
+                                            {getSortIcon("delivery_rate")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[6%]"
+                                        onClick={() => handleSort("bounce_rate")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Bounce
+                                            <TooltipProvider>
+                                                <UITooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        <p className="font-semibold mb-1">Bounce Rate</p>
+                                                        <p>Emails that couldn't be delivered (hard & soft bounces). Keep below 2% to maintain good sender reputation.</p>
+                                                    </TooltipContent>
+                                                </UITooltip>
+                                            </TooltipProvider>
+                                            {getSortIcon("bounce_rate")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[5%]"
+                                        onClick={() => handleSort("spam_rate")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Spam
+                                            <TooltipProvider>
+                                                <UITooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        <p className="font-semibold mb-1">Spam Complaint Rate</p>
+                                                        <p>Percentage of delivered emails marked as spam. MUST stay below 0.1% to avoid blocklisting.</p>
+                                                    </TooltipContent>
+                                                </UITooltip>
+                                            </TooltipProvider>
+                                            {getSortIcon("spam_rate")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[5%]"
+                                        onClick={() => handleSort("unsubscribe_rate")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Unsub
+                                            <TooltipProvider>
+                                                <UITooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        <p className="font-semibold mb-1">Unsubscribe Rate</p>
+                                                        <p>Percentage of recipients who unsubscribed. Below 0.5% is healthy, above 1% indicates content issues.</p>
+                                                    </TooltipContent>
+                                                </UITooltip>
+                                            </TooltipProvider>
+                                            {getSortIcon("unsubscribe_rate")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[5%]"
+                                        onClick={() => handleSort("open_rate")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Open
+                                            {getSortIcon("open_rate")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[5%]"
+                                        onClick={() => handleSort("click_rate")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Click
+                                            {getSortIcon("click_rate")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-right p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[8%]"
+                                        onClick={() => handleSort("revenue")}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Revenue
+                                            {getSortIcon("revenue")}
+                                        </div>
+                                    </th>
+                                    <th
+                                        className="text-center p-2 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 w-[6%]"
+                                        onClick={() => handleSort("health_score")}
+                                    >
+                                        <div className="flex items-center justify-center gap-1">
+                                            Health
+                                            {getSortIcon("health_score")}
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredData.map((campaign) => (
+                                    <tr
+                                        key={campaign.campaign_id}
+                                        className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                                        onClick={() => {
+                                            setSelectedCampaign(campaign);
+                                            setShowCampaignDetails(true);
+                                        }}
+                                    >
+                                        <td className="p-2 max-w-[200px]">
+                                            <div className="font-medium text-gray-900 dark:text-gray-100 truncate" title={campaign.campaign_name}>
+                                                {campaign.campaign_name}
+                                            </div>
+                                        </td>
+                                        <td className="p-2 max-w-[120px]">
+                                            <div className="text-gray-600 dark:text-gray-400 truncate" title={campaign.store_name}>
+                                                {campaign.store_name}
+                                            </div>
+                                        </td>
+                                        <td className="p-2 text-center text-gray-600 dark:text-gray-400">
+                                            {new Date(campaign.send_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        </td>
+                                        <td className="p-2 text-right">{formatNumber(campaign.recipients)}</td>
+                                        <td className={`p-2 text-right rounded ${getDeliverabilityColor(campaign.delivery_rate, 'delivery_rate')}`}>
+                                            {formatPercentage(campaign.delivery_rate)}
+                                        </td>
+                                        <td className={`p-2 text-right rounded ${getDeliverabilityColor(campaign.bounce_rate, 'bounce_rate')}`}>
+                                            {formatPercentage(campaign.bounce_rate)}
+                                        </td>
+                                        <td className={`p-2 text-right rounded ${getDeliverabilityColor(campaign.spam_rate, 'spam_rate')}`}>
+                                            {formatPercentage(campaign.spam_rate)}
+                                        </td>
+                                        <td className={`p-2 text-right rounded ${getDeliverabilityColor(campaign.unsubscribe_rate, 'unsubscribe_rate')}`}>
+                                            {formatPercentage(campaign.unsubscribe_rate)}
+                                        </td>
+                                        <td className={`p-2 text-right rounded ${getDeliverabilityColor(campaign.open_rate, 'open_rate')}`}>
+                                            {formatPercentage(campaign.open_rate)}
+                                        </td>
+                                        <td className={`p-2 text-right rounded ${getDeliverabilityColor(campaign.click_rate, 'click_rate')}`}>
+                                            {formatPercentage(campaign.click_rate)}
+                                        </td>
+                                        <td className="p-2 text-right text-gray-900 dark:text-gray-100 font-medium">
+                                            {formatCurrency(campaign.revenue)}
+                                        </td>
+                                        <td className="p-2 text-center">
+                                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getDeliverabilityColor(campaign.health_score, 'health_score')}`}>
+                                                {Math.round(campaign.health_score)}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            </table>
+                        </div>
+
+                        {filteredData.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                                <Mail className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                                <p>No campaigns found matching your criteria</p>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Campaign Details Modal */}
+            <DeliverabilityDetailsModal
+                campaign={selectedCampaign}
+                isOpen={showCampaignDetails}
+                onClose={() => {
+                    setShowCampaignDetails(false);
+                    setSelectedCampaign(null);
                 }}
-                formatter={(value, name) => [`${value}%`, name]}
-                labelFormatter={(label) => new Date(label).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              />
-              <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="line"
-              />
-              
-              {/* Bounce Rate - Red */}
-              <Line 
-                type="monotone" 
-                dataKey="bounceRate" 
-                stroke="#ef4444" 
-                name="Bounce Rate"
-                strokeWidth={2}
-                dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#ef4444', strokeWidth: 2 }}
-              />
-              
-              {/* Spam Rate - Orange */}
-              <Line 
-                type="monotone" 
-                dataKey="spamRate" 
-                stroke="#f59e0b" 
-                name="Spam Rate"
-                strokeWidth={2}
-                dot={{ fill: '#f59e0b', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 2 }}
-              />
-              
-              {/* Unsubscribe Rate - Purple */}
-              <Line 
-                type="monotone" 
-                dataKey="unsubscribeRate" 
-                stroke="#8b5cf6" 
-                name="Unsubscribe Rate"
-                strokeWidth={2}
-                dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#8b5cf6', strokeWidth: 2 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-        </Card>
-      </div>
-
-      {/* Campaign Deliverability Details Table */}
-      <div className="mx-2">
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-        {/* Search and Filters Bar */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-4 flex-wrap">
-          <div className="flex-1 min-w-64">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search campaign names..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-sky-blue focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Channel:</span>
-            <Button 
-              variant="ghost"
-              className={`h-8 px-3 text-sm ${selectedChannel === 'all' ? 'bg-sky-blue text-white hover:bg-royal-blue' : ''}`}
-              onClick={() => setSelectedChannel('all')}
-            >
-              All
-            </Button>
-            <Button 
-              variant="ghost"
-              className={`h-8 px-3 text-sm flex items-center gap-1 ${selectedChannel === 'email' ? 'bg-sky-blue text-white hover:bg-royal-blue' : ''}`}
-              onClick={() => setSelectedChannel('email')}
-            >
-              <Mail className="h-3 w-3" />
-              Email
-            </Button>
-            <Button 
-              variant="ghost"
-              className={`h-8 px-3 text-sm flex items-center gap-1 ${selectedChannel === 'sms' ? 'bg-sky-blue text-white hover:bg-royal-blue' : ''}`}
-              onClick={() => setSelectedChannel('sms')}
-            >
-              <MessageSquare className="h-3 w-3" />
-              SMS
-            </Button>
-            <Button 
-              variant="ghost"
-              className={`h-8 px-3 text-sm flex items-center gap-1 ${selectedChannel === 'push' ? 'bg-sky-blue text-white hover:bg-royal-blue' : ''}`}
-              onClick={() => setSelectedChannel('push')}
-            >
-              <Bell className="h-3 w-3" />
-              Push
-            </Button>
-          </div>
-          
-          {/* Segment Filter - Multi-select */}
-          <MultiSelect
-            options={[
-              { value: 'all', label: 'All Segments' },
-              ...[...new Set(
-                campaignsData?.campaigns?.flatMap(c => 
-                  c.includedAudiences?.map(a => a.name)
-                ).filter(Boolean) || []
-              )].map(audienceName => ({
-                value: audienceName.toLowerCase(),
-                label: audienceName
-              }))
-            ]}
-            value={selectedSegments}
-            onChange={setSelectedSegments}
-            placeholder="Filter by segments..."
-            className="w-[200px]"
-          />
-          
-          {/* Tag Filter - Multi-select */}
-          <MultiSelect
-            options={[
-              { value: 'all', label: 'All Tags' },
-              ...[...new Set(
-                campaignsData?.campaigns?.flatMap(c => c.tagNames || []).filter(Boolean) || []
-              )].map(tagName => ({
-                value: tagName.toLowerCase(),
-                label: tagName
-              }))
-            ]}
-            value={selectedTags}
-            onChange={setSelectedTags}
-            placeholder="Filter by tags..."
-            className="w-[200px]"
-          />
-          
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {campaigns.length} campaigns
-          </div>
+                stores={stores}
+            />
         </div>
-
-        {/* Table */}
-        <div className="w-full">
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th 
-                  className="text-left py-2 px-2 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('campaign_name')}
-                >
-                  <div className="flex items-center gap-1">
-                    Campaign Name
-                    {sortField === 'campaign_name' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('send_date')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Send Date
-                    {sortField === 'send_date' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
-                  Account
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('recipients')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Recipients
-                    {sortField === 'recipients' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('deliveryRate')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Delivery Rate
-                    {sortField === 'deliveryRate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('openRate')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Open Rate
-                    {sortField === 'openRate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('clickRate')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Click Rate
-                    {sortField === 'clickRate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('ctor')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    CTOR
-                    {sortField === 'ctor' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('bounceRate')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Bounce Rate
-                    {sortField === 'bounceRate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('spamComplaintRate')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Spam Rate
-                    {sortField === 'spamComplaintRate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('unsubscribeRate')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Unsubscribe
-                    {sortField === 'unsubscribeRate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('conversionRate')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Conv. Rate
-                    {sortField === 'conversionRate' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="text-center py-2 px-1 font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleSort('revenuePerRecipient')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Revenue/ Recipient
-                    {sortField === 'revenuePerRecipient' && (
-                      sortDirection === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    )}
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {campaigns.map((campaign, index) => {
-                const deliveryRate = campaign.deliveryRate || 0;
-                const bounceRate = campaign.bounceRate || 0;
-                const spamRate = campaign.spamComplaintRate || 0;
-                const unsubscribeRate = campaign.unsubscribeRate || 0;
-
-                return (
-                  <tr 
-                    key={index} 
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                    onClick={() => {
-                      // Prepare campaign data with deliverability focus
-                      const campaignWithDetails = {
-                        ...campaign,
-                        showDeliveryFocus: true,
-                        opensUnique: campaign.openRate * campaign.delivered / 100,
-                        clicksUnique: campaign.clickRate * campaign.delivered / 100,
-                        conversions: campaign.conversionRate * campaign.delivered / 100,
-                        revenue: campaign.revenuePerRecipient * campaign.recipients,
-                        failed: 0 // Add if available from your data
-                      };
-                      setSelectedCampaign(campaignWithDetails);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    {/* Campaign Name */}
-                    <td className="py-2 px-2">
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3 text-blue-500 flex-shrink-0" />
-                        <span className="font-medium text-gray-900 dark:text-white text-xs truncate max-w-[200px] block" title={campaign.campaign_name || 'Untitled'}>
-                          {campaign.campaign_name || 'Untitled'}
-                        </span>
-                      </div>
-                    </td>
-                    
-                    {/* Send Date */}
-                    <td className="text-center py-2 px-1 text-gray-600 dark:text-gray-400 text-xs">
-                      {new Date(campaign.send_date).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric',
-                        year: '2-digit'
-                      })}
-                    </td>
-                    
-                    {/* Account */}
-                    <td className="text-center py-2 px-1">
-                      <span className="px-1 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                        Main Store
-                      </span>
-                    </td>
-                    
-                    {/* Recipients */}
-                    <td className="text-center py-2 px-1 text-gray-900 dark:text-white text-xs">
-                      {formatNumber(campaign.recipients)}
-                    </td>
-                    
-                    {/* Delivery Rate */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(deliveryRate, 'delivery', campaign.type)}`}>
-                        {formatPercentage(deliveryRate)}
-                      </span>
-                    </td>
-                    
-                    {/* Open Rate */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(campaign.openRate, 'open', campaign.type)}`}>
-                        {formatPercentage(campaign.openRate)}
-                      </span>
-                    </td>
-                    
-                    {/* Click Rate */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(campaign.clickRate, 'click', campaign.type)}`}>
-                        {formatPercentage(campaign.clickRate)}
-                      </span>
-                    </td>
-                    
-                    {/* CTOR */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(campaign.ctor, 'clickToOpen', campaign.type)}`}>
-                        {formatPercentage(campaign.ctor)}
-                      </span>
-                    </td>
-                    
-                    {/* Bounce Rate */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(bounceRate, 'bounce', campaign.type)}`}>
-                        {formatPercentage(bounceRate)}
-                      </span>
-                    </td>
-                    
-                    {/* Spam Rate */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(spamRate, 'spam', campaign.type)}`}>
-                        {formatPercentage(spamRate)}
-                      </span>
-                    </td>
-                    
-                    {/* Unsubscribe Rate */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(unsubscribeRate, 'unsubscribe', campaign.type)}`}>
-                        {formatPercentage(unsubscribeRate)}
-                      </span>
-                    </td>
-                    
-                    {/* Conversion Rate */}
-                    <td className="text-center py-2 px-1">
-                      <span className={`px-2 py-1 rounded text-xs ${getColorForRate(campaign.conversionRate, 'conversion', campaign.type)}`}>
-                        {formatPercentage(campaign.conversionRate)}
-                      </span>
-                    </td>
-                    
-                    {/* Revenue per Recipient */}
-                    <td className="text-center py-2 px-1 text-gray-900 dark:text-white text-xs">
-                      ${campaign.revenuePerRecipient.toFixed(2)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        </div>
-      </div>
-      
-      {/* Campaign Details Modal */}
-      <CampaignDetailsModal
-        campaign={selectedCampaign}
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedCampaign(null);
-        }}
-      />
-    </div>
-  );
+    )
 }

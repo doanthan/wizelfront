@@ -41,16 +41,33 @@ export async function GET(request) {
     const allStores = await Store.findByUser(session.user.id);
     let accessibleStores = allStores;
     const accessibleKlaviyoIds = [];
-    
+
     // Filter stores if specific ones are selected
     if (storeIds && storeIds !== 'all') {
-      // The storeIds parameter now contains klaviyo_public_ids from the dashboard
-      const selectedKlaviyoIds = storeIds.split(',').filter(Boolean);
+      // CRITICAL: storeIds parameter contains store_public_ids (not klaviyo_public_ids)
+      // Must convert store_public_ids to klaviyo_public_ids for querying MongoDB
+      const selectedStorePublicIds = storeIds.split(',').filter(Boolean);
 
+      // Filter stores by store public_id
       accessibleStores = allStores.filter(store =>
-        selectedKlaviyoIds.includes(store.klaviyo_integration?.public_id)
+        selectedStorePublicIds.includes(store.public_id)
       );
-      accessibleKlaviyoIds.push(...selectedKlaviyoIds);
+
+      // Extract klaviyo_public_ids from the filtered stores
+      for (const store of accessibleStores) {
+        if (store.klaviyo_integration?.public_id) {
+          accessibleKlaviyoIds.push(store.klaviyo_integration.public_id);
+        }
+      }
+
+      console.log('[Calendar API] Store ID conversion:', {
+        receivedStoreIds: selectedStorePublicIds,
+        matchedStores: accessibleStores.map(s => ({
+          public_id: s.public_id,
+          klaviyo_id: s.klaviyo_integration?.public_id
+        })),
+        klaviyoIdsForQuery: accessibleKlaviyoIds
+      });
 
     } else {
       // Get all accessible Klaviyo IDs
@@ -117,10 +134,19 @@ export async function GET(request) {
       }
     }
 
-    // PART 2: Fetch Draft/Scheduled campaigns from Klaviyo API (including past drafts)
-    // Always fetch if we have stores with API keys, as drafts can be in the past
-    if (accessibleStores.some(s => s.klaviyo_integration?.apiKey || s.klaviyo_integration?.oauth_token)) {
+    // PART 2: Fetch Draft/Scheduled campaigns from Klaviyo API (only for future/scheduled campaigns)
+    // Only fetch future campaigns if date range includes future dates
+    if (requestedEndDate > now && accessibleStores.some(s => s.klaviyo_integration?.apiKey || s.klaviyo_integration?.oauth_token)) {
       try {
+        console.log('[Calendar API] Fetching future campaigns from Klaviyo API...');
+        console.log('[Calendar API] Status filter:', status);
+        console.log('[Calendar API] Accessible stores:', accessibleStores.map(s => ({
+          name: s.name,
+          public_id: s.public_id,
+          klaviyo_id: s.klaviyo_integration?.public_id,
+          has_auth: !!(s.klaviyo_integration?.apiKey || s.klaviyo_integration?.oauth_token)
+        })));
+
         // Use the full requested date range to include past drafts
         const klaviyoStartDate = requestedStartDate;
         const klaviyoEndDate = requestedEndDate;
@@ -134,10 +160,17 @@ export async function GET(request) {
           accessibleStores,
           klaviyoStartDate,
           klaviyoEndDate,
-          status // Pass status filter to the function
         );
 
         const scheduledCampaigns = await Promise.race([klaviyoPromise, timeoutPromise]);
+        console.log('[Calendar API] Received future campaigns:', scheduledCampaigns.length);
+        console.log('[Calendar API] Sample campaign:', scheduledCampaigns[0] ? {
+          id: scheduledCampaigns[0].id,
+          name: scheduledCampaigns[0].attributes?.name,
+          audiences: scheduledCampaigns[0].attributes?.audiences,
+          status: scheduledCampaigns[0].attributes?.status
+        } : 'No campaigns');
+
         futureCampaigns = scheduledCampaigns;
 
       } catch (error) {
@@ -193,12 +226,12 @@ export async function GET(request) {
     const formattedFuture = futureCampaigns.map(campaign => {
       // Extract channel - use _channel field added during fetch, or try to extract from messages
       let channel = campaign._channel || 'email';
-      
+
       // Map mobile_push to push-notification for consistency
       if (channel === 'mobile_push') {
         channel = 'push-notification';
       }
-      
+
       // Try to get channel from relationships data if not set
       if (!campaign._channel && campaign.relationships?.['campaign-messages']?.data?.[0]) {
         const messageData = campaign.relationships['campaign-messages'].data[0];
@@ -206,17 +239,23 @@ export async function GET(request) {
           channel = messageData.attributes.channel;
         }
       }
-      
-      // Use scheduled_at as the primary date for calendar display
-      const displayDate = campaign.attributes?.scheduled_at || 
-                         campaign.attributes?.send_time || 
+
+      // Use send_time as the primary date for calendar display (when campaign will actually send)
+      const displayDate = campaign.attributes?.send_time ||
+                         campaign.attributes?.scheduled_at ||
                          campaign.attributes?.created_at;
-      
+
       // Determine status based on campaign attributes
       const status = campaign.attributes?.status;
-      const isScheduled = status === 'Draft' || status === 'Scheduled' || 
+      const isScheduled = status === 'Scheduled' || status === 'Sending' ||
                          Boolean(campaign.attributes?.send_time || campaign.attributes?.scheduled_at);
-      
+
+      console.log(`[Calendar API] Formatting campaign ${campaign.id}:`, {
+        name: campaign.attributes?.name,
+        audiences: campaign.attributes?.audiences,
+        raw_campaign: campaign
+      });
+
       return {
         id: `future-${campaign.id}`,
         campaignId: campaign.id,
@@ -225,7 +264,7 @@ export async function GET(request) {
         subject: campaign.attributes?.subject || '',
         date: displayDate,
         channel: channel,
-        status: isScheduled ? 'scheduled' : status,
+        status: status,  // Pass through the actual status
         isScheduled: isScheduled,
         performance: {
           recipients: 0,
@@ -256,7 +295,7 @@ export async function GET(request) {
         storeName: campaign.storeInfo?.name || 'Unknown Store',
         klaviyo_public_id: campaign.storeInfo?.klaviyoPublicId, // Match historical format
         fromAddress: campaign.attributes?.from_email || '',
-        audiences: campaign.attributes?.audiences || {
+        audiences: campaign.attributes?.audiences || campaign.audiences || {
           included: [],
           excluded: []
         },

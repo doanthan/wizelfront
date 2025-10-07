@@ -6,6 +6,42 @@ This is a **multi-account Klaviyo reporting tool** that hosts and manages multip
 
 - **Multi-Account Architecture**: The platform manages multiple Klaviyo accounts, each with their own API keys
 
+## 🎨 CRITICAL: Text Color Guidelines
+
+### **NEVER use gray text in light mode**
+**IMPORTANT**: For optimal readability on this platform, NEVER use gray text colors in light mode.
+
+**Text Color Rules:**
+```css
+/* ✅ CORRECT - Use near-black text in light mode */
+text-gray-900  /* #111827 - Primary text in light mode */
+text-gray-800  /* #1f2937 - Secondary text if needed */
+
+/* ❌ WRONG - Never use these in light mode */
+text-gray-700  /* Too light */
+text-gray-600  /* Too light */
+text-gray-500  /* Too light */
+text-gray-400  /* Way too light */
+text-muted     /* Never use */
+```
+
+**Implementation Pattern:**
+```jsx
+// ✅ CORRECT - High contrast text
+<span className="text-gray-900 dark:text-gray-100">Primary Text</span>
+<p className="text-gray-900 dark:text-gray-300">Content Text</p>
+
+// ❌ WRONG - Low contrast gray text
+<span className="text-gray-600 dark:text-gray-400">Hard to read</span>
+<p className="text-muted">Never do this</p>
+```
+
+**Key Points:**
+- Always use `text-gray-900` (#111827) for primary text in light mode
+- For secondary text, use `text-gray-800` (#1f2937) minimum
+- Dark mode can use lighter grays (text-gray-300, text-gray-400)
+- This ensures maximum readability and accessibility
+
 ## MongoDB Connection Method
 
 ### IMPORTANT: Correct MongoDB Connection
@@ -92,18 +128,136 @@ This is a modern web application built with Next.js, React, and Tailwind CSS. Th
 }
 ```
 
-**Conversion Logic**:
+**CRITICAL Conversion Logic - Always Required for ClickHouse**:
 ```javascript
-// When querying ClickHouse, always convert:
-const storePublicId = "XAeU8VL";  // From UI/request
-const store = await Store.findOne({ public_id: storePublicId });
-const klaviyoId = store.klaviyo_integration?.public_id;  // Use this for ClickHouse
+// STEP 1: When receiving store IDs from UI/API request, they are store_public_ids
+const storePublicIds = ["XAeU8VL", "7MP60fH"];  // From UI/request params
 
-// ClickHouse query
+// STEP 2: MUST convert store_public_ids to klaviyo_public_ids for ClickHouse
+const stores = await Store.find({
+  public_id: { $in: storePublicIds }
+});
+
+// STEP 3: Extract the Klaviyo IDs for ClickHouse queries
+const klaviyoIds = stores
+  .map(store => store.klaviyo_integration?.public_id)
+  .filter(Boolean);  // Remove nulls
+
+// STEP 4: Use klaviyo_public_ids in ClickHouse query
 const query = `
   SELECT * FROM campaign_statistics
-  WHERE klaviyo_public_id = '${klaviyoId}'  // NOT store.public_id!
+  WHERE klaviyo_public_id IN (${klaviyoIds.map(id => `'${id}'`).join(',')})
 `;
+
+// ⚠️ COMMON ERROR: Using store_public_id directly in ClickHouse
+// ❌ WRONG - This will return no data!
+const query = `
+  SELECT * FROM campaign_statistics
+  WHERE klaviyo_public_id = '${storePublicId}'  // WRONG! This is a store ID, not Klaviyo ID!
+`;
+```
+
+**Conversion Pattern for API Endpoints**:
+```javascript
+// In API routes that query ClickHouse
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const storePublicIds = searchParams.get('accountIds')?.split(',') || [];
+
+  // ALWAYS convert store IDs to Klaviyo IDs
+  await connectToDatabase();
+  const stores = await Store.find({
+    public_id: { $in: storePublicIds },
+    is_deleted: { $ne: true }
+  });
+
+  const klaviyoIds = stores
+    .map(store => store.klaviyo_integration?.public_id)
+    .filter(Boolean);
+
+  if (klaviyoIds.length === 0) {
+    // No valid Klaviyo integrations - return empty data
+    return NextResponse.json({ campaigns: [] });
+  }
+
+  // Now query ClickHouse with klaviyo_public_ids
+  const clickhouseQuery = `
+    SELECT * FROM campaign_statistics
+    WHERE klaviyo_public_id IN (${klaviyoIds.map(id => `'${id}'`).join(',')})
+  `;
+}
+```
+
+### 🚨 CRITICAL: localStorage Must Use store_public_ids
+
+**CRITICAL BUG PREVENTION**: The application's localStorage MUST store `store_public_ids`, NOT `klaviyo_public_ids`:
+
+```javascript
+// ✅ CORRECT - localStorage contains store_public_ids
+localStorage.setItem('analyticsSelectedAccounts', JSON.stringify([
+  { value: 'rZResQK', label: 'Store Name 1' },  // store_public_id
+  { value: '7MP60fH', label: 'Store Name 2' }   // store_public_id
+]));
+
+// ❌ WRONG - localStorage contains klaviyo_public_ids (causes infinite loops!)
+localStorage.setItem('analyticsSelectedAccounts', JSON.stringify([
+  { value: 'Pe5Xw6', label: 'Store Name 1' },   // klaviyo_public_id - WRONG!
+  { value: 'XqkVGb', label: 'Store Name 2' }    // klaviyo_public_id - WRONG!
+]));
+```
+
+**Why This Matters:**
+1. **API Contract**: All API endpoints expect `accountIds` parameter to contain `store_public_ids`
+2. **Conversion Flow**: APIs convert `store_public_ids` → `klaviyo_public_ids` for ClickHouse
+3. **Multiple Stores**: Multiple stores can share the same `klaviyo_public_id`
+4. **Infinite Loops**: Wrong IDs cause API to find 0 stores → empty responses → infinite retries
+
+**Common localStorage Keys That Must Use store_public_ids:**
+- `analyticsSelectedAccounts` - Account selector for multi-account reporting
+- `selectedStoreId` - Currently selected store
+- `recentStoreIds` - Recently accessed stores
+
+**Account Selector Implementation Pattern:**
+```javascript
+// ✅ CORRECT - Store selector saves store_public_ids
+const handleStoreSelect = (selectedStores) => {
+  const accountsForStorage = selectedStores.map(store => ({
+    value: store.public_id,        // Use store_public_id
+    label: store.name,
+    klaviyo_id: store.klaviyo_integration?.public_id  // For reference only
+  }));
+
+  localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(accountsForStorage));
+};
+
+// ❌ WRONG - Don't save klaviyo_public_ids
+const handleStoreSelect = (selectedStores) => {
+  const accountsForStorage = selectedStores.map(store => ({
+    value: store.klaviyo_integration?.public_id,  // WRONG! Don't use klaviyo ID
+    label: store.name
+  }));
+
+  localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(accountsForStorage));
+};
+```
+
+**Example ID Mappings:**
+- `Pe5Xw6` (klaviyo_public_id) → `rZResQK`, `7MP60fH` (store_public_ids)
+- `XqkVGb` (klaviyo_public_id) → `zp7vNlc`, `Pu200rg` (store_public_ids)
+
+**Debugging localStorage Issues:**
+```javascript
+// Check what's currently in localStorage
+const stored = JSON.parse(localStorage.getItem('analyticsSelectedAccounts') || '[]');
+console.log('Stored accounts:', stored);
+
+// Clear invalid klaviyo IDs if found
+const invalidKlaviyoIds = ['Pe5Xw6', 'XqkVGb'];
+const hasInvalid = stored.some(acc => invalidKlaviyoIds.includes(acc.value));
+if (hasInvalid) {
+  localStorage.removeItem('analyticsSelectedAccounts');
+  console.log('Cleared invalid klaviyo IDs from localStorage');
+}
 ```
 
 ### ClickHouse Tables - Always Use `klaviyo_public_id`
@@ -174,11 +328,64 @@ const campaignStats = await CampaignStat.find({
 });
 ```
 
-**Key Points**: 
+**Key Points**:
 - ALL ClickHouse tables use `klaviyo_public_id` field (string type)
 - MongoDB analytics collections use `klaviyo_public_id`
 - MongoDB store/user collections use `store_public_id`
 - Always check which ID type to use before querying!
+
+### 📅 CRITICAL: Calendar Data Sources
+
+**IMPORTANT**: The `/calendar` page should use MongoDB exclusively for past campaigns, NOT ClickHouse:
+
+#### Calendar Data Strategy:
+```javascript
+// ✅ CORRECT - Calendar should use MongoDB CampaignStat model
+import CampaignStat from '@/models/CampaignStat';
+
+// For calendar past campaigns - use MongoDB
+const pastCampaigns = await CampaignStat.find({
+  klaviyo_public_id: { $in: klaviyoIds },
+  send_time: {
+    $gte: startDate,
+    $lte: endDate
+  }
+});
+
+// ❌ WRONG - Don't use ClickHouse for calendar campaigns
+const response = await fetch('/api/analytics/campaigns-clickhouse');
+```
+
+#### Why MongoDB for Calendar:
+- **Complete Campaign Data**: MongoDB has full campaign details (name, subject, recipients, etc.)
+- **Proper Campaign Names**: ClickHouse `campaign_statistics` often has NULL/empty `campaign_name` fields
+- **Store Mapping**: MongoDB campaigns have `store_public_ids` arrays for proper store association
+- **Real-time Updates**: Campaign data is fresher in MongoDB than aggregated ClickHouse data
+
+#### Calendar API Endpoints:
+- **Past Campaigns**: `/api/calendar/campaigns` (MongoDB CampaignStat model)
+- **Upcoming Campaigns**: `/api/calendar/campaigns` with `status=scheduled` (MongoDB CampaignStat model)
+- **Analytics/Metrics**: Use ClickHouse only for performance aggregations, not campaign lists
+
+#### Example Calendar Query:
+```javascript
+// ✅ CORRECT - Calendar campaign fetch
+const campaigns = await CampaignStat.find({
+  klaviyo_public_id: { $in: ['Pe5Xw6', 'XqkVGb'] },
+  send_time: {
+    $gte: new Date('2025-01-01'),
+    $lte: new Date('2025-01-31')
+  }
+}).sort({ send_time: -1 });
+
+// Each campaign will have:
+// - campaign_name: "Email Campaign - Jan 13, 2025, 7:32 PM"
+// - store_public_ids: ["qNVU8wF", "zp7vNlc"]
+// - klaviyo_public_id: "XqkVGb"
+// - statistics: { recipients, opens, clicks, etc. }
+```
+
+**Remember**: ClickHouse is for analytics aggregations, MongoDB is for individual campaign data!
 
 ## 🔐 CRITICAL: Klaviyo API Configuration
 
@@ -1066,73 +1273,6 @@ npm run lint    # Run linting
 5. **FOLLOW the established patterns** rather than creating new ones
 6. **ALWAYS use centralized number formatting** from `/lib/utils.js` for all analytics displays
 7. **AVOID low-contrast text** - Never use `text-neutral-gray`, `text-muted`, or similar low-contrast colors for primary content. Use `text-gray-900 dark:text-gray-100` for main text and `text-gray-600 dark:text-gray-400` for secondary text to ensure readability
-
-## 🛡️ SOC2 & ISO 27001 Compliance Implementation
-
-### **Lightweight Compliance System with Minimal Overhead**
-
-The application includes a compliance system designed for SOC2 Type II and ISO 27001 certification with minimal performance impact.
-
-### Compliance Levels
-
-Set via `COMPLIANCE_LEVEL` environment variable:
-
-- **`none`**: No compliance features (development only)
-- **`basic`**: Critical actions only (minimal overhead ~1-2%)
-- **`standard`**: Enhanced logging and monitoring (~3-5% overhead)
-- **`full`**: Complete audit trail and monitoring (~5-10% overhead)
-
-### Key Components
-
-#### 1. Security Headers Middleware (`/middleware.js`)
-- Implements all required SOC2 CC6.2 security headers
-- Lightweight audit logging for critical actions
-- No performance impact (just adds headers)
-- Automatic CSRF protection
-
-#### 2. Audit Logging System
-- **Model**: `/models/AuditLog.js`
-- **API**: `/api/compliance/audit-log`
-- Tracks only critical actions in basic mode:
-  - Authentication events
-  - Data modifications
-  - Permission changes
-  - Payment attempts
-- Automatic 7-year retention (SOC2 requirement)
-- Async logging to avoid blocking
-
-#### 3. Compliance Dashboard (`/superuser/compliance`)
-- Real-time compliance score
-- Security control status
-- Audit log viewer
-- Incident tracking
-- Export compliance reports
-
-### Environment Variables
-
-```bash
-# Compliance Level
-COMPLIANCE_LEVEL=basic  # none, basic, standard, full
-
-# Audit Settings
-AUDIT_LOGGING=true
-AUDIT_RETENTION_DAYS=2555  # 7 years
-
-# Security Settings
-RATE_LIMITING=true
-SESSION_TIMEOUT=3600  # 1 hour
-ENCRYPT_DATA=true
-MASK_PII=true
-
-# Monitoring (optional)
-MONITORING_ENABLED=true
-PERFORMANCE_MONITORING=false  # Enable only if needed
-SENTRY_DSN=your_sentry_dsn  # For error tracking
-
-# Compliance Reporting
-COMPLIANCE_EMAILS=security@company.com,compliance@company.com
-```
-
 
 ## 🔄 CRITICAL: Loading States and Skeletons
 
