@@ -314,80 +314,72 @@ export default function MergedRFMSegments({ segmentData, adaptiveData, loading }
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards - Gradient Modern Style */}
+      {/* Summary Cards - Minimalist Style */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Business Model (if adaptive data available) */}
         {template_used && (
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-lg border-2 border-purple-200 dark:border-purple-800 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-purple-200 mb-2">Business Model</p>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  template_used === 'low_repeat'
-                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                    : template_used === 'high_repeat'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                }`}>
-                  {template_used === 'low_repeat' ? 'Low Repeat' : template_used === 'high_repeat' ? 'High Repeat' : 'Medium Repeat'}
-                </span>
-              </div>
-              <Target className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Business Model</p>
+              <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </div>
-            <div className="text-xs text-gray-900 dark:text-purple-300">
+            <div className="mt-1">
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                template_used === 'low_repeat'
+                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                  : template_used === 'high_repeat'
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+              }`}>
+                {template_used === 'low_repeat' ? 'Low Repeat' : template_used === 'high_repeat' ? 'High Repeat' : 'Medium Repeat'}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
               {characteristics?.one_time_buyer_percentage?.toFixed(1)}% one-time buyers
-            </div>
+            </p>
           </div>
         )}
 
         {/* High Value Customers */}
-        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-6 rounded-lg border-2 border-green-200 dark:border-green-800 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-green-200">High Value Segments</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatNumber(highValueCustomers)}</p>
-              <p className="text-xs text-gray-900 dark:text-green-300 mt-1">Champions, Loyal, Potential</p>
-            </div>
-            <Users className="h-8 w-8 text-green-600 dark:text-green-400" />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">High Value</p>
+            <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(highValueCustomers)}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Champions, Loyal, Potential</p>
         </div>
 
         {/* At Risk Customers */}
-        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-6 rounded-lg border-2 border-yellow-200 dark:border-yellow-800 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-yellow-200">At Risk Segments</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatNumber(atRiskCustomers)}</p>
-              <p className="text-xs text-gray-900 dark:text-yellow-300 mt-1">Need win-back campaigns</p>
-            </div>
-            <AlertCircle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">At Risk</p>
+            <AlertCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(atRiskCustomers)}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Need win-back campaigns</p>
         </div>
 
         {/* Total Revenue or Lost Customers */}
         {!template_used ? (
-          <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-lg border-2 border-red-200 dark:border-red-800 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-red-200">Lost/Hibernating</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{formatNumber(lostCustomers)}</p>
-                <p className="text-xs text-gray-900 dark:text-red-300 mt-1">Re-engagement needed</p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Lost/Hibernating</p>
+              <AlertCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(lostCustomers)}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Re-engagement needed</p>
           </div>
         ) : (
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-blue-200">Purchase Cycle</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {characteristics?.median_inter_purchase_days || 'N/A'}
-                </p>
-                <p className="text-xs text-gray-900 dark:text-blue-300 mt-1">days (median)</p>
-              </div>
-              <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Purchase Cycle</p>
+              <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {characteristics?.median_inter_purchase_days || 'N/A'}
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">days (median)</p>
           </div>
         )}
       </div>
@@ -395,9 +387,9 @@ export default function MergedRFMSegments({ segmentData, adaptiveData, loading }
       {/* RFM Segment Distribution + Chart Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie Chart */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Customer Segment Distribution</h4>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">Customer Segment Distribution</h4>
             <ChartInfo
               title="RFM Segments"
               description="Your customers are automatically classified into segments based on Recency, Frequency, and Monetary value. Focus on Champions and Loyal customers for retention, and At Risk segments for win-back campaigns."
@@ -425,9 +417,9 @@ export default function MergedRFMSegments({ segmentData, adaptiveData, loading }
                 formatter={(value) => formatNumber(value)}
                 contentStyle={{
                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '2px solid #60A5FA',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  padding: '8px'
                 }}
               />
             </PieChart>
@@ -435,9 +427,9 @@ export default function MergedRFMSegments({ segmentData, adaptiveData, loading }
         </div>
 
         {/* Dual-Axis Chart */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Revenue & Customer Overview</h4>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">Revenue & Customer Overview</h4>
             <ChartInfo
               title="Segment Performance"
               description="Revenue shown as bars (left axis), customer count as line (right axis). This helps visualize which segments drive the most value."
@@ -479,9 +471,9 @@ export default function MergedRFMSegments({ segmentData, adaptiveData, loading }
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '2px solid #60A5FA',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  padding: '8px'
                 }}
                 formatter={(value, name) => {
                   if (name === 'Total Revenue') return formatCurrency(value);
@@ -499,9 +491,9 @@ export default function MergedRFMSegments({ segmentData, adaptiveData, loading }
 
       {/* Adaptive Thresholds (if available) */}
       {thresholds && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-6 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">
               Adaptive Recency Thresholds
             </h4>
             <ChartInfo
@@ -557,9 +549,9 @@ export default function MergedRFMSegments({ segmentData, adaptiveData, loading }
 
       {/* Frequency Criteria (if available) */}
       {calculated_criteria && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-6 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">
               Frequency & Monetary Criteria
             </h4>
             <ChartInfo

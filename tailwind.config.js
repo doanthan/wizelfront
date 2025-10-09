@@ -27,6 +27,11 @@ module.exports = {
     'bg-sky-tint/30',
     'bg-sky-tint/50',
     'bg-lilac-mist/50',
+    'bg-lilac-mist/20',
+    // Data visualization backgrounds
+    'bg-amber-400',
+    'bg-emerald-400',
+    'bg-red-400',
     // Text colors
     'text-sky-blue',
     'text-royal-blue',
@@ -34,6 +39,10 @@ module.exports = {
     'text-deep-purple',
     'text-slate-gray',
     'text-neutral-gray',
+    // Data visualization text
+    'text-amber-400',
+    'text-emerald-400',
+    'text-red-400',
     // Border colors
     'border-sky-blue',
     'border-royal-blue',
@@ -61,7 +70,19 @@ module.exports = {
     'to-vivid-violet',
     'from-royal-blue',
     'to-deep-purple',
+    'from-sky-tint',
+    'via-lilac-mist',
+    'to-lilac-mist',
+    'from-sky-tint/50',
+    'to-lilac-mist/50',
     'via-vivid-violet/10',
+    // Data visualization gradients
+    'from-amber-400',
+    'to-orange-500',
+    'from-emerald-400',
+    'to-green-500',
+    'from-red-400',
+    'to-red-500',
     // Data states
     'data-[state=selected]:bg-lilac-mist/50',
   ],

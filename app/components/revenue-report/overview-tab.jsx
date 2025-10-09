@@ -5,7 +5,7 @@ import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils';
 import {
   DollarSign, ShoppingCart, Users, Package,
   RefreshCw, Mail, Target, Activity, MousePointer,
-  ArrowUp, ArrowDown
+  TrendingUp, TrendingDown
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
@@ -40,53 +40,68 @@ export default function OverviewTab({ reportData, currentStore }) {
       {
         title: "Overall Revenue",
         value: formatCurrency(overall_revenue || 0),
+        currentValue: overall_revenue,
+        previousValue: previous_period?.overall_revenue,
         change: getPercentageChange(overall_revenue, previous_period?.overall_revenue),
         icon: DollarSign,
-        color: "text-sky-blue"
+        type: "currency"
       },
       {
         title: "Attributed Revenue",
         value: formatCurrency(attributed_revenue || 0),
+        currentValue: attributed_revenue,
+        previousValue: previous_period?.attributed_revenue,
         change: getPercentageChange(attributed_revenue, previous_period?.attributed_revenue),
         icon: Target,
-        color: "text-vivid-violet",
+        type: "currency",
         subtitle: reportData.attributed_percentage ?
           `${formatPercentage(reportData.attributed_percentage)} of total` : null
       },
       {
         title: "Total Orders",
         value: formatNumber(total_orders || 0),
+        currentValue: total_orders,
+        previousValue: previous_period?.total_orders,
         change: getPercentageChange(total_orders, previous_period?.total_orders),
         icon: ShoppingCart,
-        color: "text-deep-purple"
+        type: "number"
       },
       {
         title: "Unique Customers",
         value: formatNumber(unique_customers || 0),
+        currentValue: unique_customers,
+        previousValue: previous_period?.unique_customers,
         change: getPercentageChange(unique_customers, previous_period?.unique_customers),
         icon: Users,
-        color: "text-royal-blue"
+        type: "number"
       },
       {
         title: "Avg Order Value",
         value: formatCurrency(avg_order_value || 0),
+        currentValue: avg_order_value,
+        previousValue: previous_period?.avg_order_value,
         change: getPercentageChange(avg_order_value, previous_period?.avg_order_value),
         icon: Package,
-        color: "text-green-600"
+        type: "currency"
       },
       {
         title: "New Customers",
         value: formatNumber(new_customers || 0),
+        currentValue: new_customers,
+        previousValue: previous_period?.new_customers,
         change: getPercentageChange(new_customers, previous_period?.new_customers),
         icon: Users,
-        color: "text-orange-600"
+        type: "number"
       },
       {
         title: "Returning Customers",
         value: formatNumber(returning_customers || 0),
-        subtitle: repeat_rate ? `${formatPercentage(repeat_rate)} repeat rate` : null,
+        currentValue: returning_customers,
+        previousValue: previous_period?.returning_customers,
+        change: getPercentageChange(returning_customers, previous_period?.returning_customers),
         icon: RefreshCw,
-        color: "text-purple-600"
+        type: "number",
+        subtitle: repeat_rate ? `${formatPercentage(repeat_rate)} repeat rate` : null
       },
       {
         title: "Email Performance",
@@ -94,8 +109,7 @@ export default function OverviewTab({ reportData, currentStore }) {
           `${reportData.brand.total_campaigns} campaigns` : "0 campaigns",
         subtitle: reportData.brand?.active_flows ?
           `${reportData.brand.active_flows} active flows` : null,
-        icon: Mail,
-        color: "text-blue-600"
+        icon: Mail
       }
     ];
   };
@@ -143,34 +157,48 @@ export default function OverviewTab({ reportData, currentStore }) {
 
   return (
     <div className="space-y-4">
-      {/* Metrics Grid - matching SimpleDashboard style */}
+      {/* Metrics Grid - Minimalist Dashboard Style */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {metricCards.map((card, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {card.title}
               </CardTitle>
-              <card.icon className={`h-4 w-4 ${card.color}`} />
+              <card.icon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</div>
-              {card.change !== undefined && card.change !== 0 && (
-                <p className={`text-xs flex items-center ${
-                  card.change > 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {card.change > 0 ? (
-                    <ArrowUp className="h-3 w-3 mr-1" />
-                  ) : (
-                    <ArrowDown className="h-3 w-3 mr-1" />
-                  )}
-                  {formatPercentage(Math.abs(card.change))} from last period
-                </p>
-              )}
               {card.subtitle && (
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                   {card.subtitle}
                 </p>
+              )}
+              {card.change !== undefined && card.previousValue !== undefined ? (
+                <div className="mt-1">
+                  <p className={`text-xs font-medium flex items-center gap-1 ${
+                    card.change > 0 ? 'text-green-600 dark:text-green-500' :
+                    card.change < 0 ? 'text-red-600 dark:text-red-500' :
+                    'text-gray-600 dark:text-gray-500'
+                  }`}>
+                    {card.change > 0 ? <TrendingUp className="h-3 w-3" /> :
+                     card.change < 0 ? <TrendingDown className="h-3 w-3" /> :
+                     <span className="h-3 w-3 inline-block text-center">—</span>}
+                    {card.change === 0 ? 'No change' :
+                     card.previousValue === 0 && card.currentValue > 0 ? 'New!' :
+                     Math.abs(card.change) > 1000 ? '>1,000%' :
+                     `${Math.abs(card.change).toFixed(1)}%`} from last period
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
+                    Previous: {card.previousValue === 0 ?
+                      (card.type === 'currency' ? '$0' : '0') :
+                      card.type === 'currency' ? formatCurrency(card.previousValue) :
+                      formatNumber(Math.round(card.previousValue))
+                    }
+                  </p>
+                </div>
+              ) : card.change !== undefined && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">No comparison data</p>
               )}
             </CardContent>
           </Card>

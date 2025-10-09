@@ -261,12 +261,16 @@ export default function ChatWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-[9999] w-14 h-14 bg-gradient-to-br from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center rounded-full group hover:scale-105"
+          className="fixed bottom-6 right-6 z-[9999] w-14 h-14 bg-gradient-to-br from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center rounded-full group hover:scale-105"
           aria-label="Open Wizel AI Assistant"
           title="Chat with Wizel"
         >
-          <div className="relative">
-            <Sparkles className="h-5 w-5 transition-transform duration-200 group-hover:rotate-12" />
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              src="/wizel-logo.svg"
+              alt="Wizel Logo"
+              className="w-10 h-10 transition-transform duration-200 group-hover:rotate-12"
+            />
             <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
           </div>
         </button>

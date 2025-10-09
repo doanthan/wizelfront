@@ -204,21 +204,49 @@ export async function POST(request) {
           extract_css: true,
           generate_email: false
         };
-        
+
         console.log('Calling scrape server with payload:', scrapePayload);
-        
-        const scrapeResponse = await fetch(`${process.env.SCRAPE_SERVER}/api/v1/scrape`, {
+
+        // Build products sync URL with query parameters
+        const productsSyncUrl = new URL(`${process.env.SCRAPE_SERVER}/api/v1/sync-products`);
+        productsSyncUrl.searchParams.set('domain', url); // Use full URL for products sync
+        productsSyncUrl.searchParams.set('store_public_id', store.public_id);
+
+        console.log('🔄 Initiating products sync request:', {
+          url: productsSyncUrl.toString(),
+          domain: url,
+          store_public_id: store.public_id
+        });
+
+        // Fire both requests concurrently
+        const scrapePromise = fetch(`${process.env.SCRAPE_SERVER}/api/v1/scrape`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(scrapePayload)
         });
-        
+
+        // const productsSyncPromise = fetch(productsSyncUrl.toString(), {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //   },
+        //   body: JSON.stringify({
+        //     domain: url
+        //   })
+        // });
+
+        // Wait for both requests to complete
+        const [scrapeResponse, productsSyncResponse] = await Promise.all([
+          scrapePromise,
+          productsSyncPromise
+        ]);
+
         if (scrapeResponse.ok) {
           const scrapeData = await scrapeResponse.json();
           console.log('Scrape job initiated:', scrapeData);
-          
+
           // Save the job_id and set status to the store for tracking
           if (scrapeData.job_id) {
             store.scrape_job_id = scrapeData.job_id;
@@ -229,6 +257,19 @@ export async function POST(request) {
           console.error('Failed to initiate scrape:', scrapeResponse.status, await scrapeResponse.text());
           store.scrape_status = 'failed';
           await store.save();
+        }
+
+        // Check products sync status (non-blocking)
+        if (!productsSyncResponse.ok) {
+          const errorText = await productsSyncResponse.text();
+          console.error("❌ Products sync failed:", {
+            status: productsSyncResponse.status,
+            statusText: productsSyncResponse.statusText,
+            error: errorText
+          });
+        } else {
+          const productsSyncData = await productsSyncResponse.json();
+          console.log("✅ Products sync initiated successfully:", productsSyncData);
         }
       } catch (scrapeError) {
         console.error('Error calling scrape server:', scrapeError);

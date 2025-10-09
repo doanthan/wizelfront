@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "@/app/contexts/theme-context";
 import { Button } from "@/app/components/ui/button";
-import { Sun, Moon, Palette, BarChart3, TrendingUp, Users, Layers } from "lucide-react";
+import { Sun, Moon, Palette, BarChart3, TrendingUp, Users, Layers, Table } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,12 +12,13 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 
-// Import the 5 chart style variations
+// Import the 5 chart style variations + Tables
 import GradientModernStyle from './styles/GradientModernStyle';
 import MinimalistCleanStyle from './styles/MinimalistCleanStyle';
 import BoldCorporateStyle from './styles/BoldCorporateStyle';
 import SoftPastelStyle from './styles/SoftPastelStyle';
 import CombinedStyle from './styles/CombinedStyle';
+import TablesStyle from './styles/TablesStyle';
 
 export default function GraphsPage() {
   const { theme, toggleTheme } = useTheme();
@@ -33,6 +34,14 @@ export default function GraphsPage() {
       icon: Layers,
       component: CombinedStyle,
       preview: 'bg-gradient-to-r from-gray-200 via-sky-blue to-vivid-violet',
+    },
+    {
+      id: 'tables',
+      name: 'Data Tables',
+      description: 'Sortable tables with various patterns and styles',
+      icon: Table,
+      component: TablesStyle,
+      preview: 'bg-white dark:bg-gray-900 border-2 border-gray-300',
     },
     {
       id: 'gradient',
@@ -104,7 +113,7 @@ export default function GraphsPage() {
 
       {/* Style Selector Cards */}
       {!compareMode && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           {chartStyles.map((style) => {
             const Icon = style.icon;
             return (

@@ -78,30 +78,43 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
         samplePerformance: data.performance
     });
 
-    // Extract performance metrics from performance object (API already mapped from statistics)
-    const performance = data.performance || {}
+    // Extract performance metrics from performance object OR statistics object
+    const performance = data.performance || data.statistics || {}
+
+    console.log('🔍 Performance object debugging:', {
+        hasPerformance: !!data.performance,
+        hasStatistics: !!data.statistics,
+        performanceKeys: Object.keys(performance),
+        opens: performance.opens,
+        opens_unique: performance.opens_unique,
+        opensUnique: performance.opensUnique,
+        clicks: performance.clicks,
+        clicks_unique: performance.clicks_unique,
+        clicksUnique: performance.clicksUnique
+    });
+
     const recipients = performance.recipients || 0
     const delivered = performance.delivered || recipients
     const opens = performance.opens || 0
-    const opensUnique = performance.opensUnique || 0
+    const opensUnique = performance.opensUnique || performance.opens_unique || 0
     const clicks = performance.clicks || 0
-    const clicksUnique = performance.clicksUnique || 0
-    const openRate = performance.openRate || 0
-    const clickRate = performance.clickRate || 0
-    const conversionRate = performance.conversionRate || 0
-    const conversions = performance.conversions || 0
-    const revenue = performance.revenue || 0
+    const clicksUnique = performance.clicksUnique || performance.clicks_unique || 0
+    const openRate = performance.openRate || performance.open_rate || 0
+    const clickRate = performance.clickRate || performance.click_rate || 0
+    const conversionRate = performance.conversionRate || performance.conversion_rate || 0
+    const conversions = performance.conversions || performance.conversion_uniques || 0
+    const revenue = performance.revenue || performance.conversion_value || 0
     const bounced = performance.bounced || 0
-    const bounceRate = performance.bounceRate || 0
-    const failed = performance.failed || 0
-    const unsubscribes = performance.unsubscribes || 0
-    const unsubscribeRate = performance.unsubscribeRate || 0
-    const spamComplaints = performance.spamComplaints || 0
-    const spamComplaintRate = performance.spamComplaintRate || 0
-    const clickToOpenRate = performance.clickToOpenRate || 0
-    const revenuePerRecipient = performance.revenuePerRecipient || 0
-    const averageOrderValue = performance.averageOrderValue || 0
-    const deliveryRate = performance.deliveryRate || (delivered / Math.max(recipients, 1))
+    const bounceRate = performance.bounceRate || performance.bounce_rate || 0
+    const failed = performance.failed || performance.failed || 0
+    const unsubscribes = performance.unsubscribes || performance.unsubscribe_uniques || 0
+    const unsubscribeRate = performance.unsubscribeRate || performance.unsubscribe_rate || 0
+    const spamComplaints = performance.spamComplaints || performance.spam_complaints || 0
+    const spamComplaintRate = performance.spamComplaintRate || performance.spam_complaint_rate || 0
+    const clickToOpenRate = performance.clickToOpenRate || performance.click_to_open_rate || 0
+    const revenuePerRecipient = performance.revenuePerRecipient || performance.revenue_per_recipient || 0
+    const averageOrderValue = performance.averageOrderValue || performance.average_order_value || 0
+    const deliveryRate = performance.deliveryRate || performance.delivery_rate || (delivered / Math.max(recipients, 1))
 
     console.log('📊 Extracted metrics:', {
         recipients,
@@ -244,7 +257,9 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                 <div className="pb-40"> {/* Add padding bottom to allow scrolling past overlay */}
                                     {(() => {
                                         const messageId = data.message_id || data.messageId || data.groupings?.campaign_message_id;
-                                        const storeId = campaignStore?.klaviyo_integration?.public_id || campaignStore?.public_id;
+                                        // IMPORTANT: Use store's public_id first (not klaviyo_public_id)
+                                        // The API expects the store's public_id to look up the store and its authentication
+                                        const storeId = campaignStore?.public_id || campaignStore?.klaviyo_integration?.public_id;
                                         
                                         console.log('🔍 Preview panel debug:', {
                                             messageId,

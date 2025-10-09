@@ -50,74 +50,65 @@ export default function ReorderBehaviorChart({ data, loading }) {
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards - Gradient Modern Style */}
+      {/* Summary Cards - Minimalist Style */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-blue-200">Median Reorder Time</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{data.summary.median_reorder_days}</p>
-              <p className="text-xs text-gray-900 dark:text-blue-300 mt-1">days</p>
-            </div>
-            <Clock className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Median Reorder Time</p>
+            <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.median_reorder_days}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">days</p>
         </div>
-        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-6 rounded-lg border-2 border-green-200 dark:border-green-800 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-green-200">Business Type</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1 capitalize">
-                {data.summary.business_type.replace('_', ' ')}
-              </p>
-              <p className="text-xs text-gray-900 dark:text-green-300 mt-1">purchase cycle</p>
-            </div>
-            <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Business Type</p>
+            <TrendingUp className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
+          <p className="text-xl font-bold text-gray-900 dark:text-white capitalize">
+            {data.summary.business_type.replace('_', ' ')}
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">purchase cycle</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-lg border-2 border-purple-200 dark:border-purple-800 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-purple-200">Recommended Follow-up</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">Day {data.summary.recommended_followup_day}</p>
-              <p className="text-xs text-gray-900 dark:text-purple-300 mt-1">send reminder email</p>
-            </div>
-            <Target className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Recommended Follow-up</p>
+            <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">Day {data.summary.recommended_followup_day}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">send reminder email</p>
         </div>
-        <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 rounded-lg border-2 border-red-200 dark:border-red-800 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-red-200">Overdue Customers</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{data.overdue_customers.percentage}%</p>
-              <p className="text-xs text-gray-900 dark:text-red-300 mt-1">{formatNumber(data.overdue_customers.count)} customers</p>
-            </div>
-            <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Overdue Customers</p>
+            <AlertCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.overdue_customers.percentage}%</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{formatNumber(data.overdue_customers.count)} customers</p>
         </div>
       </div>
 
       {/* Actionable Insights */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-        <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
-          <Info className="h-5 w-5" />
-          💡 Actionable Insights
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+          <Info className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          Actionable Insights
         </h3>
         <ul className="space-y-2">
           {data.actionable_insights.map((insight, idx) => (
-            <li key={idx} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-200">
-              <span className="text-lg flex-shrink-0">{insight.split(' ')[0]}</span>
-              <span>{insight.substring(insight.indexOf(' ') + 1)}</span>
+            <li key={idx} className="text-sm text-gray-600 dark:text-gray-400">
+              {insight}
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Reorder Distribution - Gradient Modern Style */}
+      {/* Reorder Distribution */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Pie Chart */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Reorder Distribution</h4>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">Reorder Distribution</h4>
             <ChartInfo
               title="Purchase Cycle Distribution"
               description="Shows what percentage of customers fall into each reorder time bucket. Fast reorderers are your most engaged customers."
@@ -144,9 +135,9 @@ export default function ReorderBehaviorChart({ data, loading }) {
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '2px solid #60A5FA',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  padding: '8px'
                 }}
               />
               <Legend wrapperStyle={{ fontSize: '14px', fontWeight: 600 }} />
@@ -155,9 +146,9 @@ export default function ReorderBehaviorChart({ data, loading }) {
         </div>
 
         {/* Horizontal Bar Chart */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Percentage Breakdown</h4>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">Percentage Breakdown</h4>
             <ChartInfo
               title="Reorder Time Buckets"
               description="Visual breakdown of customer reorder times. Each bucket represents a quartile of your customer base."
@@ -187,10 +178,10 @@ export default function ReorderBehaviorChart({ data, loading }) {
         </div>
       </div>
 
-      {/* Quartile Statistics - Gradient Modern Style */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-        <div className="flex items-center mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-          <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Quartile Statistics</h4>
+      {/* Quartile Statistics */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center mb-4">
+          <h4 className="text-base font-semibold text-gray-900 dark:text-white">Quartile Statistics</h4>
           <ChartInfo
             title="Statistical Breakdown"
             description="Q1 (25th percentile), Median (50th), Q3 (75th), and P95 (95th) show the range of customer reorder times."
@@ -220,12 +211,12 @@ export default function ReorderBehaviorChart({ data, loading }) {
         </div>
       </div>
 
-      {/* Overdue Customers Table - Gradient Modern Style */}
+      {/* Overdue Customers Table */}
       {data.overdue_customers.customers && data.overdue_customers.customers.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center mb-4 pb-3 border-b-2 border-gray-100 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-              ⚠️ Overdue Customers ({formatNumber(data.overdue_customers.count)})
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">
+              Overdue Customers ({formatNumber(data.overdue_customers.count)})
             </h4>
             <ChartInfo
               title="Customers Past Expected Reorder Time"

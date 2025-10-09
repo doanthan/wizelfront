@@ -246,8 +246,8 @@ export default function RecentCampaigns({ stores }) {
                     </div>
                   </div>
 
-                  {/* Right side: Performance Metrics - Scrollable on smaller screens */}
-                  <div className="flex items-center gap-3 ml-4 overflow-x-auto max-w-[60%]">
+                  {/* Right side: Performance Metrics */}
+                  <div className="flex items-center gap-3 ml-4">
                     {/* Recipients */}
                     <div className="text-right flex-shrink-0">
                       <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
@@ -291,71 +291,6 @@ export default function RecentCampaigns({ stores }) {
                       </div>
                     </div>
 
-                    {/* Click-to-Open Rate (CTOR) - email only */}
-                    {campaign.channel === 'email' && campaign.statistics?.click_to_open_rate !== undefined && campaign.statistics.click_to_open_rate >= 0 && (
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <MousePointer className="h-3 w-3 text-deep-purple" />
-                          <span>CTOR</span>
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {formatPercentage(campaign.statistics.click_to_open_rate * 100)}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Conversion Rate */}
-                    {campaign.statistics?.conversion_rate !== undefined && campaign.statistics.conversion_rate >= 0 && (
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <Target className="h-3 w-3 text-green-600" />
-                          <span>Conv. Rate</span>
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {formatPercentage(campaign.statistics.conversion_rate * 100)}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Conversions (Orders) */}
-                    {campaign.statistics?.conversions !== undefined && campaign.statistics.conversions >= 0 && (
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <DollarSign className="h-3 w-3 text-green-600" />
-                          <span>Orders</span>
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {campaign.statistics.conversions > 0 ? formatNumber(campaign.statistics.conversions) : '0'}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* AOV (Average Order Value) */}
-                    {campaign.statistics?.average_order_value !== undefined && campaign.statistics.average_order_value >= 0 && (
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <DollarSign className="h-3 w-3 text-vivid-violet" />
-                          <span>AOV</span>
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {campaign.statistics.average_order_value > 0 ? formatCurrency(campaign.statistics.average_order_value) : '$0'}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Revenue per Recipient */}
-                    {campaign.statistics?.revenue_per_recipient !== undefined && campaign.statistics.revenue_per_recipient >= 0 && (
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <DollarSign className="h-3 w-3 text-sky-blue" />
-                          <span>$/Recipient</span>
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {campaign.statistics.revenue_per_recipient > 0 ? formatCurrency(campaign.statistics.revenue_per_recipient) : '$0.00'}
-                        </div>
-                      </div>
-                    )}
-
                     {/* Total Revenue */}
                     <div className="text-right flex-shrink-0">
                       <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
@@ -370,19 +305,6 @@ export default function RecentCampaigns({ stores }) {
                           : '$0'}
                       </div>
                     </div>
-
-                    {/* Delivery Rate */}
-                    {campaign.channel === 'email' && campaign.statistics?.delivery_rate !== undefined && (
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <Mail className="h-3 w-3" />
-                          <span>Delivered</span>
-                        </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {formatPercentage(campaign.statistics.delivery_rate * 100)}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

@@ -269,21 +269,21 @@ export default function CustomersReportPage() {
       </div>
 
       {/* Footer with insights */}
-      <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+      <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
           {activeTab === 'segments' ? (
             <>
-              <Target className="h-4 w-4" />
+              <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               <span>About RFM Segmentation</span>
             </>
           ) : (
             <>
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               <span>About Reorder Behavior</span>
             </>
           )}
         </h3>
-        <p className="text-sm text-blue-800 dark:text-blue-200">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           {activeTab === 'segments' ? (
             <>
               RFM (Recency, Frequency, Monetary) segmentation uses adaptive thresholds that automatically detect your business model

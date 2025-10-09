@@ -21,8 +21,8 @@ import {
     ShoppingCart,
     Users,
     Target,
-    ArrowUp,
-    ArrowDown
+    TrendingUp,
+    TrendingDown
 } from "lucide-react"
 import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils'
 import {
@@ -53,6 +53,9 @@ export default function SimpleDashboard({
     const [performanceMetric, setPerformanceMetric] = useState('revenue')
     const [performanceView, setPerformanceView] = useState('by-account')
     const [topMetric, setTopMetric] = useState('revenue')
+
+    // State for selected accounts in the line chart (for easy comparison)
+    const [selectedLineAccounts, setSelectedLineAccounts] = useState(new Set())
 
     // Use appropriate select styles based on theme
     const currentSelectStyles = theme === 'dark' ? selectStylesDark : selectStyles
@@ -115,6 +118,14 @@ export default function SimpleDashboard({
         }
     }, [data, updateAIState, selectedAccounts, dateRangeSelection]);
 
+    // Initialize selected accounts when data loads (select top 3 by default)
+    useEffect(() => {
+        if (data?.byAccount && data.byAccount.length > 0 && selectedLineAccounts.size === 0) {
+            const topAccounts = data.byAccount.slice(0, 3).map(acc => acc.storePublicId);
+            setSelectedLineAccounts(new Set(topAccounts));
+        }
+    }, [data?.byAccount, selectedLineAccounts.size]);
+
     // Show loading spinner while fetching data
     if (isLoading || !stores || stores.length === 0 || (!data && storeIds && storeIds.length > 0)) {
         return (
@@ -150,6 +161,28 @@ export default function SimpleDashboard({
         byAccount: data?.byAccount || []
     };
 
+    // Filter accounts to display based on selection
+    const visibleLineAccounts = dashboardData.byAccount?.filter(account =>
+        selectedLineAccounts.has(account.storePublicId)
+    ) || [];
+
+    // Handle legend click to toggle account visibility
+    const handleLegendClick = (e) => {
+        const dataKey = e.dataKey;
+        // Extract store public ID from dataKey (format: "storePublicId_metric")
+        const storePublicId = dataKey.split('_')[0];
+
+        setSelectedLineAccounts(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(storePublicId)) {
+                newSet.delete(storePublicId);
+            } else {
+                newSet.add(storePublicId);
+            }
+            return newSet;
+        });
+    };
+
     return (
         <TooltipProvider>
             <div className="space-y-6">
@@ -180,11 +213,14 @@ export default function SimpleDashboard({
                             {dashboardData.summary.revenueChange !== null && dashboardData.summary.revenueChange !== undefined ? (
                                 <div className="mt-1">
                                     <p className={`text-xs font-medium flex items-center gap-1 ${dashboardData.summary.revenueChange > 0 ? 'text-green-600 dark:text-green-500' : dashboardData.summary.revenueChange < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600 dark:text-gray-500'}`}>
-                                        {dashboardData.summary.revenueChange > 0 ? <ArrowUp className="h-3 w-3" /> : dashboardData.summary.revenueChange < 0 ? <ArrowDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
-                                        {dashboardData.summary.revenueChange === 0 ? 'No change' : `${Math.abs(dashboardData.summary.revenueChange).toFixed(1)}%`} from last period
+                                        {dashboardData.summary.revenueChange > 0 ? <TrendingUp className="h-3 w-3" /> : dashboardData.summary.revenueChange < 0 ? <TrendingDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
+                                        {dashboardData.summary.revenueChange === 0 ? 'No change' :
+                                         dashboardData.summary.revenueChange >= 999999 ? 'New!' :
+                                         dashboardData.summary.revenueChange > 1000 ? '>1,000%' :
+                                         `${Math.abs(dashboardData.summary.revenueChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {formatCurrency(dashboardData.summary.totalRevenue / (1 + dashboardData.summary.revenueChange / 100))}
+                                        Previous: {dashboardData.summary.revenueChange >= 999999 ? '$0' : formatCurrency(dashboardData.summary.totalRevenue / (1 + dashboardData.summary.revenueChange / 100))}
                                     </p>
                                 </div>
                             ) : (
@@ -223,11 +259,14 @@ export default function SimpleDashboard({
                             {dashboardData.summary.attributedRevenueChange !== null && dashboardData.summary.attributedRevenueChange !== undefined ? (
                                 <div className="mt-1">
                                     <p className={`text-xs font-medium flex items-center gap-1 ${dashboardData.summary.attributedRevenueChange > 0 ? 'text-green-600 dark:text-green-500' : dashboardData.summary.attributedRevenueChange < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600 dark:text-gray-500'}`}>
-                                        {dashboardData.summary.attributedRevenueChange > 0 ? <ArrowUp className="h-3 w-3" /> : dashboardData.summary.attributedRevenueChange < 0 ? <ArrowDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
-                                        {dashboardData.summary.attributedRevenueChange === 0 ? 'No change' : `${Math.abs(dashboardData.summary.attributedRevenueChange).toFixed(1)}%`} from last period
+                                        {dashboardData.summary.attributedRevenueChange > 0 ? <TrendingUp className="h-3 w-3" /> : dashboardData.summary.attributedRevenueChange < 0 ? <TrendingDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
+                                        {dashboardData.summary.attributedRevenueChange === 0 ? 'No change' :
+                                         dashboardData.summary.attributedRevenueChange >= 999999 ? 'New!' :
+                                         dashboardData.summary.attributedRevenueChange > 1000 ? '>1,000%' :
+                                         `${Math.abs(dashboardData.summary.attributedRevenueChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {formatCurrency(dashboardData.summary.attributedRevenue / (1 + dashboardData.summary.attributedRevenueChange / 100))}
+                                        Previous: {dashboardData.summary.attributedRevenueChange >= 999999 ? '$0' : formatCurrency(dashboardData.summary.attributedRevenue / (1 + dashboardData.summary.attributedRevenueChange / 100))}
                                     </p>
                                 </div>
                             ) : (
@@ -261,11 +300,14 @@ export default function SimpleDashboard({
                             {dashboardData.summary.ordersChange !== null && dashboardData.summary.ordersChange !== undefined ? (
                                 <div className="mt-1">
                                     <p className={`text-xs font-medium flex items-center gap-1 ${dashboardData.summary.ordersChange > 0 ? 'text-green-600 dark:text-green-500' : dashboardData.summary.ordersChange < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600 dark:text-gray-500'}`}>
-                                        {dashboardData.summary.ordersChange > 0 ? <ArrowUp className="h-3 w-3" /> : dashboardData.summary.ordersChange < 0 ? <ArrowDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
-                                        {dashboardData.summary.ordersChange === 0 ? 'No change' : `${Math.abs(dashboardData.summary.ordersChange).toFixed(1)}%`} from last period
+                                        {dashboardData.summary.ordersChange > 0 ? <TrendingUp className="h-3 w-3" /> : dashboardData.summary.ordersChange < 0 ? <TrendingDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
+                                        {dashboardData.summary.ordersChange === 0 ? 'No change' :
+                                         dashboardData.summary.ordersChange >= 999999 ? 'New!' :
+                                         dashboardData.summary.ordersChange > 1000 ? '>1,000%' :
+                                         `${Math.abs(dashboardData.summary.ordersChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {formatNumber(Math.round(dashboardData.summary.totalOrders / (1 + dashboardData.summary.ordersChange / 100)))}
+                                        Previous: {dashboardData.summary.ordersChange >= 999999 ? '0' : formatNumber(Math.round(dashboardData.summary.totalOrders / (1 + dashboardData.summary.ordersChange / 100)))}
                                     </p>
                                 </div>
                             ) : (
@@ -299,11 +341,14 @@ export default function SimpleDashboard({
                             {dashboardData.summary.customersChange !== null && dashboardData.summary.customersChange !== undefined ? (
                                 <div className="mt-1">
                                     <p className={`text-xs font-medium flex items-center gap-1 ${dashboardData.summary.customersChange > 0 ? 'text-green-600 dark:text-green-500' : dashboardData.summary.customersChange < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600 dark:text-gray-500'}`}>
-                                        {dashboardData.summary.customersChange > 0 ? <ArrowUp className="h-3 w-3" /> : dashboardData.summary.customersChange < 0 ? <ArrowDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
-                                        {dashboardData.summary.customersChange === 0 ? 'No change' : `${Math.abs(dashboardData.summary.customersChange).toFixed(1)}%`} from last period
+                                        {dashboardData.summary.customersChange > 0 ? <TrendingUp className="h-3 w-3" /> : dashboardData.summary.customersChange < 0 ? <TrendingDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
+                                        {dashboardData.summary.customersChange === 0 ? 'No change' :
+                                         dashboardData.summary.customersChange >= 999999 ? 'New!' :
+                                         dashboardData.summary.customersChange > 1000 ? '>1,000%' :
+                                         `${Math.abs(dashboardData.summary.customersChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {formatNumber(Math.round(dashboardData.summary.uniqueCustomers / (1 + dashboardData.summary.customersChange / 100)))}
+                                        Previous: {dashboardData.summary.customersChange >= 999999 ? '0' : formatNumber(Math.round(dashboardData.summary.uniqueCustomers / (1 + dashboardData.summary.customersChange / 100)))}
                                     </p>
                                 </div>
                             ) : (
@@ -313,185 +358,8 @@ export default function SimpleDashboard({
                     </Card>
                 </div>
 
-                {/* KPI Cards - Second Row (Additional Metrics) */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {/* Average Order Value */}
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Avg Order Value</CardTitle>
-                            <DollarSign className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {formatCurrency(dashboardData.summary.avgOrderValue || 0)}
-                            </div>
-                            {dashboardData.summary.aovChange !== null && dashboardData.summary.aovChange !== undefined ? (
-                                <div className="mt-1">
-                                    <p className={`text-xs font-medium flex items-center gap-1 ${dashboardData.summary.aovChange > 0 ? 'text-green-600 dark:text-green-500' : dashboardData.summary.aovChange < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600 dark:text-gray-500'}`}>
-                                        {dashboardData.summary.aovChange > 0 ? <ArrowUp className="h-3 w-3" /> : dashboardData.summary.aovChange < 0 ? <ArrowDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
-                                        {dashboardData.summary.aovChange === 0 ? 'No change' : `${Math.abs(dashboardData.summary.aovChange).toFixed(1)}%`} from last period
-                                    </p>
-                                    <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {formatCurrency(dashboardData.summary.avgOrderValue / (1 + dashboardData.summary.aovChange / 100))}
-                                    </p>
-                                </div>
-                            ) : (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">No comparison data</p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* First-Time Buyers */}
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">First-Time Buyers</CardTitle>
-                            <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {formatNumber(dashboardData.summary.newCustomers || 0)}
-                            </div>
-                            {dashboardData.summary.newCustomersChange !== null && dashboardData.summary.newCustomersChange !== undefined ? (
-                                <div className="mt-1">
-                                    <p className={`text-xs font-medium flex items-center gap-1 ${dashboardData.summary.newCustomersChange > 0 ? 'text-green-600 dark:text-green-500' : dashboardData.summary.newCustomersChange < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600 dark:text-gray-500'}`}>
-                                        {dashboardData.summary.newCustomersChange > 0 ? <ArrowUp className="h-3 w-3" /> : dashboardData.summary.newCustomersChange < 0 ? <ArrowDown className="h-3 w-3" /> : <span className="h-3 w-3 inline-block text-center">—</span>}
-                                        {dashboardData.summary.newCustomersChange === 0 ? 'No change' : `${Math.abs(dashboardData.summary.newCustomersChange).toFixed(1)}%`} from last period
-                                    </p>
-                                    <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {formatNumber(Math.round(dashboardData.summary.newCustomers / (1 + dashboardData.summary.newCustomersChange / 100)))}
-                                    </p>
-                                </div>
-                            ) : (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">No comparison data</p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Repeat Buyers */}
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Repeat Buyers</CardTitle>
-                            <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {formatNumber(dashboardData.summary.returningCustomers || 0)}
-                            </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                                {dashboardData.summary.returningCustomers && dashboardData.summary.uniqueCustomers
-                                    ? formatPercentage((dashboardData.summary.returningCustomers / dashboardData.summary.uniqueCustomers) * 100)
-                                    : '0%'} of active customers
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Attribution Rate */}
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">Attribution Rate</CardTitle>
-                            <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {dashboardData.summary.totalRevenue > 0
-                                    ? formatPercentage((dashboardData.summary.attributedRevenue / dashboardData.summary.totalRevenue) * 100)
-                                    : '0%'}
-                            </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                                Revenue from campaigns & flows
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Charts Row */}
-                <div className="grid gap-4 md:grid-cols-2">
-                    {/* Top 5 by Metric Bar Chart */}
-                    <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-                        <CardHeader className="bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                                        Top 5 {topMetric === 'revenue' ? 'Revenue' : topMetric === 'clickRate' ? 'Click Rate' : 'Open Rate'} by Client
-                                    </CardTitle>
-                                    <CardDescription className="text-gray-800 dark:text-gray-400">Highest performing accounts</CardDescription>
-                                </div>
-                                <div className="w-36">
-                                    <Select
-                                        value={{
-                                            value: topMetric,
-                                            label: topMetric === 'revenue' ? 'Revenue' : topMetric === 'clickRate' ? 'Click Rate' : 'Open Rate'
-                                        }}
-                                        onChange={(option) => setTopMetric(option.value)}
-                                        options={[
-                                            { value: 'revenue', label: 'Revenue' },
-                                            { value: 'clickRate', label: 'Click Rate' },
-                                            { value: 'openRate', label: 'Open Rate' }
-                                        ]}
-                                        styles={currentSelectStyles}
-                                        isSearchable={false}
-                                        className="text-sm"
-                                    />
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart
-                                    data={dashboardData.byAccount
-                                        .map(account => ({
-                                            ...account,
-                                            displayValue: topMetric === 'revenue' ? account.revenue :
-                                                         topMetric === 'clickRate' ? account.clickRate :
-                                                         account.openRate
-                                        }))
-                                        .sort((a, b) => (b.displayValue || 0) - (a.displayValue || 0))
-                                        .slice(0, 5)
-                                    }>
-                                    <defs>
-                                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#60A5FA" stopOpacity={0.8}/>
-                                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.6}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                                    <XAxis
-                                        dataKey="name"
-                                        tick={{ fontSize: 12, fill: 'currentColor' }}
-                                        angle={-45}
-                                        textAnchor="end"
-                                        height={80}
-                                    />
-                                    <YAxis
-                                        tick={{ fontSize: 12, fill: 'currentColor' }}
-                                        tickFormatter={(value) =>
-                                            topMetric === 'revenue' ? formatCurrency(value).replace('$', '') :
-                                            `${value.toFixed(1)}%`
-                                        }
-                                    />
-                                    <Tooltip
-                                        formatter={(value) =>
-                                            topMetric === 'revenue' ? formatCurrency(value) :
-                                            formatPercentage(value)
-                                        }
-                                        contentStyle={{
-                                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                                            border: '2px solid #60A5FA',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                                        }}
-                                    />
-                                    <Bar dataKey="displayValue" fill="url(#barGradient)" radius={[6, 6, 0, 0]}>
-                                        {dashboardData.byAccount.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-
-                    {/* Performance Over Time Line Chart */}
+                {/* Performance Over Time Line Chart */}
+                <div>
                     <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
                         <CardHeader className="bg-gradient-to-r from-sky-50 to-purple-50 dark:from-gray-800 dark:to-gray-800">
                             <div className="flex items-center justify-between">
@@ -545,9 +413,51 @@ export default function SimpleDashboard({
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={performanceView === 'aggregate' ? dashboardData.timeSeries : dashboardData.timeSeriesByAccount}>
+                        <CardContent className="pt-6">
+                            {performanceView === 'by-account' && dashboardData.byAccount && dashboardData.byAccount.length > 0 && (
+                                <div className="mb-6 flex flex-wrap gap-2">
+                                    {dashboardData.byAccount.map((account, index) => {
+                                        const isSelected = selectedLineAccounts.has(account.storePublicId);
+                                        return (
+                                            <Badge
+                                                key={account.storePublicId}
+                                                onClick={() => {
+                                                    setSelectedLineAccounts(prev => {
+                                                        const newSet = new Set(prev);
+                                                        if (newSet.has(account.storePublicId)) {
+                                                            newSet.delete(account.storePublicId);
+                                                        } else {
+                                                            newSet.add(account.storePublicId);
+                                                        }
+                                                        return newSet;
+                                                    });
+                                                }}
+                                                className={`cursor-pointer transition-all hover:scale-105 ${
+                                                    isSelected
+                                                        ? 'bg-sky-blue text-white border-2 border-sky-blue hover:bg-royal-blue'
+                                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-transparent hover:border-gray-400'
+                                                }`}
+                                                style={isSelected ? {
+                                                    borderColor: COLORS[visibleLineAccounts.findIndex(a => a.storePublicId === account.storePublicId) % COLORS.length]
+                                                } : {}}
+                                            >
+                                                {isSelected && (
+                                                    <span
+                                                        className="inline-block w-3 h-3 rounded-full mr-1.5"
+                                                        style={{ backgroundColor: COLORS[visibleLineAccounts.findIndex(a => a.storePublicId === account.storePublicId) % COLORS.length] }}
+                                                    />
+                                                )}
+                                                {account.storeName}
+                                            </Badge>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            <ResponsiveContainer width="100%" height={350}>
+                                <LineChart
+                                    data={performanceView === 'aggregate' ? dashboardData.timeSeries : dashboardData.timeSeriesByAccount}
+                                    margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+                                >
                                     <defs>
                                         <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
                                             <stop offset="0%" stopColor="#60A5FA" />
@@ -559,6 +469,7 @@ export default function SimpleDashboard({
                                         dataKey="date"
                                         tick={{ fontSize: 12, fill: 'currentColor' }}
                                         tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        tickMargin={8}
                                     />
                                     <YAxis
                                         tick={{ fontSize: 12, fill: 'currentColor' }}
@@ -571,6 +482,7 @@ export default function SimpleDashboard({
                                                 return formatNumber(value)
                                             }
                                         }}
+                                        tickMargin={8}
                                     />
                                     <Tooltip
                                         formatter={(value, name) => {
@@ -600,7 +512,7 @@ export default function SimpleDashboard({
                                             activeDot={{ r: 6, fill: '#8B5CF6' }}
                                         />
                                     ) : (
-                                        dashboardData.byAccount?.slice(0, 3).map((account, index) => (
+                                        visibleLineAccounts.map((account, index) => (
                                             <Line
                                                 key={`line-${account.storePublicId || index}`}
                                                 type="monotone"
@@ -615,8 +527,9 @@ export default function SimpleDashboard({
                                     )}
                                     {performanceView === 'by-account' && (
                                         <Legend
-                                            wrapperStyle={{ fontSize: '12px' }}
+                                            wrapperStyle={{ fontSize: '12px', cursor: 'pointer' }}
                                             iconType="line"
+                                            onClick={handleLegendClick}
                                         />
                                     )}
                                 </LineChart>

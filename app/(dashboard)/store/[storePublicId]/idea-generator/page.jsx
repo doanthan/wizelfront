@@ -580,7 +580,7 @@ Focus: Build emotional connection through brand narrative and customer stories.`
 
   // Carousel state
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
-  const cardsPerView = 2;
+  const cardsPerView = 3;
   const maxCarouselIndex = Math.max(0, Math.ceil(generatedIdeas.length / cardsPerView) - 1);
 
   const nextCarousel = () => {
@@ -1434,15 +1434,10 @@ Focus: Build emotional connection through brand narrative and customer stories.`
               <Card className="border-2 border-sky-200 dark:border-sky-800 bg-gradient-to-br from-sky-50/50 to-purple-50/50 dark:from-gray-900 dark:to-gray-900 ml-0 lg:ml-16">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-xl flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-sky-blue" />
-                        Generated Campaign Ideas
-                      </CardTitle>
-                      <CardDescription className="text-gray-700 dark:text-gray-300 mt-1">
-                        Select up to 3 campaign ideas you'd like to develop (swipe to see more)
-                      </CardDescription>
-                    </div>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-sky-blue" />
+                      Generated Campaign Ideas
+                    </CardTitle>
                     <div className="flex items-center gap-4">
                       {selectedIdeas.length > 0 && (
                         <Badge className="bg-sky-blue text-white">

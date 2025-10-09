@@ -10,6 +10,13 @@ This document defines the chart and data visualization design principles for the
 
 ## Design Philosophy
 
+### 🎯 DEFAULT DESIGN STANDARD: MINIMALIST
+
+**⚠️ CRITICAL: Unless explicitly specified otherwise, ALL KPI cards and dashboards should use the MINIMALIST design style.**
+
+- **Default**: Minimalist cards with clean borders, no gradients, subtle icons
+- **Exception Only**: Gradient Modern cards should only be used when there's a specific compelling reason
+
 ### Core Principles
 
 1. **Clarity First**: Charts should communicate data clearly and accurately
@@ -17,6 +24,7 @@ This document defines the chart and data visualization design principles for the
 3. **Accessibility**: Meet WCAG AA standards (4.5:1 contrast minimum)
 4. **Responsive Design**: Charts adapt to all screen sizes (min-h-[300px])
 5. **Dark Mode Support**: All charts work in both light and dark themes
+6. **Minimalist by Default**: Use clean, professional styling unless a specific use case requires visual emphasis
 
 ### When to Use Charts
 
@@ -274,7 +282,9 @@ $pastel-green: from-green-50 to-teal-50;
 
 **Purpose**: Display key performance indicators (KPIs) with context
 
-We provide **two distinct KPI card styles** to match different dashboard aesthetics:
+**🎯 DEFAULT STYLE: Minimalist Cards**
+
+We provide **two distinct KPI card styles**. **By default, always use the Minimalist style** unless there's a specific reason to use Gradient Modern:
 
 ---
 
@@ -315,12 +325,48 @@ We provide **two distinct KPI card styles** to match different dashboard aesthet
     <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
       {formatCurrency(value)}
     </div>
-    <p className="text-xs flex items-center gap-1 text-green-600 dark:text-green-500">
-      <ArrowUp className="h-3 w-3" />
-      12.5% from last period
-    </p>
+    {/* Period-over-period comparison with diagonal arrows */}
+    <div className="mt-1">
+      <p className="text-xs font-medium flex items-center gap-1 text-green-600 dark:text-green-500">
+        <TrendingUp className="h-3 w-3" />
+        12.5% from last period
+      </p>
+      <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
+        Previous: {formatCurrency(previousValue)}
+      </p>
+    </div>
   </CardContent>
 </Card>
+```
+
+**Change Indicators - Diagonal Arrows**:
+```jsx
+// ✅ CORRECT - Use diagonal arrows for change indicators
+import { TrendingUp, TrendingDown } from 'lucide-react';
+
+{/* Positive change - diagonal up arrow (green) */}
+<p className="text-xs font-medium flex items-center gap-1 text-green-600 dark:text-green-500">
+  <TrendingUp className="h-3 w-3" />
+  12.5% from last period
+</p>
+
+{/* Negative change - diagonal down arrow (red) */}
+<p className="text-xs font-medium flex items-center gap-1 text-red-600 dark:text-red-500">
+  <TrendingDown className="h-3 w-3" />
+  -8.3% from last period
+</p>
+
+{/* No change - em dash */}
+<p className="text-xs font-medium flex items-center gap-1 text-gray-600 dark:text-gray-500">
+  <span className="h-3 w-3 inline-block text-center">—</span>
+  No change from last period
+</p>
+
+{/* New data (previous was 0) - show "New!" */}
+<p className="text-xs font-medium flex items-center gap-1 text-green-600 dark:text-green-500">
+  <TrendingUp className="h-3 w-3" />
+  New!
+</p>
 ```
 
 **Key Features**:
@@ -337,7 +383,15 @@ We provide **two distinct KPI card styles** to match different dashboard aesthet
 - Title: `text-sm font-medium`
 - Icon: `h-4 w-4 text-gray-600`
 - Metric: `text-2xl font-bold`
-- Change: `text-xs` with green/red
+- Change Arrow: `h-3 w-3` diagonal (TrendingUp/TrendingDown)
+- Change Text: `text-xs font-medium` with green/red
+- Previous Value: `text-xs text-gray-600` below change
+
+**Arrow Pattern Rationale**:
+- **Diagonal arrows** (TrendingUp ↗, TrendingDown ↘) better represent trends and movement over time
+- Vertical arrows (ArrowUp ↑, ArrowDown ↓) are more static and directional
+- Diagonal arrows visually communicate "trending upward/downward" which is semantically accurate for period-over-period comparisons
+- Consistent with financial and analytics industry standards (stock charts, trend indicators)
 
 ---
 
@@ -378,10 +432,16 @@ We provide **two distinct KPI card styles** to match different dashboard aesthet
     <div className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
       {formatCurrency(value)}
     </div>
-    <p className="text-sm font-medium flex items-center gap-1 text-green-600 dark:text-green-500">
-      <ArrowUp className="h-4 w-4" />
-      12.5% from last period
-    </p>
+    {/* Period-over-period comparison with diagonal arrows */}
+    <div className="mt-1">
+      <p className="text-sm font-medium flex items-center gap-1 text-green-600 dark:text-green-500">
+        <TrendingUp className="h-4 w-4" />
+        12.5% from last period
+      </p>
+      <p className="text-sm text-gray-600 dark:text-gray-500 mt-0.5">
+        Previous: {formatCurrency(previousValue)}
+      </p>
+    </div>
   </CardContent>
 </Card>
 ```
@@ -400,7 +460,9 @@ We provide **two distinct KPI card styles** to match different dashboard aesthet
 - Title: `text-lg font-bold`
 - Icon: `h-5 w-5 text-sky-blue` (brand colors)
 - Metric: `text-3xl font-extrabold`
-- Change: `text-sm font-medium` with green/red
+- Change Arrow: `h-4 w-4` diagonal (TrendingUp/TrendingDown)
+- Change Text: `text-sm font-medium` with green/red
+- Previous Value: `text-sm text-gray-600` below change
 
 **Brand Icon Colors**:
 ```jsx
@@ -415,16 +477,19 @@ We provide **two distinct KPI card styles** to match different dashboard aesthet
 
 #### When to Use Each Style
 
+**⚠️ IMPORTANT: Use Minimalist cards by default for ALL pages unless specifically overridden.**
+
 | Context | Card Style | Rationale |
 |---------|-----------|-----------|
-| **Main Dashboard** | Minimalist | Clean, professional, many cards visible |
-| **Customer Reports** | Gradient Modern | Feature-rich, detailed analysis pages |
-| **Revenue Reports** | Gradient Modern | Marketing-focused, visually engaging |
-| **Product Analytics** | Gradient Modern | Data storytelling, insights focus |
-| **Executive Summary** | Minimalist | Professional, print-friendly |
-| **Real-time Monitoring** | Minimalist | Maximum data density |
-| **Campaign Performance** | Gradient Modern | Brand-aligned, eye-catching |
-| **Multi-Account View** | Minimalist | Clean comparison across accounts |
+| **Main Dashboard** | ✅ Minimalist (Default) | Clean, professional, many cards visible |
+| **Multi-Account Reporting** | ✅ Minimalist (Default) | Clean comparison across accounts, data-focused |
+| **Executive Summary** | ✅ Minimalist (Default) | Professional, print-friendly |
+| **Real-time Monitoring** | ✅ Minimalist (Default) | Maximum data density |
+| **All Other Pages** | ✅ Minimalist (Default) | Consistent, professional appearance |
+| **Customer Reports (Legacy)** | ⚠️ Gradient Modern (Exception) | Only if specifically needed for visual distinction |
+| **Marketing Landing Pages** | ⚠️ Gradient Modern (Exception) | Only for high-impact presentation needs |
+
+**Default Rule**: When in doubt, **always use Minimalist cards**. Gradient Modern should only be used when there's a compelling reason for extra visual emphasis.
 
 **Grid Layout** (applies to both styles):
 - Desktop (lg): 4 columns
@@ -847,6 +912,68 @@ When creating new charts:
 
 ---
 
+## Change Indicators - Diagonal Arrow Pattern
+
+### **CRITICAL: Always Use Diagonal Arrows for Trends**
+
+All KPI cards showing period-over-period comparisons **MUST use diagonal arrows** (not vertical arrows):
+
+**Icon Imports**:
+```jsx
+// ✅ CORRECT - Import diagonal arrows
+import { TrendingUp, TrendingDown } from 'lucide-react';
+
+// ❌ WRONG - Don't use vertical arrows
+import { ArrowUp, ArrowDown } from 'lucide-react';
+```
+
+**Pattern Implementation**:
+```jsx
+{/* Positive change */}
+{change > 0 ? <TrendingUp className="h-3 w-3" /> :
+ change < 0 ? <TrendingDown className="h-3 w-3" /> :
+ <span className="h-3 w-3 inline-block text-center">—</span>}
+```
+
+**Special Cases**:
+```jsx
+{/* When previous period = 0, current > 0 - show "New!" */}
+{change === 0 ? 'No change' :
+ change >= 999999 ? 'New!' :
+ change > 1000 ? '>1,000%' :
+ `${Math.abs(change).toFixed(1)}%`}
+```
+
+**Complete Example**:
+```jsx
+<p className={`text-xs font-medium flex items-center gap-1 ${
+  change > 0 ? 'text-green-600 dark:text-green-500' :
+  change < 0 ? 'text-red-600 dark:text-red-500' :
+  'text-gray-600 dark:text-gray-500'
+}`}>
+  {change > 0 ? <TrendingUp className="h-3 w-3" /> :
+   change < 0 ? <TrendingDown className="h-3 w-3" /> :
+   <span className="h-3 w-3 inline-block text-center">—</span>}
+  {change === 0 ? 'No change' :
+   change >= 999999 ? 'New!' :
+   change > 1000 ? '>1,000%' :
+   `${Math.abs(change).toFixed(1)}%`} from last period
+</p>
+<p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
+  Previous: {change >= 999999 ? '$0' : formatCurrency(previousValue)}
+</p>
+```
+
+**Why Diagonal Arrows?**
+1. **Semantic Accuracy**: Diagonal arrows (↗ ↘) visually represent "trending up/down" over time
+2. **Industry Standard**: Financial dashboards and stock charts universally use diagonal trend indicators
+3. **Visual Hierarchy**: Diagonal direction creates better visual flow and movement
+4. **Distinction from Actions**: Vertical arrows (↑ ↓) are typically used for sorting/navigation actions
+
+---
+
 ## Version History
 
+- **v1.2** (2025-10-07): **CRITICAL UPDATE** - Established Minimalist as the default KPI card style for all pages; Gradient Modern is now exception-only
+- **v1.1** (2025-10-07): Added diagonal arrow pattern documentation for change indicators (TrendingUp/TrendingDown)
 - **v1.0** (2025-10-07): Initial chart design principles with 4 style variations

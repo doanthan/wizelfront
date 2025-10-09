@@ -288,7 +288,7 @@ export default function Sidebar() {
 
     // Handle other store-specific pages
     if (currentStoreId) {
-      if (originalHref === '/idea-generator' || originalHref === '/email-builder') {
+      if (originalHref === '/email-builder') {
         return `/store/${currentStoreId}${originalHref}`;
       }
     }

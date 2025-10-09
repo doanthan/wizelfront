@@ -275,24 +275,31 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
         c.avg_order_value,
 
         -- Period-over-Period Changes (percentage)
+        -- When previous = 0 but current > 0, return 999999 (will be capped at UI)
+        -- When both = 0, return 0
+        -- When previous > 0, calculate normal % change
         if(p.total_revenue > 0,
            ((c.total_revenue - p.total_revenue) * 100.0 / p.total_revenue),
-           0) as revenue_change,
+           if(c.total_revenue > 0, 999999, 0)) as revenue_change,
         if(p.attributed_revenue > 0,
            ((c.attributed_revenue - p.attributed_revenue) * 100.0 / p.attributed_revenue),
-           0) as attributed_revenue_change,
+           if(c.attributed_revenue > 0, 999999, 0)) as attributed_revenue_change,
         if(p.total_orders > 0,
            ((c.total_orders - p.total_orders) * 100.0 / p.total_orders),
-           0) as orders_change,
+           if(c.total_orders > 0, 999999, 0)) as orders_change,
         if(p.unique_customers > 0,
            ((c.unique_customers - p.unique_customers) * 100.0 / p.unique_customers),
-           0) as customers_change,
+           if(c.unique_customers > 0, 999999, 0)) as customers_change,
         if(p.avg_order_value > 0,
            ((c.avg_order_value - p.avg_order_value) * 100.0 / p.avg_order_value),
-           0) as aov_change,
+           if(c.avg_order_value > 0, 999999, 0)) as aov_change,
         if(p.new_customers > 0,
            ((c.new_customers - p.new_customers) * 100.0 / p.new_customers),
-           0) as new_customers_change
+           if(c.new_customers > 0, 999999, 0)) as new_customers_change,
+
+        -- Debug: Return comparison period values to verify
+        p.total_revenue as prev_total_revenue,
+        p.attributed_revenue as prev_attributed_revenue
       FROM current_period c
       LEFT JOIN comparison_period p ON 1=1
     `;

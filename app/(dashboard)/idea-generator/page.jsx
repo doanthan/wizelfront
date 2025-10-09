@@ -126,8 +126,8 @@ export default function IdeaGeneratorPage() {
       return;
     }
 
-    // Navigate to store-specific idea generator with brand
-    router.push(`/store/${selectedStore.public_id}/idea-generator?brand=${selectedBrand.id}`);
+    // Navigate to step 1 of idea generator flow
+    router.push(`/store/${selectedStore.public_id}/idea-generator/step-1?brand=${selectedBrand.id}`);
   };
 
   return (

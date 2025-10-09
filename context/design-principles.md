@@ -23,10 +23,10 @@ $neutral-gray: #475569;   // Borders, secondary text
 $slate-gray: #1e293b;     // Primary text, headings
 
 // Data Visualization & States
-$success: #22C55E;        // Green for success states, growth
-$warning: #F59E0B;        // Amber for warnings
-$danger: #EF4444;         // Red for errors/destructive actions
-$info: #60A5FA;           // Blue for informational (uses sky-blue)
+$success: #34D399;  // Emerald-400
+$warning: #FBBF24;  // Amber-400  
+$danger: #F87171;   // Red-400
+$info: #60A5FA;     // Sky-500 (your brand)
 
 // Background & Surface Colors
 $pure-white: #FFFFFF;     // Main backgrounds

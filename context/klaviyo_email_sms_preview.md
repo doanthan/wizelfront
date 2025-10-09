@@ -71,11 +71,13 @@ const campaignStore = stores?.find(s =>
 
 **Props Passed to EmailPreviewPanel:**
 ```javascript
-<EmailPreviewPanel 
+<EmailPreviewPanel
     messageId={messageId}  // "01K414ZN4ZA2CWT1JWHHKYF054"
-    storeId={storeId}      // "XqkVGb" (klaviyo_public_id)
+    storeId={storeId}      // "Pu200rg" (store.public_id) - NOT klaviyo_public_id!
 />
 ```
+
+**IMPORTANT**: The `storeId` should be the **store's `public_id`**, NOT the `klaviyo_integration.public_id`. The API will look up the store by `public_id` first to find the correct store with authentication.
 
 ### 3. Email Preview Panel (`/app/(dashboard)/calendar/components/EmailPreviewPanel.jsx`)
 
@@ -102,8 +104,10 @@ const response = await fetch(url);
 
 **URL Pattern:**
 ```
-/api/klaviyo/campaign-message/01K414ZN4ZA2CWT1JWHHKYF054?storeId=XqkVGb
+/api/klaviyo/campaign-message/01K414ZN4ZA2CWT1JWHHKYF054?storeId=Pu200rg
 ```
+
+**Note**: The `storeId` parameter should be the store's `public_id`, not the `klaviyo_integration.public_id`.
 
 **Authentication:**
 - NextAuth session validation

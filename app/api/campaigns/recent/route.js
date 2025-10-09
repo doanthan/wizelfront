@@ -149,17 +149,27 @@ export async function GET(request) {
     const db = mongoose.connection.db;
     const campaignStatsCollection = db.collection('campaignstats');
 
-    // Build query - for now get past year of campaigns for caching
+    // Get date range from query params or default to past 14 days
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+
     const now = new Date();
-    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    const startDate = startDateParam ? new Date(startDateParam) : new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const endDate = endDateParam ? new Date(endDateParam) : now;
+
+    console.log('[Recent Campaigns] Date range:', {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      daysRange: Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24))
+    });
 
     const query = {
       klaviyo_public_id: { $in: klaviyoPublicIds },
       'statistics.recipients': { $gt: 0 }, // Only campaigns that were actually sent
       send_time: {
         $exists: true,
-        $gte: oneYearAgo,
-        $lte: now
+        $gte: startDate,
+        $lte: endDate
       }
     };
 
@@ -209,8 +219,11 @@ export async function GET(request) {
         date: campaign.send_time || campaign.scheduled_at,
         performance: {
           recipients: campaign.statistics?.recipients || 0,
+          opensUnique: campaign.statistics?.opens_unique || 0,
+          clicksUnique: campaign.statistics?.clicks_unique || 0,
           openRate: campaign.statistics?.open_rate || 0,
           clickRate: campaign.statistics?.click_rate || 0,
+          conversions: campaign.statistics?.conversion_uniques || 0,
           revenue: campaign.statistics?.conversion_value || 0
         },
 

@@ -10,6 +10,7 @@ import { FilterCard } from './components/FilterCard';
 import { CalendarSkeleton } from './components/CalendarSkeleton';
 import { MonthView, WeekView, DayView } from './components/CalendarViews';
 import { CampaignStats } from './components/CampaignStats';
+import { CampaignsTable } from './components/CampaignsTable';
 import { 
   filterCampaignsByDate,
   sortCampaignsByDate,
@@ -836,6 +837,16 @@ export default function CalendarPage() {
           />
         ) : null}
       </div>
+
+      {/* Campaigns Table - Shows campaigns for the current view period */}
+      <CampaignsTable
+        campaigns={getFilteredCampaigns()}
+        stores={stores}
+        onCampaignClick={handleCampaignClick}
+        view={view}
+        date={date}
+        loading={pastLoading || loadingStores}
+      />
       
       {/* Modals */}
       {selectedCampaign && (

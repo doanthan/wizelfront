@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import LoadingSpinner from "@/app/components/ui/loading-spinner"
 import Select from "react-select"
 import { selectStyles } from "@/app/components/selectStyles"
+import { formatNumber as formatNum, formatCurrency as formatCurr, formatPercentage as formatPct } from '@/lib/utils'
 import {
     TrendingUp,
     TrendingDown,
@@ -13,14 +14,19 @@ import {
     Users,
     Mail,
     MessageSquare,
-    ArrowUp,
-    ArrowDown,
     BarChart2,
     Activity,
     Target,
     ChevronsUpDown,
     Info
 } from "lucide-react"
+import {
+    Tooltip as UITooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/app/components/ui/tooltip"
+import { InfoCircledIcon } from "@radix-ui/react-icons"
 import {
     Popover,
     PopoverContent,
@@ -551,60 +557,88 @@ export default function RevenueTab({
     ]
 
     return (
-        <div className="space-y-6">
-            {/* Main KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {kpiCards.map((card, index) => (
-                    <Card key={index} className="relative overflow-hidden">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <TooltipProvider>
+            <div className="space-y-6">
+                {/* Main KPI Cards - Gradient Modern Style */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {kpiCards.map((card, index) => {
+                        const Icon = card.icon
+                        const change = card.change || 0
+
+                        // Calculate previous period value
+                        const currentValue = card.title === 'Overall Revenue' ? metrics.totalRevenue :
+                                           card.title === 'Attributed Revenue' ? metrics.attributedRevenue :
+                                           card.title === 'Total Orders' ? metrics.totalOrders :
+                                           metrics.uniqueCustomers
+
+                        const previousValue = change !== 0 && change < 999999
+                            ? currentValue / (1 + change / 100)
+                            : 0
+
+                        return (
+                            <Card key={index}>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {card.title}
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                            {card.value}
-                                        </span>
-                                        {card.change !== 0 && (
-                                            <div className={`flex items-center text-sm ${
-                                                card.change > 0 ? 'text-green-600' : card.change < 0 ? 'text-red-600' : 'text-gray-600'
-                                            }`}>
-                                                {card.change > 0 ? (
-                                                    <ArrowUp className="h-4 w-4" />
-                                                ) : card.change < 0 ? (
-                                                    <ArrowDown className="h-4 w-4" />
-                                                ) : null}
-                                                <span>{formatPercentage(Math.abs(card.change))}</span>
-                                            </div>
-                                        )}
+                                    </CardTitle>
+                                    <Icon className={`h-4 w-4 text-gray-600 dark:text-gray-400`} />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                        {card.value}
                                     </div>
                                     {card.subtitle && (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
                                             {card.subtitle}
                                         </p>
                                     )}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                                    {change !== null && change !== undefined ? (
+                                        <div className="mt-1">
+                                            <p className={`text-xs font-medium flex items-center gap-1 ${
+                                                change > 0 ? 'text-green-600 dark:text-green-500' :
+                                                change < 0 ? 'text-red-600 dark:text-red-500' :
+                                                'text-gray-600 dark:text-gray-500'
+                                            }`}>
+                                                {change > 0 ? <TrendingUp className="h-3 w-3" /> :
+                                                 change < 0 ? <TrendingDown className="h-3 w-3" /> :
+                                                 <span className="h-3 w-3 inline-block text-center">—</span>}
+                                                {change === 0 ? 'No change' :
+                                                 change >= 999999 ? 'New!' :
+                                                 change > 1000 ? '>1,000%' :
+                                                 `${Math.abs(change).toFixed(1)}%`} from last period
+                                            </p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
+                                                Previous: {change >= 999999 ?
+                                                    (card.title.includes('Revenue') ? '$0' : '0') :
+                                                    card.title.includes('Revenue') ? formatCurrency(previousValue) :
+                                                    formatNumber(Math.round(previousValue))
+                                                }
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">No comparison data</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )
+                    })}
+                </div>
 
-            {/* Channel Performance Cards */}
+            {/* Channel Performance Cards - Minimalist Style */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {channelCards.map((card, index) => (
-                    <Card key={index}>
-                        <CardContent className="p-6">
-                            <div className="flex flex-col">
-                                <div className="flex items-start justify-between mb-2">
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                        {card.title}
-                                    </p>
+                {channelCards.map((card, index) => {
+                    const Icon = card.icon
+                    return (
+                        <Card key={index}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {card.title}
+                                </CardTitle>
+                                <div className="flex items-center gap-2">
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                                                <Info className="h-4 w-4" />
+                                                <Info className="h-3 w-3" />
                                             </button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700" side="left">
@@ -648,27 +682,28 @@ export default function RevenueTab({
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-                                <div>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                        {card.value}
-                                    </p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {card.subtitle}
-                                    </p>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                    {card.value}
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                                <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
+                                    {card.subtitle}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )
+                })}
             </div>
 
             {/* Revenue Trends Chart */}
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Revenue Trends</CardTitle>
-                        <CardDescription>Revenue breakdown and attribution over time</CardDescription>
-                    </div>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Revenue Trends</CardTitle>
+                            <CardDescription>Revenue breakdown and attribution over time</CardDescription>
+                        </div>
                     <div className="flex gap-2">
                         <Select
                             value={{ value: revenueMetric, label:
@@ -698,6 +733,7 @@ export default function RevenueTab({
                             styles={selectStyles}
                             className="min-w-[120px]"
                         />
+                    </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -1102,6 +1138,7 @@ export default function RevenueTab({
                     </CardContent>
                 </Card>
             )}
-        </div>
+            </div>
+        </TooltipProvider>
     )
 }

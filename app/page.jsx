@@ -21,7 +21,8 @@ import {
   Quote,
   Shield,
   Rocket,
-  Award
+  Award,
+  Lightbulb
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
@@ -39,9 +40,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen overflow-hidden relative">
-      {/* Gradient Background - Similar to Yorby */}
-      <div className="fixed inset-0 bg-gradient-to-br from-yellow-50 via-pink-50 to-purple-100 dark:from-gray-900 dark:via-purple-900 dark:to-pink-900 opacity-60" />
-      <div className="fixed inset-0 bg-gradient-to-tr from-sky-100 via-transparent to-violet-100 dark:from-blue-900/20 dark:via-transparent dark:to-purple-900/20" />
+      {/* Gradient Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-sky-tint via-lilac-mist to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 opacity-60" />
+      <div className="fixed inset-0 bg-gradient-to-tr from-sky-tint/50 via-transparent to-lilac-mist/50 dark:from-sky-blue/10 dark:via-transparent dark:to-vivid-violet/10" />
 
       {/* Content Container */}
       <div className="relative z-10">
@@ -56,6 +57,15 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-4">
+              <Link href="/idea-generator">
+                <Button
+                  variant="ghost"
+                  className="text-slate-gray dark:text-gray-200 hover:text-yellow-500 dark:hover:text-yellow-500 transition-colors"
+                >
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  Idea Generator
+                </Button>
+              </Link>
               <Link href="/dashboard">
                 <Button
                   variant="ghost"
@@ -84,11 +94,9 @@ export default function Home() {
               <div className="space-y-8">
                 <div className="space-y-6">
                   <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
-                    <span className="text-slate-gray dark:text-white">Automate Your</span>
+                    <span className="text-slate-gray dark:text-white">Klaviyo</span>
                     <br />
-                    <span className="text-slate-gray dark:text-white">Email</span>
-                    <br />
-                    <span className="text-slate-gray dark:text-white">Marketing</span>
+                    <span className="text-slate-gray dark:text-white">Multi-Account</span>
                     <br />
                     <span className="bg-gradient-to-r from-sky-blue to-vivid-violet bg-clip-text text-transparent">
                       with AI.

@@ -52,9 +52,10 @@ export async function GET(request, { params }) {
     if (!store) {
       console.log('🔍 Store not found by public_id, looking for stores with klaviyo_public_id:', storeId);
 
-      // Find all stores with this Klaviyo integration
+      // Find all stores with this Klaviyo integration that have a valid public_id
       const storesWithKlaviyo = await Store.find({
-        'klaviyo_integration.public_id': storeId
+        'klaviyo_integration.public_id': storeId,
+        public_id: { $exists: true, $ne: null, $ne: '' } // Only include stores with valid public_id
       });
 
       console.log(`📊 Found ${storesWithKlaviyo.length} store(s) with Klaviyo ID: ${storeId}`);
