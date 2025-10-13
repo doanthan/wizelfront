@@ -89,9 +89,9 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Error creating impersonation token:', error);
+    console.error('Superuser API error:', error);
     return NextResponse.json(
-      { error: "Failed to create impersonation token" }, 
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

@@ -1,0 +1,3223 @@
+"use client";
+
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Box,
+  ChevronDown,
+  ChevronsRight,
+  Code,
+  Copy,
+  Edit2,
+  FileText,
+  Grid,
+  Heading1,
+  Heading2,
+  Heading3,
+  Image as ImageIcon,
+  Italic,
+  Layers,
+  Layout,
+  Link,
+  List,
+  ListOrdered,
+  Minus,
+  Moon,
+  Palette,
+  Plus,
+  Redo,
+  Send,
+  ShoppingCart,
+  Sparkles,
+  Square,
+  Star,
+  Strikethrough,
+  Sun,
+  Trash2,
+  Type,
+  Underline,
+  Undo,
+  Users,
+  Zap
+} from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import styles from "./email-builder.module.css";
+
+const CANVAS_BLOCK_TYPE = "application/x-aurora-block";
+
+const CATEGORY_ORDER = ["Layout", "Basic", "Advanced"];
+
+const library = [
+  {
+    type: "section",
+    title: "Section",
+    description: "Container for content",
+    category: "Layout",
+    icon: Layers,
+    defaultOverrides: {
+      content: "Section container",
+      padding: 24,
+      background: "transparent",
+      alignment: "center"
+    }
+  },
+  {
+    type: "columns",
+    title: "Columns",
+    description: "Multi-column layout",
+    category: "Layout",
+    icon: Layout,
+    defaultOverrides: {
+      columns: 2,
+      columnSizes: "equal",
+      content: "Column 1\nColumn 2",
+      padding: 16,
+      fontSize: 18
+    }
+  },
+  {
+    type: "text",
+    title: "Text",
+    description: "Headlines & paragraphs",
+    category: "Basic",
+    icon: Type,
+    defaultOverrides: {
+      content: "Introduce your product with compelling copy.",
+      fontSize: 20,
+      padding: 20,
+      alignment: "left"
+    }
+  },
+  {
+    type: "button",
+    title: "Button",
+    description: "Primary call to action",
+    category: "Basic",
+    icon: Square,
+    defaultOverrides: {
+      content: "Primary action",
+      alignment: "left"
+    }
+  },
+  {
+    type: "image",
+    title: "Image",
+    description: "Hero imagery",
+    category: "Basic",
+    icon: ImageIcon,
+    defaultOverrides: {
+      imageUrl: "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=900&q=80",
+      padding: 0,
+      content: "Illustration showcasing email layout"
+    }
+  },
+  {
+    type: "spacer",
+    title: "Spacer",
+    description: "Vertical gap",
+    category: "Advanced",
+    icon: Minus,
+    defaultOverrides: {
+      padding: 32,
+      content: ""
+    }
+  }
+];
+
+const THEME_KEY = "aurora-theme";
+const PANEL_KEY = "aurora-properties-open";
+
+const quickAddCategories = [
+  {
+    id: "header",
+    title: "Header",
+    description: "Top section elements",
+    icon: Send,
+    components: [
+      {
+        id: "header-logo-nav",
+        name: "Logo left + links",
+        description: "Brand mark on the left with top navigation links",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewRow}>
+              <div className={`${styles.previewChip} ${styles.previewChipStrong}`}>Logo</div>
+              <div className={styles.previewInlineGroup}>
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "two-column",
+            overrides: {
+              content: "Aurora Studio\nShop  |  Stories  |  Support",
+              fontSize: 18,
+              padding: 16
+            }
+          }
+        ]
+      },
+      {
+        id: "header-centered",
+        name: "Centered logo",
+        description: "Centered brand with navigation underneath",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={`${styles.previewRow} ${styles.previewRowCenter}`}>
+              <div className={`${styles.previewChip} ${styles.previewChipStrong}`}>Logo</div>
+            </div>
+            <div className={`${styles.previewRow} ${styles.previewRowCenter}`}>
+              <div className={styles.previewInlineGroup}>
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
+        ),
+        blocks: [
+          { type: "headline", overrides: { content: "Aurora Studio", alignment: "center", fontSize: 26 } },
+          {
+            type: "paragraph",
+            overrides: {
+              content: "Shop  |  Features  |  Stories",
+              alignment: "center",
+              padding: 16
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "hero",
+    title: "Hero",
+    description: "Main banner sections",
+    icon: Sparkles,
+    components: [
+      {
+        id: "hero-classic",
+        name: "Classic hero",
+        description: "Full-width image, headline, and button",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewMediaTall} />
+            <div className={styles.previewStackedText}>
+              <span className={styles.previewHeadline} />
+              <span className={styles.previewBody} />
+              <div className={styles.previewButtonRow}>
+                <span />
+              </div>
+            </div>
+          </div>
+        ),
+        blocks: [
+          { type: "image", overrides: { padding: 0 } },
+          {
+            type: "headline",
+            overrides: {
+              content: "Launch your next campaign in minutes",
+              alignment: "center",
+              fontSize: 32
+            }
+          },
+          {
+            type: "paragraph",
+            overrides: {
+              content:
+                "Pair AI-assisted visuals with modular sections to spin up beautiful newsletters faster than ever.",
+              alignment: "center",
+              padding: 18
+            }
+          },
+          { type: "button", overrides: { content: "Start designing", alignment: "center" } }
+        ]
+      },
+      {
+        id: "hero-split",
+        name: "Split hero",
+        description: "Two-column hero with copy and supporting image",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewSplit}>
+              <div className={styles.previewStackedText}>
+                <span className={styles.previewHeadline} />
+                <span className={styles.previewBody} />
+                <span className={styles.previewBodyShort} />
+              </div>
+              <div className={styles.previewMediaTall} />
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "two-column",
+            overrides: {
+              content: "Campaign highlight\nVisual showcase",
+              fontSize: 20,
+              padding: 20
+            }
+          },
+          {
+            type: "image",
+            overrides: {
+              imageUrl:
+                "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1080&q=80",
+              padding: 0
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "products",
+    title: "Products",
+    description: "Product showcases",
+    icon: Box,
+    components: [
+      {
+        id: "products-grid",
+        name: "Product grid",
+        description: "Three-up grid ideal for merchandising",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewGridThree}>
+              <div />
+              <div />
+              <div />
+            </div>
+            <div className={styles.previewInlineGroup}>
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "three-column",
+            overrides: {
+              content: "Highlight one\nHighlight two\nHighlight three",
+              fontSize: 18,
+              padding: 18
+            }
+          }
+        ]
+      },
+      {
+        id: "products-featured",
+        name: "Featured product",
+        description: "Large product image with supporting copy",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewMediaWide} />
+            <div className={styles.previewStackedText}>
+              <span className={styles.previewHeadline} />
+              <span className={styles.previewBody} />
+              <div className={styles.previewButtonRow}>
+                <span />
+              </div>
+            </div>
+          </div>
+        ),
+        blocks: [
+          { type: "image", overrides: { padding: 0 } },
+          {
+            type: "text",
+            overrides: {
+              content: "Spotlight a hero product with pricing or offer details.",
+              fontSize: 20,
+              padding: 20
+            }
+          },
+          { type: "button", overrides: { content: "Shop collection", alignment: "left" } }
+        ]
+      }
+    ]
+  },
+  {
+    id: "content",
+    title: "Content",
+    description: "Text and media blocks",
+    icon: FileText,
+    components: [
+      {
+        id: "content-article",
+        name: "Article feature",
+        description: "Headline with long-form body text",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewHeadlineLong} />
+            <span className={styles.previewBody} />
+            <span className={styles.previewBody} />
+          </div>
+        ),
+        blocks: [
+          {
+            type: "headline",
+            overrides: { content: "Lead with a story", fontSize: 28 }
+          },
+          {
+            type: "paragraph",
+            overrides: {
+              content:
+                "Share updates, educational content, or editorial stories with a rich text layout designed for readability.",
+              padding: 20
+            }
+          }
+        ]
+      },
+      {
+        id: "content-media",
+        name: "Media spotlight",
+        description: "Image paired with supporting copy and CTA",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewMediaWide} />
+            <span className={styles.previewBody} />
+            <div className={styles.previewButtonRow}>
+              <span />
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "image",
+            overrides: {
+              imageUrl:
+                "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1080&q=80",
+              padding: 0
+            }
+          },
+          {
+            type: "text",
+            overrides: {
+              content: "Pair visuals with concise supporting copy to drive clicks.",
+              fontSize: 20,
+              padding: 18
+            }
+          },
+          { type: "button", overrides: { content: "Read story", alignment: "left" } }
+        ]
+      }
+    ]
+  },
+  {
+    id: "features",
+    title: "Features",
+    description: "Highlight benefits",
+    icon: Star,
+    components: [
+      {
+        id: "features-list",
+        name: "Icon list",
+        description: "Three columns highlighting key benefits",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewStackedList}>
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "three-column",
+            overrides: {
+              content: "Fast setup\nBeautiful layouts\nIntegrated analytics",
+              fontSize: 18,
+              padding: 18
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "social-proof",
+    title: "Social Proof",
+    description: "Trust & credibility",
+    icon: Users,
+    components: [
+      {
+        id: "social-testimonial",
+        name: "Testimonial",
+        description: "Quote with avatar attribution",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <span className={styles.previewHeadlineShort} />
+            <span className={styles.previewBody} />
+            <div className={styles.previewRow}>
+              <div className={styles.previewAvatar} />
+              <span className={styles.previewBodyShort} />
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "text",
+            overrides: {
+              content: "“Our campaigns shipped twice as fast with Aurora Studio.”",
+              fontSize: 20,
+              padding: 20,
+              alignment: "center"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "call-to-action",
+    title: "Call to Action",
+    description: "Action prompts",
+    icon: Zap,
+    components: [
+      {
+        id: "cta-banner",
+        name: "CTA banner",
+        description: "Bold copy with stacked actions",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewStackedText}>
+              <span className={styles.previewHeadlineShort} />
+              <span className={styles.previewBodyShort} />
+            </div>
+            <div className={styles.previewButtonRow}>
+              <span />
+              <span />
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "headline",
+            overrides: {
+              content: "Ready to launch your next campaign?",
+              fontSize: 30,
+              alignment: "center"
+            }
+          },
+          {
+            type: "paragraph",
+            overrides: {
+              content: "Fresh templates and modular blocks are waiting inside Aurora Studio.",
+              alignment: "center",
+              padding: 16
+            }
+          },
+          { type: "button", overrides: { content: "Upgrade now", alignment: "center" } }
+        ]
+      }
+    ]
+  },
+  {
+    id: "ecommerce",
+    title: "E-Commerce",
+    description: "Shopping elements",
+    icon: ShoppingCart,
+    components: [
+      {
+        id: "ecommerce-feature",
+        name: "Offer highlight",
+        description: "Product imagery with price and button",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewSplit}>
+              <div className={styles.previewMediaTall} />
+              <div className={styles.previewStackedText}>
+                <span className={styles.previewHeadlineShort} />
+                <span className={styles.previewBodyShort} />
+                <div className={styles.previewPriceRow}>
+                  <span />
+                  <span />
+                </div>
+              </div>
+            </div>
+          </div>
+        ),
+        blocks: [
+          {
+            type: "image",
+            overrides: {
+              imageUrl:
+                "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1080&q=80",
+              padding: 0
+            }
+          },
+          {
+            type: "text",
+            overrides: {
+              content: "Spotlight your best-seller with pricing and supporting copy.",
+              fontSize: 20,
+              padding: 18
+            }
+          },
+          { type: "button", overrides: { content: "Add to cart", alignment: "left" } }
+        ]
+      }
+    ]
+  },
+  {
+    id: "footer",
+    title: "Footer",
+    description: "Bottom sections",
+    icon: Layout,
+    components: [
+      {
+        id: "footer-simple",
+        name: "Simple footer",
+        description: "Logo, navigation, and compliance copy",
+        renderPreview: () => (
+          <div className={styles.quickAddPreviewShell}>
+            <div className={styles.previewRowBetween}>
+              <div className={`${styles.previewChip} ${styles.previewChipStrong}`}>Logo</div>
+              <div className={styles.previewInlineGroup}>
+                <span />
+                <span />
+              </div>
+            </div>
+            <span className={styles.previewBodyMuted} />
+          </div>
+        ),
+        blocks: [
+          {
+            type: "two-column",
+            overrides: {
+              content: "Aurora Studio\nPrivacy | Terms",
+              fontSize: 16,
+              padding: 18
+            }
+          },
+          {
+            type: "paragraph",
+            overrides: {
+              content: "You're receiving this email because you subscribed to Aurora Studio updates.",
+              padding: 16
+            }
+          }
+        ]
+      }
+    ]
+  }
+];
+
+const defaultQuickAddCategory = quickAddCategories[0];
+const defaultQuickAddItem = defaultQuickAddCategory.components[0];
+
+const blockLabels = {
+  section: "Section",
+  columns: "Columns",
+  text: "Text",
+  headline: "Headline",
+  paragraph: "Paragraph",
+  button: "Button",
+  image: "Image",
+  "two-column": "Two column",
+  "three-column": "Three column",
+  spacer: "Spacer"
+};
+
+const createId = () => {
+  const globalCrypto = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+  if (globalCrypto?.randomUUID) {
+    return `block-${globalCrypto.randomUUID()}`;
+  }
+  return `block-${Math.random().toString(36).slice(2)}`;
+};
+
+const createBlock = (type, overrides = {}) => {
+  const base = {
+    type,
+    content:
+      type === "button"
+        ? "Explore more"
+        : type === "paragraph" || type === "text"
+        ? "Add your copy here"
+        : "Headline",
+    fontSize:
+      type === "headline"
+        ? 28
+        : type === "button"
+        ? 18
+        : type === "text"
+        ? 20
+        : 16,
+    padding: type === "spacer" ? 24 : type === "text" ? 20 : 16,
+    alignment: "left",
+    imageUrl:
+      type === "image"
+        ? "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80"
+        : undefined,
+    children: type === "section" ? [] : undefined
+  };
+
+  const libraryOverrides = library.find((item) => item.type === type)?.defaultOverrides ?? {};
+
+  return {
+    ...base,
+    ...libraryOverrides,
+    ...overrides,
+    id: createId()
+  };
+};
+
+const alignmentButtons = [
+  { label: "Left", value: "left", icon: AlignLeft },
+  { label: "Center", value: "center", icon: AlignCenter },
+  { label: "Right", value: "right", icon: AlignRight }
+];
+
+// Email-safe fonts
+const emailSafeFonts = [
+  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { label: "Courier New", value: "'Courier New', Courier, monospace" },
+  { label: "Trebuchet MS", value: "'Trebuchet MS', sans-serif" },
+  { label: "Tahoma", value: "Tahoma, Geneva, sans-serif" },
+  { label: "Palatino", value: "Palatino, 'Palatino Linotype', serif" },
+  { label: "Impact", value: "Impact, Charcoal, sans-serif" },
+  { label: "Comic Sans MS", value: "'Comic Sans MS', cursive" },
+];
+
+const fontSizes = [
+  { label: "12px", value: 12 },
+  { label: "14px", value: 14 },
+  { label: "16px", value: 16 },
+  { label: "18px", value: 18 },
+  { label: "20px", value: 20 },
+  { label: "24px", value: 24 },
+  { label: "28px", value: 28 },
+  { label: "32px", value: 32 },
+  { label: "36px", value: 36 },
+  { label: "42px", value: 42 },
+  { label: "48px", value: 48 },
+];
+
+export default function EmailBuilder() {
+  const [blocks, setBlocks] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [dragContext, setDragContext] = useState(null);
+  const [activeDropIndex, setActiveDropIndex] = useState(null);
+  const [theme, setTheme] = useState("light");
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(true);
+  const [isPropertiesFloating, setIsPropertiesFloating] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [activeQuickAddCategory, setActiveQuickAddCategory] = useState(defaultQuickAddCategory);
+  const [activeQuickAddItem, setActiveQuickAddItem] = useState(defaultQuickAddItem);
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
+  const [pendingColumnBlock, setPendingColumnBlock] = useState(null);
+  const [selectedColumnCount, setSelectedColumnCount] = useState(null);
+  const [dragOverSectionId, setDragOverSectionId] = useState(null);
+  const [isTextToolbarVisible, setIsTextToolbarVisible] = useState(false);
+  const [textToolbarPosition, setTextToolbarPosition] = useState({ top: 0, left: 0 });
+  const [editingBlockId, setEditingBlockId] = useState(null);
+  const [selectedText, setSelectedText] = useState("");
+  const [currentTextStyles, setCurrentTextStyles] = useState({});
+
+  const libraryRef = useRef(null);
+  const canvasRef = useRef(null);
+  const propertiesRef = useRef(null);
+  const blockRefs = useRef(new Map());
+  const textToolbarRef = useRef(null);
+  const contentEditableRefs = useRef(new Map());
+
+  const registerBlockRef = useCallback(
+    (id) => (node) => {
+      if (node) {
+        blockRefs.current.set(id, node);
+      } else {
+        blockRefs.current.delete(id);
+      }
+    },
+    []
+  );
+
+  const selectedBlock = useMemo(() => blocks.find((block) => block.id === selectedId), [blocks, selectedId]);
+
+  const groupedLibrary = useMemo(
+    () =>
+      CATEGORY_ORDER.map((category) => ({
+        category,
+        items: library.filter((item) => item.category === category)
+      })).filter((group) => group.items.length > 0),
+    []
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storedTheme = window.localStorage.getItem(THEME_KEY);
+    if (storedTheme === "dark") {
+      setTheme("dark");
+      document.documentElement.classList.add("dark");
+    }
+
+    const initialPanelState = window.localStorage.getItem(PANEL_KEY);
+    if (initialPanelState === "false") {
+      setIsPropertiesOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      const floating = window.innerWidth < 1280;
+      setIsPropertiesFloating(floating);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isPropertiesFloating) {
+      setIsPropertiesOpen(false);
+    } else {
+      if (typeof window !== "undefined") {
+        const stored = window.localStorage.getItem(PANEL_KEY);
+        setIsPropertiesOpen(stored !== "false");
+      }
+    }
+  }, [isPropertiesFloating]);
+
+  useEffect(() => {
+    if (isPropertiesFloating && selectedBlock && !isPropertiesOpen) {
+      setIsPropertiesOpen(true);
+    }
+  }, [selectedBlock, isPropertiesFloating, isPropertiesOpen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isPropertiesFloating) return;
+    window.localStorage.setItem(PANEL_KEY, String(isPropertiesOpen));
+  }, [isPropertiesOpen, isPropertiesFloating]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleShortcuts = (event) => {
+      if (!event.metaKey) return;
+      switch (event.key) {
+        case "1":
+          event.preventDefault();
+          libraryRef.current?.focus();
+          break;
+        case "2":
+          event.preventDefault();
+          canvasRef.current?.focus();
+          break;
+        case "3":
+          event.preventDefault();
+          if (isPropertiesFloating) {
+            setIsPropertiesOpen((prev) => !prev);
+          }
+          propertiesRef.current?.focus();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcuts);
+    return () => window.removeEventListener("keydown", handleShortcuts);
+  }, [isPropertiesFloating]);
+
+  useEffect(() => {
+    if (selectedId && !blocks.some((block) => block.id === selectedId)) {
+      setSelectedId(blocks.length ? blocks[blocks.length - 1].id : null);
+    }
+  }, [blocks, selectedId]);
+
+  const applyTheme = useCallback((nextTheme) => {
+    setTheme(nextTheme);
+    if (typeof window === "undefined") return;
+
+    const { document: doc, localStorage } = window;
+    doc.documentElement.classList.add("theme-transitioning");
+    if (nextTheme === "dark") {
+      doc.documentElement.classList.add("dark");
+    } else {
+      doc.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem(THEME_KEY, nextTheme);
+    requestAnimationFrame(() => {
+      doc.documentElement.classList.remove("theme-transitioning");
+    });
+  }, []);
+
+  const handleToggleTheme = () => {
+    applyTheme(theme === "light" ? "dark" : "light");
+  };
+
+  const draggingBlockId = dragContext?.source === "canvas" ? dragContext.id : null;
+
+  const serializeDragPayload = (payload) => JSON.stringify(payload);
+
+  const assignDragData = (event, payload) => {
+    const serialized = serializeDragPayload(payload);
+    event.dataTransfer.setData(CANVAS_BLOCK_TYPE, serialized);
+    event.dataTransfer.setData("text/plain", serialized);
+  };
+
+  const readDragData = (event) => {
+    const raw = event.dataTransfer.getData(CANVAS_BLOCK_TYPE) || event.dataTransfer.getData("text/plain");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      console.error("Unable to parse drag payload", error);
+      return null;
+    }
+  };
+
+  const resetDragState = useCallback(() => {
+    setDragContext(null);
+    setActiveDropIndex(null);
+    setIsDraggingOver(false);
+    setDragOverSectionId(null);
+  }, []);
+
+  const handleLibraryDragStart = (type) => (event) => {
+    const payload = { source: "library", type };
+    event.dataTransfer.effectAllowed = "copy";
+    assignDragData(event, payload);
+    setDragContext(payload);
+  };
+
+  const handleColumnConfiguration = (config) => {
+    if (!pendingColumnBlock) return;
+
+    const newBlock = {
+      ...pendingColumnBlock,
+      columns: config.columns,
+      columnSizes: config.sizes,
+      content: Array.from({ length: config.columns }, (_, i) => `Column ${i + 1}`).join('\n')
+    };
+
+    if (pendingColumnBlock.sectionId) {
+      // Add to section
+      setBlocks((prev) =>
+        prev.map((block) => {
+          if (block.id === pendingColumnBlock.sectionId) {
+            return {
+              ...block,
+              children: [...(block.children || []), newBlock]
+            };
+          }
+          return block;
+        })
+      );
+    } else if (pendingColumnBlock.index !== undefined) {
+      // Add to main canvas at index
+      setBlocks((prev) => {
+        const next = [...prev];
+        next.splice(pendingColumnBlock.index, 0, newBlock);
+        return next;
+      });
+    } else {
+      // Add to end of main canvas
+      setBlocks((prev) => [...prev, newBlock]);
+    }
+
+    setSelectedId(newBlock.id);
+    setIsColumnModalOpen(false);
+    setPendingColumnBlock(null);
+  };
+
+  const handleDropInSection = (event, sectionId) => {
+    const payload = readDragData(event);
+    if (!payload) return;
+
+    if (payload.source === "library" && payload.type) {
+      // Don't allow sections within sections
+      if (payload.type === "section") return;
+
+      if (payload.type === "columns") {
+        // Handle columns modal
+        const newBlock = createBlock(payload.type);
+        setPendingColumnBlock({ ...newBlock, sectionId });
+        setSelectedColumnCount(null);
+        setIsColumnModalOpen(true);
+      } else {
+        // Add block directly to section
+        const newBlock = createBlock(payload.type);
+        setBlocks((prev) =>
+          prev.map((block) => {
+            if (block.id === sectionId) {
+              return {
+                ...block,
+                children: [...(block.children || []), newBlock]
+              };
+            }
+            return block;
+          })
+        );
+      }
+    } else if (payload.source === "canvas" && payload.id) {
+      // Moving existing block from canvas into section
+      setBlocks((prev) => {
+        // First remove the block from its current location
+        const movingBlock = prev.find(b => b.id === payload.id);
+        if (!movingBlock) return prev;
+
+        // Don't allow moving a section into another section
+        if (movingBlock.type === "section") return prev;
+
+        const filteredBlocks = prev.filter(b => b.id !== payload.id);
+
+        // Then add it to the section
+        return filteredBlocks.map((block) => {
+          if (block.id === sectionId) {
+            return {
+              ...block,
+              children: [...(block.children || []), movingBlock]
+            };
+          }
+          return block;
+        });
+      });
+    } else if (payload.source === "section" && payload.id) {
+      // Moving block from one section to another (or same section different position)
+      setBlocks((prev) => {
+        let movingBlock = null;
+
+        // First, remove the block from its current section
+        const updatedBlocks = prev.map((block) => {
+          if (block.id === payload.sectionId && block.children) {
+            const childIndex = block.children.findIndex((child) => child.id === payload.id);
+            if (childIndex !== -1) {
+              movingBlock = block.children[childIndex];
+              return {
+                ...block,
+                children: block.children.filter((child) => child.id !== payload.id)
+              };
+            }
+          }
+          return block;
+        });
+
+        // Then add it to the target section
+        if (movingBlock) {
+          return updatedBlocks.map((block) => {
+            if (block.id === sectionId) {
+              return {
+                ...block,
+                children: [...(block.children || []), movingBlock]
+              };
+            }
+            return block;
+          });
+        }
+
+        return updatedBlocks;
+      });
+    }
+  };
+
+  const handleCanvasBlockDragStart = (block, index) => (event) => {
+    const payload = { source: "canvas", id: block.id, index };
+    event.dataTransfer.effectAllowed = "move";
+    assignDragData(event, payload);
+    setDragContext(payload);
+    setActiveDropIndex(index);
+    // Keep the canvas highlighted while the block is repositioned
+    setIsDraggingOver(true);
+  };
+
+  const handleDragEnd = () => {
+    resetDragState();
+  };
+
+  const handleCanvasDragEnter = (event) => {
+    if (!dragContext) return;
+    event.preventDefault();
+    setIsDraggingOver(true);
+    if (!blocks.length) {
+      setActiveDropIndex(0);
+    }
+  };
+
+  const handleCanvasDragOver = (event) => {
+    if (!dragContext) return;
+    event.preventDefault();
+    setIsDraggingOver(true);
+    if (!blocks.length) {
+      setActiveDropIndex(0);
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = dragContext.source === "canvas" ? "move" : "copy";
+      }
+      return;
+    }
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = dragContext.source === "canvas" ? "move" : "copy";
+    }
+
+    const { clientY } = event;
+    let nextIndex = blocks.length;
+
+    for (let index = 0; index < blocks.length; index += 1) {
+      const block = blocks[index];
+      const element = blockRefs.current.get(block.id);
+      if (!element) continue;
+      const rect = element.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      if (clientY < midpoint) {
+        nextIndex = index;
+        break;
+      }
+    }
+
+    if (activeDropIndex !== nextIndex) {
+      setActiveDropIndex(nextIndex);
+    }
+  };
+
+  const handleCanvasDragLeave = (event) => {
+    if (!dragContext) return;
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    setIsDraggingOver(false);
+    setActiveDropIndex(null);
+  };
+
+  const handleDropAtIndex = (event, index) => {
+    if (!dragContext) return;
+    event.preventDefault();
+    event.stopPropagation(); // Prevent event bubbling to parent drop handlers
+
+    // Immediately reset drag state to prevent multiple handlers
+    const currentDragContext = dragContext;
+    resetDragState();
+
+    const payload = readDragData(event);
+    if (!payload) {
+      return;
+    }
+
+    if (payload.source === "library" && payload.type) {
+      if (payload.type === "columns") {
+        const newBlock = createBlock(payload.type);
+        setPendingColumnBlock({ ...newBlock, index });
+        setSelectedColumnCount(null);
+        setIsColumnModalOpen(true);
+      } else {
+        const newBlock = createBlock(payload.type);
+        setBlocks((prev) => {
+          const next = [...prev];
+          const targetIndex = Math.max(0, Math.min(index, next.length));
+          next.splice(targetIndex, 0, newBlock);
+          return next;
+        });
+        setSelectedId(newBlock.id);
+      }
+    } else if (payload.source === "canvas" && payload.id) {
+      setBlocks((prev) => {
+        const currentIndex = prev.findIndex((block) => block.id === payload.id);
+        if (currentIndex === -1) return prev;
+
+        const next = [...prev];
+        const [moved] = next.splice(currentIndex, 1);
+        let targetIndex = index;
+        if (currentIndex < index) {
+          targetIndex -= 1;
+        }
+        targetIndex = Math.max(0, Math.min(targetIndex, next.length));
+        next.splice(targetIndex, 0, moved);
+        return next;
+      });
+      setSelectedId(payload.id);
+    } else if (payload.source === "section" && payload.id) {
+      // Moving block from section to main canvas
+      setBlocks((prev) => {
+        let movingBlock = null;
+
+        // First, remove the block from its section
+        const updatedBlocks = prev.map((block) => {
+          if (block.id === payload.sectionId && block.children) {
+            const childIndex = block.children.findIndex((child) => child.id === payload.id);
+            if (childIndex !== -1) {
+              movingBlock = block.children[childIndex];
+              return {
+                ...block,
+                children: block.children.filter((child) => child.id !== payload.id)
+              };
+            }
+          }
+          return block;
+        });
+
+        // Then add it to the main canvas at the specified index
+        if (movingBlock) {
+          const targetIndex = Math.max(0, Math.min(index, updatedBlocks.length));
+          updatedBlocks.splice(targetIndex, 0, movingBlock);
+        }
+
+        return updatedBlocks;
+      });
+      setSelectedId(payload.id);
+    }
+  };
+
+  const handleCanvasDrop = (event) => {
+    const index = activeDropIndex ?? blocks.length;
+    handleDropAtIndex(event, index);
+  };
+
+  const handleSelectBlock = (id) => () => {
+    setSelectedId(id);
+  };
+
+  const updateBlock = (id, updates) => {
+    setBlocks((prev) => prev.map((block) => (block.id === id ? { ...block, ...updates } : block)));
+  };
+
+  const handleDeleteBlock = (id) => {
+    setBlocks((prev) => prev.filter((block) => block.id !== id));
+  };
+
+  const handleDuplicateBlock = (block) => {
+    const duplicate = createBlock(block.type, {
+      ...block,
+      id: undefined
+    });
+    setBlocks((prev) => {
+      const index = prev.findIndex((item) => item.id === block.id);
+      if (index === -1) return prev;
+      const next = [...prev];
+      next.splice(index + 1, 0, duplicate);
+      return next;
+    });
+    setSelectedId(duplicate.id);
+  };
+
+  const handleDuplicateBlockInSection = (sectionId, block) => {
+    const duplicate = createBlock(block.type, {
+      ...block,
+      id: undefined
+    });
+    setBlocks((prev) =>
+      prev.map((section) => {
+        if (section.id === sectionId) {
+          const index = section.children.findIndex((item) => item.id === block.id);
+          if (index === -1) return section;
+          const newChildren = [...section.children];
+          newChildren.splice(index + 1, 0, duplicate);
+          return { ...section, children: newChildren };
+        }
+        return section;
+      })
+    );
+    setSelectedId(duplicate.id);
+  };
+
+  const handleDeleteBlockFromSection = (sectionId, blockId) => {
+    setBlocks((prev) =>
+      prev.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            children: section.children.filter((child) => child.id !== blockId)
+          };
+        }
+        return section;
+      })
+    );
+  };
+
+  const handleClear = () => {
+    setBlocks([]);
+    setSelectedId(null);
+  };
+
+  const handleQuickAddOpen = () => {
+    setActiveQuickAddCategory(defaultQuickAddCategory);
+    setActiveQuickAddItem(defaultQuickAddItem);
+    setIsQuickAddOpen(true);
+  };
+
+  const handleQuickAddClose = () => {
+    setIsQuickAddOpen(false);
+  };
+
+  const handleQuickAddInsert = (item) => {
+    const newBlocks = item.blocks.map((blockConfig) => createBlock(blockConfig.type, blockConfig.overrides));
+    setBlocks((prev) => [...prev, ...newBlocks]);
+    if (newBlocks.length) {
+      setSelectedId(newBlocks[newBlocks.length - 1].id);
+    }
+    setIsQuickAddOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isQuickAddOpen) return undefined;
+    const handleEsc = (event) => {
+      if (event.key === "Escape") {
+        handleQuickAddClose();
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isQuickAddOpen]);
+
+  useEffect(() => {
+    if (!isQuickAddOpen || typeof document === "undefined") return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isQuickAddOpen]);
+
+  const handleImageUrlChange = (value) => {
+    if (!selectedBlock) return;
+    updateBlock(selectedBlock.id, { imageUrl: value });
+  };
+
+  const handleSpacerSizeChange = (value) => {
+    if (!selectedBlock) return;
+    updateBlock(selectedBlock.id, { padding: value });
+  };
+
+  // Text editing functions
+  const handleTextSelection = useCallback((blockId) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      setIsTextToolbarVisible(false);
+      return;
+    }
+
+    const selectedString = selection.toString();
+    if (!selectedString) {
+      setIsTextToolbarVisible(false);
+      return;
+    }
+
+    setSelectedText(selectedString);
+    setEditingBlockId(blockId);
+
+    // Get selection bounds
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    // Position toolbar above selection
+    setTextToolbarPosition({
+      top: rect.top - 60,
+      left: rect.left + rect.width / 2,
+    });
+    setIsTextToolbarVisible(true);
+
+    // Get current styles
+    const parentElement = selection.anchorNode.parentElement;
+    if (parentElement) {
+      const computedStyles = window.getComputedStyle(parentElement);
+      setCurrentTextStyles({
+        bold: computedStyles.fontWeight === "bold" || parseInt(computedStyles.fontWeight) >= 700,
+        italic: computedStyles.fontStyle === "italic",
+        underline: computedStyles.textDecoration.includes("underline"),
+        strikethrough: computedStyles.textDecoration.includes("line-through"),
+        fontSize: parseInt(computedStyles.fontSize),
+        fontFamily: computedStyles.fontFamily,
+        color: computedStyles.color,
+      });
+    }
+  }, []);
+
+  const applyTextFormat = useCallback((command, value = null) => {
+    if (value) {
+      document.execCommand(command, false, value);
+    } else {
+      document.execCommand(command, false);
+    }
+
+    // Update block content
+    if (editingBlockId) {
+      const editableElement = contentEditableRefs.current.get(editingBlockId);
+      if (editableElement) {
+        const newContent = editableElement.innerHTML;
+        updateBlock(editingBlockId, { content: newContent, isHtml: true });
+      }
+    }
+  }, [editingBlockId]);
+
+  const handleTextChange = useCallback((blockId, newContent) => {
+    updateBlock(blockId, { content: newContent, isHtml: true });
+  }, []);
+
+  const insertLink = useCallback(() => {
+    const url = prompt("Enter URL:");
+    if (url) {
+      applyTextFormat("createLink", url);
+    }
+  }, [applyTextFormat]);
+
+  const changeTextColor = useCallback((color) => {
+    applyTextFormat("foreColor", color);
+  }, [applyTextFormat]);
+
+  const changeFontFamily = useCallback((fontFamily) => {
+    applyTextFormat("fontName", fontFamily);
+  }, [applyTextFormat]);
+
+  const changeFontSize = useCallback((size) => {
+    // Convert px to relative size (1-7) for execCommand
+    const relativeSize = Math.min(7, Math.max(1, Math.round(size / 7)));
+    applyTextFormat("fontSize", relativeSize);
+  }, [applyTextFormat]);
+
+  // Hide toolbar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (textToolbarRef.current && !textToolbarRef.current.contains(event.target)) {
+        const isContentEditable = event.target.closest('[contenteditable="true"]');
+        if (!isContentEditable) {
+          setIsTextToolbarVisible(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const renderBlockContent = (block) => {
+    const textStyle = {
+      textAlign: block.alignment,
+      fontSize: `${block.fontSize}px`,
+      padding: `${block.padding}px`,
+      lineHeight: block.lineHeight || (block.type === "paragraph" ? 1.6 : 1.3),
+      letterSpacing: block.letterSpacing ? `${block.letterSpacing}px` : undefined,
+      fontFamily: block.fontFamily || "Arial, Helvetica, sans-serif",
+      color: block.textColor || "inherit",
+      margin: 0
+    };
+
+    switch (block.type) {
+      case "section":
+        return (
+          <div
+            className={`${styles.sectionBlock} ${dragOverSectionId === block.id ? styles.dragOver : ''}`}
+            style={{
+              padding: `${block.padding}px`,
+              backgroundColor: block.background || 'transparent',
+              borderRadius: 'var(--radius-md)',
+              border: '1px dashed rgba(148, 163, 184, 0.3)',
+              minHeight: '120px'
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragOverSectionId(block.id);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) {
+                setDragOverSectionId(null);
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDropInSection(e, block.id);
+              setDragOverSectionId(null);
+            }}
+          >
+            {block.children && block.children.length > 0 ? (
+              <div className={styles.sectionContent}>
+                {block.children.map((childBlock, childIndex) => (
+                  <div
+                    key={childBlock.id}
+                    className={`${styles.canvasBlock} ${styles.sectionChildBlock} ${childBlock.id === selectedId ? styles.selected : ''}`}
+                    draggable
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedId(childBlock.id);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      if (childBlock.type === "text" || childBlock.type === "paragraph" || childBlock.type === "headline") {
+                        setEditingBlockId(childBlock.id);
+                        setTimeout(() => {
+                          const el = contentEditableRefs.current.get(childBlock.id);
+                          if (el) {
+                            // Ensure text content is present
+                            if (!el.innerText || el.innerText.trim() === '') {
+                              el.innerText = childBlock.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+                            }
+                            el.focus();
+                            // Don't select all - let user position cursor
+                          }
+                        }, 50);
+                      }
+                    }}
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      const payload = {
+                        source: "section",
+                        id: childBlock.id,
+                        sectionId: block.id,
+                        index: childIndex
+                      };
+                      e.dataTransfer.effectAllowed = "move";
+                      assignDragData(e, payload);
+                      setDragContext(payload);
+                    }}
+                    onDragEnd={handleDragEnd}
+                  >
+                    {childBlock.id === selectedId && (
+                      <div className={styles.blockActions}>
+                        <button
+                          type="button"
+                          className={styles.blockActionButton}
+                          aria-label="Duplicate block"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicateBlockInSection(block.id, childBlock);
+                          }}
+                        >
+                          <Copy className="icon" />
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.blockActionButton}
+                          aria-label="Delete block"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteBlockFromSection(block.id, childBlock.id);
+                          }}
+                        >
+                          <Trash2 className="icon" />
+                        </button>
+                      </div>
+                    )}
+                    {renderBlockContent(childBlock)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '100px',
+                color: 'var(--text-muted)'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <Layers className="icon" style={{ width: '24px', height: '24px', marginBottom: '8px' }} />
+                  <p style={{ margin: 0, fontSize: '14px' }}>Section Container</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', opacity: 0.7 }}>Drop content blocks here</p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case "headline":
+        return (
+          <h3
+            key={`${block.id}-${editingBlockId === block.id ? 'editing' : 'display'}`}
+            ref={(el) => {
+              if (el) contentEditableRefs.current.set(block.id, el);
+              else contentEditableRefs.current.delete(block.id);
+            }}
+            contentEditable={editingBlockId === block.id}
+            suppressContentEditableWarning
+            style={{
+              textAlign: block.alignment,
+              fontSize: `${block.fontSize}px`,
+              padding: `${block.padding}px`,
+              lineHeight: block.lineHeight || 1.3,
+              letterSpacing: block.letterSpacing ? `${block.letterSpacing}px` : undefined,
+              fontFamily: block.fontFamily || "Arial, Helvetica, sans-serif",
+              color: block.textColor || "inherit",
+              margin: 0,
+              direction: 'ltr',
+              unicodeBidi: 'normal',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              minHeight: '1em', // Prevent shrinking
+              outline: editingBlockId === block.id ? '2px solid rgba(96, 165, 250, 0.5)' : 'none',
+              outlineOffset: '2px',
+              cursor: editingBlockId === block.id ? 'text' : 'pointer'
+            }}
+            onClick={(e) => {
+              if (editingBlockId !== block.id) {
+                setSelectedId(block.id);
+              }
+            }}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setEditingBlockId(block.id);
+              setIsTextToolbarVisible(false); // Hide first to prevent duplicates
+
+              setTimeout(() => {
+                const el = contentEditableRefs.current.get(block.id);
+                if (el) {
+                  // Only set content if element is empty to preserve cursor position
+                  if (!el.textContent || el.textContent.trim() === '') {
+                    el.textContent = block.content.replace(/<[^>]*>/g, '');
+                  }
+                  el.focus();
+
+                  // Position toolbar only once
+                  const rect = el.getBoundingClientRect();
+                  setTextToolbarPosition({
+                    top: Math.max(10, rect.top - 80),
+                    left: rect.left + rect.width / 2,
+                  });
+                  setIsTextToolbarVisible(true);
+                }
+              }, 10);
+            }}
+            onInput={(e) => {
+              const newContent = e.target.textContent || '';
+              updateBlock(block.id, { content: newContent, isHtml: false });
+            }}
+            onBlur={(e) => {
+              // Only update state, content is already updated by onInput
+              setEditingBlockId(null);
+              setIsTextToolbarVisible(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                e.target.blur();
+                return;
+              }
+
+              if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                  case 'b':
+                    e.preventDefault();
+                    document.execCommand('bold');
+                    break;
+                  case 'i':
+                    e.preventDefault();
+                    document.execCommand('italic');
+                    break;
+                  case 'u':
+                    e.preventDefault();
+                    document.execCommand('underline');
+                    break;
+                }
+              }
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+              const text = e.clipboardData.getData('text/plain');
+              document.execCommand('insertText', false, text);
+            }}
+            data-block-id={block.id}
+          >
+            {editingBlockId !== block.id ? (
+              <span dangerouslySetInnerHTML={{
+                __html: block.isHtml
+                  ? block.content
+                  : block.content.replace(/\n/g, '<br>').replace(/\s{2,}/g, ' ')
+              }} />
+            ) : null}
+          </h3>
+        );
+      case "paragraph":
+      case "text":
+        return (
+          <p
+            key={`${block.id}-${editingBlockId === block.id ? 'editing' : 'display'}`}
+            ref={(el) => {
+              if (el) contentEditableRefs.current.set(block.id, el);
+              else contentEditableRefs.current.delete(block.id);
+            }}
+            contentEditable={editingBlockId === block.id}
+            suppressContentEditableWarning
+            style={{
+              textAlign: block.alignment,
+              fontSize: `${block.fontSize}px`,
+              padding: `${block.padding}px`,
+              lineHeight: block.lineHeight || 1.6,
+              letterSpacing: block.letterSpacing ? `${block.letterSpacing}px` : undefined,
+              fontFamily: block.fontFamily || "Arial, Helvetica, sans-serif",
+              color: block.textColor || "inherit",
+              margin: 0,
+              direction: 'ltr',
+              unicodeBidi: 'normal',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              minHeight: '1em', // Prevent shrinking
+              outline: editingBlockId === block.id ? '2px solid rgba(96, 165, 250, 0.5)' : 'none',
+              outlineOffset: '2px',
+              cursor: editingBlockId === block.id ? 'text' : 'pointer'
+            }}
+            onClick={(e) => {
+              if (editingBlockId !== block.id) {
+                setSelectedId(block.id);
+              }
+            }}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setEditingBlockId(block.id);
+              setIsTextToolbarVisible(false); // Hide first to prevent duplicates
+
+              setTimeout(() => {
+                const el = contentEditableRefs.current.get(block.id);
+                if (el) {
+                  // Only set content if element is empty to preserve cursor position
+                  if (!el.textContent || el.textContent.trim() === '') {
+                    el.textContent = block.content.replace(/<[^>]*>/g, '');
+                  }
+                  el.focus();
+
+                  // Position toolbar only once
+                  const rect = el.getBoundingClientRect();
+                  setTextToolbarPosition({
+                    top: Math.max(10, rect.top - 80),
+                    left: rect.left + rect.width / 2,
+                  });
+                  setIsTextToolbarVisible(true);
+                }
+              }, 10);
+            }}
+            onInput={(e) => {
+              const newContent = e.target.textContent || '';
+              updateBlock(block.id, { content: newContent, isHtml: false });
+            }}
+            onBlur={(e) => {
+              // Only update state, content is already updated by onInput
+              setEditingBlockId(null);
+              setIsTextToolbarVisible(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                e.target.blur();
+                return;
+              }
+
+              if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                  case 'b':
+                    e.preventDefault();
+                    document.execCommand('bold');
+                    break;
+                  case 'i':
+                    e.preventDefault();
+                    document.execCommand('italic');
+                    break;
+                  case 'u':
+                    e.preventDefault();
+                    document.execCommand('underline');
+                    break;
+                }
+              }
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+              const text = e.clipboardData.getData('text/plain');
+              document.execCommand('insertText', false, text);
+            }}
+            data-block-id={block.id}
+          >
+            {editingBlockId !== block.id ? (
+              <span dangerouslySetInnerHTML={{
+                __html: block.isHtml
+                  ? block.content
+                  : block.content.replace(/\n/g, '<br>').replace(/\s{2,}/g, ' ')
+              }} />
+            ) : null}
+          </p>
+        );
+      case "button":
+        return (
+          <div style={{ textAlign: block.alignment }}>
+            <button className={styles.canvasBlockButton} style={{ margin: block.alignment === "left" ? "0 auto 0 0" : block.alignment === "right" ? "0 0 0 auto" : "0 auto" }}>
+              {block.content}
+            </button>
+          </div>
+        );
+      case "image":
+        return (
+          <div className={styles.canvasImageWrapper} style={{ padding: `${block.padding}px` }}>
+            <img
+              src={block.imageUrl ?? ""}
+              alt={block.content || "Email section image"}
+              style={{ filter: theme === "dark" ? "brightness(0.85)" : "none" }}
+            />
+          </div>
+        );
+      case "columns": {
+        const columns = block.content
+          .split(/\n|\r/)
+          .map((column) => column.trim())
+          .filter(Boolean);
+        const columnCount = block.columns || 2;
+        const normalizedColumns = Array.from({ length: columnCount }).map((_, index) => columns[index] ?? `Column ${index + 1}`);
+
+        // Determine column widths based on columnSizes
+        const getColumnStyle = (index) => {
+          if (block.columnSizes === "equal") {
+            return { flex: 1 };
+          } else if (block.columnSizes === "1-2") {
+            return index === 0 ? { flex: "0 0 33.333%" } : { flex: "0 0 66.667%" };
+          } else if (block.columnSizes === "2-1") {
+            return index === 0 ? { flex: "0 0 66.667%" } : { flex: "0 0 33.333%" };
+          } else if (block.columnSizes === "1-3") {
+            return index === 0 ? { flex: "0 0 25%" } : { flex: "0 0 75%" };
+          } else if (block.columnSizes === "3-1") {
+            return index === 0 ? { flex: "0 0 75%" } : { flex: "0 0 25%" };
+          }
+          return { flex: 1 };
+        };
+
+        return (
+          <div className={styles.canvasColumns} style={{ padding: `${block.padding}px`, display: 'flex', gap: '16px' }}>
+            {normalizedColumns.map((column, index) => (
+              <div key={`${block.id}-${index}`} className={styles.columnCard} style={getColumnStyle(index)}>
+                <h4 style={{ marginTop: 0, marginBottom: 8, fontSize: `${block.fontSize}px` }}>{column}</h4>
+                <p style={{ margin: 0, color: "var(--text-muted)", fontSize: `${Math.max(12, block.fontSize - 4)}px` }}>
+                  Add supporting details for this column to highlight value.
+                </p>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      case "spacer":
+        return <div className={styles.spacer} style={{ height: `${block.padding}px` }} />;
+      default:
+        return null;
+    }
+  };
+
+  const propertiesPanelClassName = [
+    styles.properties,
+    isPropertiesFloating ? styles.propertiesFloating : undefined,
+    isPropertiesFloating && isPropertiesOpen ? styles.propertiesFloatingOpen : undefined
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const isCanvasEmpty = blocks.length === 0;
+
+  const canvasInnerClassName = [
+    styles.canvasViewportInner,
+    dragContext ? styles.canvasViewportInnerActive : undefined,
+    dragContext && activeDropIndex === blocks.length ? styles.canvasViewportInnerTail : undefined
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className={styles.appShell}>
+      <header className={styles.topBar}>
+        <div className={styles.brand}>
+          <div className={styles.brandMark}>AI</div>
+          <div className={styles.brandCopy}>
+            <span className={styles.brandName}>Aurora Studio</span>
+            <span className={styles.brandTagline}>Modular email creation</span>
+          </div>
+        </div>
+        <div className={styles.documentMeta}>
+          <input className={styles.documentTitle} defaultValue="Spring Promotion" aria-label="Document title" />
+          <div className={styles.documentStatus}>
+            <span className={styles.statusIndicator} aria-hidden />
+            <span>Saved moments ago</span>
+          </div>
+        </div>
+        <div className={styles.topActions}>
+          <button className="btn btn-ghost" aria-label="Toggle theme" onClick={handleToggleTheme}>
+            {theme === "light" ? <Sun className="icon" /> : <Moon className="icon" />}
+          </button>
+          <button className="btn btn-secondary" type="button">
+            Preview
+          </button>
+          <button className="btn btn-primary" type="button">
+            Share
+          </button>
+          <div className={styles.userMenu} role="button" tabIndex={0}>
+            <img src="https://i.pravatar.cc/40?img=12" alt="Viv" />
+            <span>Viv</span>
+            <ChevronDown className="icon" aria-hidden />
+          </div>
+        </div>
+      </header>
+
+      <main className={styles.workspace}>
+        <aside
+          className={`${styles.sidebar} ${styles.library}`}
+          aria-label="Component library"
+          ref={libraryRef}
+          tabIndex={-1}
+        >
+          <div className={styles.libraryTopBar}>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={handleQuickAddOpen}
+              aria-expanded={isQuickAddOpen}
+            >
+              <Plus className="icon" />
+              Quick add
+            </button>
+          </div>
+          <div className={styles.libraryContent}>
+            {groupedLibrary.map((group) => (
+              <div key={group.category} className={styles.librarySection}>
+                <div className={styles.sectionTitle}>{group.category}</div>
+                <div className={styles.componentGrid}>
+                  {group.items.map((item) => (
+                    <button
+                      key={item.type}
+                      type="button"
+                      className={`${styles.componentCard} ${item.type === 'section' ? styles.dragOnly : ''}`}
+                      draggable
+                      onDragStart={handleLibraryDragStart(item.type)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => {
+                        if (item.type === "section") {
+                          // Section blocks should only be added via drag and drop
+                          return;
+                        } else if (item.type === "columns") {
+                          const newBlock = createBlock(item.type);
+                          setPendingColumnBlock(newBlock);
+                          setSelectedColumnCount(null);
+                          setIsColumnModalOpen(true);
+                        } else {
+                          const newBlock = createBlock(item.type);
+                          setBlocks((prev) => [...prev, newBlock]);
+                          setSelectedId(newBlock.id);
+                        }
+                      }}
+                      title={item.type === 'section' ? 'Drag to add section' : `Add ${item.title}`}
+                    >
+                      <item.icon className="icon" aria-hidden />
+                      <span>{item.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <section className={styles.canvas} aria-label="Email canvas">
+          <div
+            id="canvas-stage"
+            className={`${styles.canvasStage} ${isDraggingOver ? styles.canvasStageActive : ""}`}
+            ref={canvasRef}
+            tabIndex={-1}
+            onDragEnter={handleCanvasDragEnter}
+            onDragOver={handleCanvasDragOver}
+            onDragLeave={handleCanvasDragLeave}
+            onDrop={handleCanvasDrop}
+          >
+            <div className={`${styles.canvasViewport} ${isDraggingOver ? styles.canvasViewportActive : ""}`}>
+              <div className={canvasInnerClassName}>
+                {isCanvasEmpty ? (
+                  <div className={`${styles.emptyState} ${dragContext ? styles.emptyStateActive : ""}`}>
+                    {dragContext ? (
+                      <div className={styles.emptyStateDropPrompt}>
+                        <Plus className={styles.emptyStateDropIcon} aria-hidden />
+                        <span>Release to add this block</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Layout className={styles.emptyIcon} aria-hidden />
+                        <h3>Start building your email</h3>
+                        <p>Drag components from the left or open Quick add to jump start your layout</p>
+                        <button
+                          className="btn btn-primary"
+                          type="button"
+                          onClick={handleQuickAddOpen}
+                          aria-expanded={isQuickAddOpen}
+                        >
+                          Quick add
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {/* Top dropzone */}
+                    {dragContext && (
+                      <div
+                        className={`${styles.dropzone} ${activeDropIndex === 0 ? styles.dropzoneActive : ""}`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setActiveDropIndex(0);
+                        }}
+                        onDrop={(e) => handleDropAtIndex(e, 0)}
+                      >
+                        <div className={styles.dropzoneIndicator}>
+                          <Plus className="icon" />
+                          <span>Drop here</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {blocks.map((block, index) => {
+                      const dropBefore = dragContext && activeDropIndex === index;
+                      const dropAfter = dragContext && activeDropIndex === index + 1;
+                      const blockClassName = [
+                        styles.canvasBlock,
+                        block.id === selectedId ? styles.selected : "",
+                        draggingBlockId === block.id ? styles.blockDragging : ""
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+
+                      return (
+                        <React.Fragment key={block.id}>
+                          <div
+                            className={`${blockClassName} ${styles.blockWrapper}`}
+                            draggable
+                            ref={registerBlockRef(block.id)}
+                            onDragStart={handleCanvasBlockDragStart(block, index)}
+                            onDragEnd={handleDragEnd}
+                            onClick={handleSelectBlock(block.id)}
+                            onDoubleClick={(e) => {
+                              if (block.type === "text" || block.type === "paragraph" || block.type === "headline") {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingBlockId(block.id);
+                                setTimeout(() => {
+                                  const el = contentEditableRefs.current.get(block.id);
+                                  if (el) {
+                                    // Ensure text content is present before focusing
+                                    if (!el.innerText || el.innerText.trim() === '') {
+                                      el.innerText = block.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+                                    }
+                                    el.focus();
+                                    // Place cursor at click position, not select all
+                                  }
+                                }, 50);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${block.type} block`}
+                            aria-pressed={block.id === selectedId}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setSelectedId(block.id);
+                              }
+                            }}
+                          >
+                            {/* Section indicator on the left */}
+                            {block.type === 'section' && (
+                              <div className={styles.sectionIndicator}>
+                                <span>Section</span>
+                              </div>
+                            )}
+                            {block.id === selectedId && (
+                              <div className={styles.blockActions}>
+                            {(block.type === "text" || block.type === "paragraph" || block.type === "headline") && (
+                              <button
+                                type="button"
+                                className={styles.blockActionButton}
+                                aria-label="Edit text"
+                                title="Double-click to edit text"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setEditingBlockId(block.id);
+                                  setTimeout(() => {
+                                    const el = contentEditableRefs.current.get(block.id);
+                                    if (el) {
+                                      // Ensure text content is present
+                                      if (!el.innerText || el.innerText.trim() === '') {
+                                        el.innerText = block.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+                                      }
+                                      el.focus();
+                                      // Don't select all - let user position cursor
+                                    }
+                                  }, 50);
+                                }}
+                                style={{
+                                  background: editingBlockId === block.id ? "rgba(96, 165, 250, 0.2)" : undefined
+                                }}
+                              >
+                                <Edit2 className="icon" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className={styles.blockActionButton}
+                              aria-label="Duplicate block"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDuplicateBlock(block);
+                              }}
+                            >
+                              <Copy className="icon" />
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.blockActionButton}
+                              aria-label="Delete block"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteBlock(block.id);
+                              }}
+                            >
+                              <Trash2 className="icon" />
+                            </button>
+                          </div>
+                            )}
+                            {renderBlockContent(block)}
+                          </div>
+
+                          {/* Dropzone between blocks */}
+                          {dragContext && index < blocks.length - 1 && (
+                            <div
+                              className={`${styles.dropzone} ${activeDropIndex === index + 1 ? styles.dropzoneActive : ""}`}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                setActiveDropIndex(index + 1);
+                              }}
+                              onDrop={(e) => handleDropAtIndex(e, index + 1)}
+                            >
+                              <div className={styles.dropzoneIndicator}>
+                                <Plus className="icon" />
+                                <span>Drop here</span>
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+
+                    {/* Bottom dropzone */}
+                    {dragContext && blocks.length > 0 && (
+                      <div
+                        className={`${styles.dropzone} ${activeDropIndex === blocks.length ? styles.dropzoneActive : ""}`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setActiveDropIndex(blocks.length);
+                        }}
+                        onDrop={(e) => handleDropAtIndex(e, blocks.length)}
+                      >
+                        <div className={styles.dropzoneIndicator}>
+                          <Plus className="icon" />
+                          <span>Drop here</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside
+          className={propertiesPanelClassName}
+          aria-label="Component properties"
+          ref={propertiesRef}
+          tabIndex={-1}
+        >
+          {isPropertiesFloating && (
+            <button
+              className={styles.propertiesToggle}
+              type="button"
+              onClick={() => setIsPropertiesOpen((prev) => !prev)}
+              aria-expanded={isPropertiesOpen}
+              aria-label={isPropertiesOpen ? "Collapse properties" : "Expand properties"}
+            >
+              <ChevronsRight
+                className={`${styles.panelToggleIcon} ${isPropertiesOpen ? styles.panelToggleIconOpen : ""} icon`}
+              />
+            </button>
+          )}
+          <div className={styles.propertiesContent}>
+            {!selectedBlock ? (
+              <div className={styles.propertiesEmpty}>
+                <h3>No block selected</h3>
+                <p>Select a component on the canvas to edit its content and style.</p>
+              </div>
+            ) : (
+              <>
+                <div className={styles.propertiesHeading}>
+                  <span className={styles.propertiesBadge}>{blockLabels[selectedBlock.type] ?? "Component"}</span>
+                  <p>
+                    {(selectedBlock.type === "text" || selectedBlock.type === "paragraph" || selectedBlock.type === "headline")
+                      ? "Double-click the text to edit directly with rich formatting options, or use the fields below."
+                      : "Edit content, spacing, and alignment for this block."}
+                  </p>
+                </div>
+
+                <form className={styles.propertiesForm} onSubmit={(event) => event.preventDefault()}>
+
+                {selectedBlock.type === "image" && (
+                  <fieldset>
+                    <legend>Image</legend>
+                    <label className={styles.formLabel} htmlFor="prop-image-url">
+                      Image URL
+                    </label>
+                    <input
+                      id="prop-image-url"
+                      className={styles.inputField}
+                      type="url"
+                      value={selectedBlock.imageUrl ?? ""}
+                      onChange={(event) => handleImageUrlChange(event.target.value)}
+                      placeholder="https://"
+                    />
+                    <label className={styles.formLabel} htmlFor="prop-image-alt">
+                      Alt text
+                    </label>
+                    <input
+                      id="prop-image-alt"
+                      className={styles.inputField}
+                      type="text"
+                      value={selectedBlock.content}
+                      onChange={(event) => updateBlock(selectedBlock.id, { content: event.target.value })}
+                      placeholder="Describe the image"
+                    />
+                  </fieldset>
+                )}
+
+                {selectedBlock.type === "spacer" && (
+                  <fieldset>
+                    <legend>Spacer</legend>
+                    <label className={styles.formLabel} htmlFor="prop-spacer-height">
+                      Height
+                    </label>
+                    <input
+                      id="prop-spacer-height"
+                      type="range"
+                      min={8}
+                      max={120}
+                      value={selectedBlock.padding}
+                      onChange={(event) => handleSpacerSizeChange(Number(event.target.value))}
+                    />
+                    <div className={styles.rangeValue}>{selectedBlock.padding}px</div>
+                  </fieldset>
+                )}
+
+                {selectedBlock.type !== "spacer" && selectedBlock.type !== "image" && (
+                  <fieldset>
+                    <legend>Typography</legend>
+                    <label className={styles.formLabel} htmlFor="prop-font-family">
+                      Font Family
+                    </label>
+                    <select
+                      id="prop-font-family"
+                      className={styles.inputField}
+                      value={selectedBlock.fontFamily || "Arial, Helvetica, sans-serif"}
+                      onChange={(event) => updateBlock(selectedBlock.id, { fontFamily: event.target.value })}
+                    >
+                      {emailSafeFonts.map((font) => (
+                        <option key={font.value} value={font.value}>
+                          {font.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <label className={styles.formLabel} htmlFor="prop-font-size">
+                      Font size
+                    </label>
+                    <input
+                      id="prop-font-size"
+                      type="range"
+                      min={12}
+                      max={48}
+                      value={selectedBlock.fontSize}
+                      onChange={(event) => updateBlock(selectedBlock.id, { fontSize: Number(event.target.value) })}
+                    />
+                    <div className={styles.rangeValue}>{selectedBlock.fontSize}px</div>
+
+                    <label className={styles.formLabel} htmlFor="prop-line-height">
+                      Line Height
+                    </label>
+                    <input
+                      id="prop-line-height"
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={0.1}
+                      value={selectedBlock.lineHeight || 1.6}
+                      onChange={(event) => updateBlock(selectedBlock.id, { lineHeight: Number(event.target.value) })}
+                    />
+                    <div className={styles.rangeValue}>{(selectedBlock.lineHeight || 1.6).toFixed(1)}</div>
+
+                    <label className={styles.formLabel} htmlFor="prop-letter-spacing">
+                      Letter Spacing
+                    </label>
+                    <input
+                      id="prop-letter-spacing"
+                      type="range"
+                      min={-2}
+                      max={10}
+                      step={0.5}
+                      value={selectedBlock.letterSpacing || 0}
+                      onChange={(event) => updateBlock(selectedBlock.id, { letterSpacing: Number(event.target.value) })}
+                    />
+                    <div className={styles.rangeValue}>{selectedBlock.letterSpacing || 0}px</div>
+
+                    <label className={styles.formLabel} htmlFor="prop-text-color">
+                      Text Color
+                    </label>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <input
+                        id="prop-text-color"
+                        type="color"
+                        style={{
+                          width: "48px",
+                          height: "36px",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                        }}
+                        value={selectedBlock.textColor || "#000000"}
+                        onChange={(event) => updateBlock(selectedBlock.id, { textColor: event.target.value })}
+                      />
+                      <input
+                        type="text"
+                        className={styles.inputField}
+                        value={selectedBlock.textColor || "#000000"}
+                        onChange={(event) => updateBlock(selectedBlock.id, { textColor: event.target.value })}
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                  </fieldset>
+                )}
+
+                {selectedBlock.type !== "spacer" && (
+                  <fieldset>
+                    <legend>Spacing</legend>
+                    <label className={styles.formLabel} htmlFor="prop-padding">
+                      Padding
+                    </label>
+                    <input
+                      id="prop-padding"
+                      type="range"
+                      min={0}
+                      max={48}
+                      value={selectedBlock.padding}
+                      onChange={(event) => updateBlock(selectedBlock.id, { padding: Number(event.target.value) })}
+                    />
+                    <div className={styles.rangeValue}>{selectedBlock.padding}px</div>
+                  </fieldset>
+                )}
+
+                {selectedBlock.type !== "spacer" && selectedBlock.type !== "image" && (
+                  <fieldset>
+                    <legend>Alignment</legend>
+                    <div className={styles.alignmentOptions}>
+                      {alignmentButtons.map((button) => (
+                        <button
+                          key={button.value}
+                          type="button"
+                          className={`${styles.alignmentButton} ${selectedBlock.alignment === button.value ? styles.alignmentActive : ""}`}
+                          onClick={() => updateBlock(selectedBlock.id, { alignment: button.value })}
+                          aria-pressed={selectedBlock.alignment === button.value}
+                        >
+                          <button.icon className="icon" aria-hidden />
+                          {button.label}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
+                </form>
+              </>
+            )}
+          </div>
+        </aside>
+      </main>
+
+      {isQuickAddOpen && (
+        <div
+          className={styles.quickAddOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Quick add"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              handleQuickAddClose();
+            }
+          }}
+        >
+          <div className={styles.quickAddPanel}>
+            <aside className={styles.quickAddMenu}>
+              <nav className={styles.quickAddMenuList}>
+                {quickAddCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    className={`${styles.quickAddMenuItem} ${
+                      activeQuickAddCategory.id === category.id ? styles.quickAddMenuItemActive : ""
+                    }`}
+                    onMouseEnter={() => {
+                      setActiveQuickAddCategory(category);
+                      setActiveQuickAddItem(category.components[0]);
+                    }}
+                    onFocus={() => {
+                      setActiveQuickAddCategory(category);
+                      setActiveQuickAddItem(category.components[0]);
+                    }}
+                  >
+                    <category.icon className="icon" aria-hidden />
+                    <div>
+                      <span className={styles.quickAddMenuTitle}>{category.title}</span>
+                      <p className={styles.quickAddMenuDescription}>{category.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            </aside>
+            <div className={styles.quickAddContent}>
+              <div className={styles.quickAddItems}>
+                {activeQuickAddCategory.components.map((item) => {
+                  const isActive = activeQuickAddItem?.id === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`${styles.quickAddCard} ${isActive ? styles.quickAddCardActive : ""}`}
+                      onMouseEnter={() => setActiveQuickAddItem(item)}
+                      onFocus={() => setActiveQuickAddItem(item)}
+                      onClick={() => handleQuickAddInsert(item)}
+                    >
+                      <div className={styles.quickAddCardPreview}>{item.renderPreview()}</div>
+                      <div className={styles.quickAddCardMeta}>
+                        <span className={styles.quickAddCardTitle}>{item.name}</span>
+                        {item.description && <span className={styles.quickAddCardDescription}>{item.description}</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Text Editor Toolbar - Only show ONE when editing text */}
+      {isTextToolbarVisible && editingBlockId && (
+        <div
+          ref={textToolbarRef}
+          className={styles.textToolbar}
+          style={{
+            position: "fixed",
+            top: Math.max(10, textToolbarPosition.top) + "px", // Ensure it's not off-screen
+            left: `${textToolbarPosition.left}px`,
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            background: "white",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "8px",
+            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)",
+            display: "flex",
+            gap: "4px",
+            alignItems: "center",
+            flexWrap: "wrap",
+            maxWidth: "600px",
+          }}
+        >
+          {/* Font Family Dropdown */}
+          <select
+            className={styles.toolbarSelect}
+            style={{
+              padding: "4px 8px",
+              border: "1px solid #d1d5db",
+              borderRadius: "4px",
+              fontSize: "12px",
+              background: "white",
+              cursor: "pointer",
+            }}
+            onChange={(e) => changeFontFamily(e.target.value)}
+            value={currentTextStyles.fontFamily || "Arial, Helvetica, sans-serif"}
+          >
+            {emailSafeFonts.map((font) => (
+              <option key={font.value} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Font Size Dropdown */}
+          <select
+            className={styles.toolbarSelect}
+            style={{
+              padding: "4px 8px",
+              border: "1px solid #d1d5db",
+              borderRadius: "4px",
+              fontSize: "12px",
+              background: "white",
+              cursor: "pointer",
+            }}
+            onChange={(e) => changeFontSize(parseInt(e.target.value))}
+            value={currentTextStyles.fontSize || 16}
+          >
+            {fontSizes.map((size) => (
+              <option key={size.value} value={size.value}>
+                {size.label}
+              </option>
+            ))}
+          </select>
+
+          <div style={{ width: "1px", height: "24px", background: "#e5e7eb", margin: "0 4px" }} />
+
+          {/* Text Formatting Buttons */}
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.bold ? styles.active : ""}`}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.bold ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("bold")}
+            title="Bold"
+          >
+            <Bold size={16} />
+          </button>
+
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.italic ? styles.active : ""}`}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.italic ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("italic")}
+            title="Italic"
+          >
+            <Italic size={16} />
+          </button>
+
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.underline ? styles.active : ""}`}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.underline ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("underline")}
+            title="Underline"
+          >
+            <Underline size={16} />
+          </button>
+
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.strikethrough ? styles.active : ""}`}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.strikethrough ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("strikeThrough")}
+            title="Strikethrough"
+          >
+            <Strikethrough size={16} />
+          </button>
+
+          <div style={{ width: "1px", height: "24px", background: "#e5e7eb", margin: "0 4px" }} />
+
+          {/* Text Color */}
+          <div style={{ position: "relative" }}>
+            <input
+              type="color"
+              style={{
+                width: "24px",
+                height: "24px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+              onChange={(e) => changeTextColor(e.target.value)}
+              title="Text Color"
+            />
+          </div>
+
+          <div style={{ width: "1px", height: "24px", background: "#e5e7eb", margin: "0 4px" }} />
+
+          {/* Alignment */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("justifyLeft")}
+            title="Align Left"
+          >
+            <AlignLeft size={16} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("justifyCenter")}
+            title="Align Center"
+          >
+            <AlignCenter size={16} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("justifyRight")}
+            title="Align Right"
+          >
+            <AlignRight size={16} />
+          </button>
+
+          <div style={{ width: "1px", height: "24px", background: "#e5e7eb", margin: "0 4px" }} />
+
+          {/* Lists */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("insertUnorderedList")}
+            title="Bullet List"
+          >
+            <List size={16} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("insertOrderedList")}
+            title="Numbered List"
+          >
+            <ListOrdered size={16} />
+          </button>
+
+          <div style={{ width: "1px", height: "24px", background: "#e5e7eb", margin: "0 4px" }} />
+
+          {/* Link */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={insertLink}
+            title="Insert Link"
+          >
+            <Link size={16} />
+          </button>
+
+          <div style={{ width: "1px", height: "24px", background: "#e5e7eb", margin: "0 4px" }} />
+
+          {/* Headings */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("formatBlock", "<h1>")}
+            title="Heading 1"
+          >
+            <Heading1 size={16} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("formatBlock", "<h2>")}
+            title="Heading 2"
+          >
+            <Heading2 size={16} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("formatBlock", "<h3>")}
+            title="Heading 3"
+          >
+            <Heading3 size={16} />
+          </button>
+
+          <div style={{ width: "1px", height: "24px", background: "#e5e7eb", margin: "0 4px" }} />
+
+          {/* Undo/Redo */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("undo")}
+            title="Undo"
+          >
+            <Undo size={16} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "4px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("redo")}
+            title="Redo"
+          >
+            <Redo size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Text Editor Toolbar */}
+      {isTextToolbarVisible && (
+        <div
+          ref={textToolbarRef}
+          className={styles.textToolbar}
+          style={{
+            position: "absolute",
+            top: `${textToolbarPosition.top}px`,
+            left: `${textToolbarPosition.left}px`,
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            background: "white",
+            border: "1px solid #e5e7eb",
+            borderRadius: "6px",
+            padding: "6px",
+            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.04)",
+            display: "flex",
+            gap: "2px",
+            alignItems: "center",
+            flexWrap: "nowrap",
+            maxWidth: "fit-content",
+            minHeight: "32px",
+            pointerEvents: "auto",
+          }}
+        >
+          {/* Font Family Dropdown */}
+          <select
+            className={styles.toolbarSelect}
+            style={{
+              padding: "4px 6px",
+              border: "1px solid #d1d5db",
+              borderRadius: "4px",
+              fontSize: "11px",
+              background: "white",
+              cursor: "pointer",
+              minWidth: "80px",
+            }}
+            onChange={(e) => changeFontFamily(e.target.value)}
+            value={currentTextStyles.fontFamily || "Arial, Helvetica, sans-serif"}
+          >
+            {emailSafeFonts.map((font) => (
+              <option key={font.value} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Font Size Dropdown */}
+          <select
+            className={styles.toolbarSelect}
+            style={{
+              padding: "4px 6px",
+              border: "1px solid #d1d5db",
+              borderRadius: "4px",
+              fontSize: "11px",
+              background: "white",
+              cursor: "pointer",
+              width: "60px",
+            }}
+            onChange={(e) => changeFontSize(parseInt(e.target.value))}
+            value={currentTextStyles.fontSize || 16}
+          >
+            {fontSizes.map((size) => (
+              <option key={size.value} value={size.value}>
+                {size.label}
+              </option>
+            ))}
+          </select>
+
+          <div style={{ width: "1px", height: "20px", background: "#e5e7eb", margin: "0 2px" }} />
+
+          {/* Text Formatting Buttons */}
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.bold ? styles.active : ""}`}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.bold ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("bold")}
+            title="Bold"
+          >
+            <Bold size={14} />
+          </button>
+
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.italic ? styles.active : ""}`}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.italic ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("italic")}
+            title="Italic"
+          >
+            <Italic size={14} />
+          </button>
+
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.underline ? styles.active : ""}`}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.underline ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("underline")}
+            title="Underline"
+          >
+            <Underline size={14} />
+          </button>
+
+          <button
+            className={`${styles.toolbarButton} ${currentTextStyles.strikethrough ? styles.active : ""}`}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: currentTextStyles.strikethrough ? "#e0e7ff" : "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("strikeThrough")}
+            title="Strikethrough"
+          >
+            <Strikethrough size={14} />
+          </button>
+
+          <div style={{ width: "1px", height: "20px", background: "#e5e7eb", margin: "0 2px" }} />
+
+          {/* Text Color */}
+          <div style={{ position: "relative" }}>
+            <input
+              type="color"
+              style={{
+                width: "24px",
+                height: "24px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+              onChange={(e) => changeTextColor(e.target.value)}
+              title="Text Color"
+            />
+          </div>
+
+          <div style={{ width: "1px", height: "20px", background: "#e5e7eb", margin: "0 2px" }} />
+
+          {/* Alignment */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("justifyLeft")}
+            title="Align Left"
+          >
+            <AlignLeft size={14} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("justifyCenter")}
+            title="Align Center"
+          >
+            <AlignCenter size={14} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("justifyRight")}
+            title="Align Right"
+          >
+            <AlignRight size={14} />
+          </button>
+
+          <div style={{ width: "1px", height: "20px", background: "#e5e7eb", margin: "0 2px" }} />
+
+          {/* Lists */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("insertUnorderedList")}
+            title="Bullet List"
+          >
+            <List size={14} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("insertOrderedList")}
+            title="Numbered List"
+          >
+            <ListOrdered size={14} />
+          </button>
+
+          <div style={{ width: "1px", height: "20px", background: "#e5e7eb", margin: "0 2px" }} />
+
+          {/* Link */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={insertLink}
+            title="Insert Link"
+          >
+            <Link size={14} />
+          </button>
+
+          <div style={{ width: "1px", height: "20px", background: "#e5e7eb", margin: "0 2px" }} />
+
+          {/* Undo/Redo */}
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("undo")}
+            title="Undo"
+          >
+            <Undo size={14} />
+          </button>
+
+          <button
+            className={styles.toolbarButton}
+            style={{
+              padding: "3px",
+              border: "none",
+              borderRadius: "4px",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => applyTextFormat("redo")}
+            title="Redo"
+          >
+            <Redo size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Column Configuration Modal */}
+      {isColumnModalOpen && (
+        <div
+          className={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsColumnModalOpen(false);
+              setPendingColumnBlock(null);
+            }
+          }}
+        >
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h2>Configure Columns</h2>
+            </div>
+            <div className={styles.modalContent}>
+              <div className={styles.columnOptions}>
+                <h3>Number of Columns</h3>
+                <div className={styles.columnButtons}>
+                  {[1, 2, 3, 4].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      className={`${styles.columnButton} ${selectedColumnCount === num ? styles.columnButtonSelected : ''}`}
+                      onClick={() => {
+                        if (num === 1) {
+                          handleColumnConfiguration({ columns: 1, sizes: "equal" });
+                        } else if (num === 3 || num === 4) {
+                          handleColumnConfiguration({ columns: num, sizes: "equal" });
+                        } else {
+                          setSelectedColumnCount(num);
+                        }
+                      }}
+                    >
+                      <div className={styles.columnPreview}>
+                        {Array.from({ length: num }).map((_, i) => (
+                          <div key={i} className={styles.columnPreviewBar} />
+                        ))}
+                      </div>
+                      <span>{num} {num === 1 ? 'Column' : 'Columns'}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Show sizing options for 2 columns */}
+                {selectedColumnCount === 2 && (
+                <div className={styles.sizingOptions}>
+                  <h3>Column Sizing</h3>
+                  <div className={styles.sizingButtons}>
+                    <button
+                      type="button"
+                      className={styles.sizingButton}
+                      onClick={() => handleColumnConfiguration({ columns: 2, sizes: "equal" })}
+                    >
+                      <div className={styles.sizingPreview}>
+                        <div style={{ flex: 1 }} />
+                        <div style={{ flex: 1 }} />
+                      </div>
+                      <span>Equal</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.sizingButton}
+                      onClick={() => handleColumnConfiguration({ columns: 2, sizes: "1-2" })}
+                    >
+                      <div className={styles.sizingPreview}>
+                        <div style={{ flex: '0 0 33%' }} />
+                        <div style={{ flex: '0 0 67%' }} />
+                      </div>
+                      <span>1/3 - 2/3</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.sizingButton}
+                      onClick={() => handleColumnConfiguration({ columns: 2, sizes: "2-1" })}
+                    >
+                      <div className={styles.sizingPreview}>
+                        <div style={{ flex: '0 0 67%' }} />
+                        <div style={{ flex: '0 0 33%' }} />
+                      </div>
+                      <span>2/3 - 1/3</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.sizingButton}
+                      onClick={() => handleColumnConfiguration({ columns: 2, sizes: "1-3" })}
+                    >
+                      <div className={styles.sizingPreview}>
+                        <div style={{ flex: '0 0 25%' }} />
+                        <div style={{ flex: '0 0 75%' }} />
+                      </div>
+                      <span>1/4 - 3/4</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.sizingButton}
+                      onClick={() => handleColumnConfiguration({ columns: 2, sizes: "3-1" })}
+                    >
+                      <div className={styles.sizingPreview}>
+                        <div style={{ flex: '0 0 75%' }} />
+                        <div style={{ flex: '0 0 25%' }} />
+                      </div>
+                      <span>3/4 - 1/4</span>
+                    </button>
+                  </div>
+                </div>
+                )}
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsColumnModalOpen(false);
+                  setPendingColumnBlock(null);
+                  setSelectedColumnCount(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

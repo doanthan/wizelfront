@@ -9,31 +9,29 @@ import connectToDatabase from '@/lib/mongoose';
 
 export async function GET(request) {
   try {
-    await connectToDatabase();
-    
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Fetching stores with analytics access for user:', session.user.id);
+    await connectToDatabase();
+
+    console.log('Fetching stores with analytics access for user:', session.user.email);
 
     // Get user details
-    const user = await User.findById(session.user.id);
+    const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Super admins have access to all stores
-    const isSuperAdmin = user?.is_super_user || user?.super_user_role === 'SUPER_ADMIN';
-    
-    if (isSuperAdmin) {
+    if (user.is_super_user) {
       console.log('Super admin - returning all non-deleted stores with analytics access');
-      const allStores = await Store.find({ 
+      const allStores = await Store.find({
         is_deleted: { $ne: true },
         'klaviyo_integration.public_id': { $exists: true, $ne: null }
       }).lean();
-      
+
       // Add user_role for consistency
       const storesWithRole = allStores.map(store => ({
         ...store,
@@ -45,16 +43,16 @@ export async function GET(request) {
           view_financial: true
         }
       }));
-      
-      return NextResponse.json({ 
+
+      return NextResponse.json({
         stores: storesWithRole,
-        hasFullAccess: true 
+        hasFullAccess: true
       });
     }
 
     // For regular users, check ContractSeat permissions
     const userSeats = await ContractSeat.find({
-      user_id: session.user.id,
+      user_id: user._id,
       status: 'active'
     }).populate('default_role_id');
 
@@ -96,9 +94,9 @@ export async function GET(request) {
         }
 
         // Check if role has analytics permissions
-        if (role && (role.permissions?.analytics?.view_all || 
+        if (role && (role.permissions?.analytics?.view_all ||
                     role.permissions?.analytics?.view_own ||
-                    role.name === 'owner' || 
+                    role.name === 'owner' ||
                     role.name === 'admin' ||
                     role.name === 'manager')) {
           storesWithAnalyticsAccess.push({
@@ -117,13 +115,9 @@ export async function GET(request) {
       }
     }
 
-    // Skip legacy permission check since you've removed legacy stores
-    // The ContractSeat system above handles all permissions now
-    console.log('Skipping legacy store permissions - using ContractSeat system only');
-
     console.log(`Found ${storesWithAnalyticsAccess.length} stores with analytics access`);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       stores: storesWithAnalyticsAccess,
       hasFullAccess: false
     });

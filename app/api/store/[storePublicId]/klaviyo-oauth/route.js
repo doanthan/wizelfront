@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import crypto from 'crypto';
 
 // Helper function to generate PKCE challenge
@@ -10,19 +9,25 @@ function generatePKCE() {
     .createHash('sha256')
     .update(verifier)
     .digest('base64url');
-  
+
   return { verifier, challenge };
 }
 
 // Initiate OAuth flow
-export async function POST(request, { params }) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { store, user, role } = request;
+
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
     }
 
-    const { storePublicId } = await params;
+    const params = await context.params;
+    const { storePublicId } = params;
     
     // Generate PKCE challenge
     const { verifier, challenge } = generatePKCE();
@@ -30,11 +35,11 @@ export async function POST(request, { params }) {
     // Create state parameter with store info and PKCE verifier
     const stateData = {
       storePublicId,
-      userId: session.user.id,
+      userId: user._id.toString(),
       code_verifier: verifier,
       timestamp: Date.now()
     };
-    
+
     const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
     
     // Define scopes needed for your application
@@ -74,11 +79,11 @@ export async function POST(request, { params }) {
     authUrl.searchParams.append('code_challenge', challenge);
     authUrl.searchParams.append('code_challenge_method', 'S256');
     
-    return NextResponse.json({ 
+    return NextResponse.json({
       authUrl: authUrl.toString(),
-      success: true 
+      success: true
     });
-    
+
   } catch (error) {
     console.error('OAuth initiation error:', error);
     return NextResponse.json(
@@ -86,17 +91,21 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
 // Refresh OAuth token
-export async function PUT(request, { params }) {
+export const PUT = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { store, user, role } = request;
+
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
     }
 
-    const { storePublicId } = await params;
     const { refresh_token } = await request.json();
 
     if (!refresh_token) {
@@ -148,4 +157,4 @@ export async function PUT(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

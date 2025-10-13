@@ -1,0 +1,112 @@
+// Fix for text editing issues in EmailBuilder.jsx
+
+// The main issues:
+// 1. Text is being inserted backwards (RTL behavior)
+// 2. dangerouslySetInnerHTML conflicts with contentEditable
+// 3. Complex cursor management causing issues
+
+// Solution:
+// When editing (contentEditable=true), don't use dangerouslySetInnerHTML
+// Use simpler text handling without HTML manipulation during editing
+// Let the browser handle cursor position naturally
+
+// For headline case (line ~1520-1590):
+const headlineElement = (
+  <h3
+    ref={(el) => {
+      if (el) contentEditableRefs.current.set(block.id, el);
+      else contentEditableRefs.current.delete(block.id);
+    }}
+    contentEditable={editingBlockId === block.id}
+    suppressContentEditableWarning
+    style={{
+      ...textStyle,
+      direction: 'ltr', // Force left-to-right
+      unicodeBidi: 'normal'
+    }}
+    onDoubleClick={() => {
+      setEditingBlockId(block.id);
+      setTimeout(() => {
+        const el = contentEditableRefs.current.get(block.id);
+        if (el) {
+          el.innerText = block.content.replace(/<[^>]*>/g, ''); // Strip HTML
+          el.focus();
+        }
+      }, 0);
+    }}
+    onInput={(e) => {
+      const text = e.target.innerText;
+      updateBlock(block.id, { content: text, isHtml: false });
+    }}
+    onBlur={(e) => {
+      const text = e.target.innerText;
+      updateBlock(block.id, { content: text, isHtml: false });
+      setEditingBlockId(null);
+      setIsTextToolbarVisible(false);
+    }}
+    onKeyDown={(e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.target.blur();
+        return;
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        e.target.blur();
+        return;
+      }
+    }}
+  >
+    {editingBlockId !== block.id ? (
+      <span dangerouslySetInnerHTML={{ __html: block.content }} />
+    ) : null}
+  </h3>
+);
+
+// For paragraph/text case (similar pattern):
+const paragraphElement = (
+  <p
+    ref={(el) => {
+      if (el) contentEditableRefs.current.set(block.id, el);
+      else contentEditableRefs.current.delete(block.id);
+    }}
+    contentEditable={editingBlockId === block.id}
+    suppressContentEditableWarning
+    style={{
+      ...textStyle,
+      direction: 'ltr', // Force left-to-right
+      unicodeBidi: 'normal'
+    }}
+    onDoubleClick={() => {
+      setEditingBlockId(block.id);
+      setTimeout(() => {
+        const el = contentEditableRefs.current.get(block.id);
+        if (el) {
+          el.innerText = block.content.replace(/<[^>]*>/g, ''); // Strip HTML
+          el.focus();
+        }
+      }, 0);
+    }}
+    onInput={(e) => {
+      const text = e.target.innerText;
+      updateBlock(block.id, { content: text, isHtml: false });
+    }}
+    onBlur={(e) => {
+      const text = e.target.innerText;
+      updateBlock(block.id, { content: text, isHtml: false });
+      setEditingBlockId(null);
+      setIsTextToolbarVisible(false);
+    }}
+    onKeyDown={(e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.target.blur();
+        return;
+      }
+    }}
+  >
+    {editingBlockId !== block.id ? (
+      <span dangerouslySetInnerHTML={{ __html: block.content }} />
+    ) : null}
+  </p>
+);

@@ -1,108 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import Store from '@/models/Store';
-import Contract from '@/models/Contract';
-import ContractSeat from '@/models/ContractSeat';
-import Role from '@/models/Role'; // Import Role to ensure it's registered
-import User from '@/models/User';
-import connectToDatabase from '@/lib/mongoose';
+import { withStoreAccess } from '@/middleware/storeAccess';
 
 // GET - Get single store by public ID
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId } = await params;
-    
-    // Find store by public ID (excluding soft-deleted stores)
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    }).populate('contract_id');
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check if user is the store owner directly
-    const isStoreOwner = store.owner_id?.toString() === session.user.id;
-
-    // Check if user is the contract owner
-    const isContractOwner = store.contract_id.owner_id?.toString() === session.user.id;
-
-    // Check if user has access to this store via ContractSeat
-    let userSeat = await ContractSeat.findUserSeatForContract(
-      session.user.id,
-      store.contract_id._id
-    );
-
-    // AUTO-FIX: If user owns the store but has no seat, create one
-    if ((isStoreOwner || isContractOwner) && !userSeat) {
-      console.log('AUTO-FIX: Creating ContractSeat for store owner');
-
-      // Get or create owner role
-      let ownerRole = await Role.findOne({ name: 'owner' });
-      if (!ownerRole) {
-        ownerRole = new Role({
-          name: 'owner',
-          display_name: 'Owner',
-          permissions: {
-            stores: { create: true, read: true, update: true, delete: true },
-            campaigns: { create: true, read: true, update: true, delete: true },
-            analytics: { read: true, export: true },
-            team: { invite: true, remove: true, manage: true },
-            billing: { manage: true },
-            settings: { manage: true }
-          }
-        });
-        await ownerRole.save();
-      }
-
-      // Create seat for the owner
-      userSeat = new ContractSeat({
-        contract_id: store.contract_id._id,
-        user_id: session.user.id,
-        default_role_id: ownerRole._id,
-        status: 'active',
-        invited_by: session.user.id,
-        activated_at: new Date(),
-        store_access: [] // Empty means access to ALL stores
-      });
-      await userSeat.save();
-
-      // Update user's active_seats
-      const user = await User.findById(session.user.id);
-      if (user) {
-        user.addSeat(store.contract_id._id, store.contract_id.contract_name || 'My Contract', userSeat._id);
-        await user.save();
-      }
-    }
-
-    // In development, be more lenient
-    if (process.env.NODE_ENV === 'development') {
-      if (isStoreOwner || isContractOwner) {
-        console.log('Development mode: Allowing access for store/contract owner');
-        // Continue without further checks
-      } else if (!userSeat) {
-        console.warn('Development mode: User has no seat but allowing access anyway');
-      }
-    } else {
-      // Production: Strict checks
-      if (!userSeat && !isStoreOwner && !isContractOwner) {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-      }
-
-      // Check store-specific permissions
-      if (userSeat && !userSeat.hasStoreAccess(store._id) && !isStoreOwner) {
-        return NextResponse.json({ error: 'No access to this store' }, { status: 403 });
-      }
-    }
+    // Access validated entities from request
+    const { store, user, seat, role, contract } = request;
 
     return NextResponse.json({
       store: {
@@ -116,35 +19,30 @@ export async function GET(request, { params }) {
         subscription_status: store.subscription_status,
         created_at: store.created_at,
         updated_at: store.updated_at,
-        contract_id: store.contract_id._id,
-        contract_name: store.contract_id.contract_name,
+        contract_id: contract._id,
+        contract_name: contract.contract_name,
         // Scrape/sync status fields
         scrape_job_id: store.scrape_job_id,
         scrape_status: store.scrape_status,
         scrape_completed_at: store.scrape_completed_at
       }
     });
-    
+
   } catch (error) {
     console.error('Store GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch store' }, { status: 500 });
   }
-}
+});
 
 // PUT - Update store by public ID
-export async function PUT(request, { params }) {
+export const PUT = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Access validated entities from request
+    const { store, user, seat, role, contract } = request;
 
-    const { storePublicId } = params;
     const body = await request.json();
     const { name, url, timezone, currency } = body;
-    
+
     // Validate required fields
     if (!name?.trim() || !url?.trim()) {
       return NextResponse.json(
@@ -153,52 +51,23 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Find store by public ID (excluding soft-deleted stores)
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    }).populate('contract_id');
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check if user has access to this store via ContractSeat
-    const userSeat = await ContractSeat.findUserSeatForContract(
-      session.user.id, 
-      store.contract_id._id
-    );
-    
-    // Also check if user is the contract owner
-    const isOwner = store.contract_id.owner_id?.toString() === session.user.id;
-    
-    if (!userSeat && !isOwner) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     // Check if user has edit permissions for this store
-    if (userSeat) {
-      const storeRole = userSeat.getStoreRole(store._id);
-      const Role = (await import('@/models/Role')).default;
-      const role = await Role.findById(storeRole);
-      
-      // Check if role has store edit permissions
-      if (!role?.permissions?.stores?.edit) {
-        return NextResponse.json(
-          { error: 'Insufficient permissions to edit this store' }, 
-          { status: 403 }
-        );
-      }
+    if (!role?.permissions?.stores?.edit && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to edit this store' },
+        { status: 403 }
+      );
     }
 
     // Check if store name is unique within the contract (case-insensitive)
+    const Store = (await import('@/models/Store')).default;
     const existingStore = await Store.findOne({
       name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
-      contract_id: store.contract_id._id,
+      contract_id: contract._id,
       _id: { $ne: store._id }, // Exclude current store
       is_deleted: { $ne: true }
     });
-    
+
     if (existingStore) {
       return NextResponse.json(
         { error: `A store named "${name}" already exists in this contract` },
@@ -219,9 +88,6 @@ export async function PUT(request, { params }) {
       { new: true }
     ).populate('contract_id');
 
-    // Note: Credit tracking for store operations could be added here if needed
-    // For now, store edits are free
-
     return NextResponse.json({
       message: 'Store updated successfully',
       store: {
@@ -239,61 +105,25 @@ export async function PUT(request, { params }) {
         contract_name: updatedStore.contract_id.contract_name
       }
     });
-    
+
   } catch (error) {
     console.error('Store PUT error:', error);
     return NextResponse.json({ error: 'Failed to update store' }, { status: 500 });
   }
-}
+});
 
 // DELETE - Delete store by public ID
-export async function DELETE(request, { params }) {
+export const DELETE = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId } = params;
-    
-    // Find store by public ID (excluding soft-deleted stores)
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    }).populate('contract_id');
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check if user has access to this store via ContractSeat
-    const userSeat = await ContractSeat.findUserSeatForContract(
-      session.user.id, 
-      store.contract_id._id
-    );
-    
-    // Also check if user is the contract owner
-    const isOwner = store.contract_id.owner_id?.toString() === session.user.id;
-    
-    if (!userSeat && !isOwner) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    // Access validated entities from request
+    const { store, user, seat, role, contract } = request;
 
     // Check if user has delete permissions for this store
-    if (userSeat) {
-      const storeRole = userSeat.getStoreRole(store._id);
-      const Role = (await import('@/models/Role')).default;
-      const role = await Role.findById(storeRole);
-      
-      // Check if role has store delete permissions
-      if (!role?.permissions?.stores?.delete) {
-        return NextResponse.json(
-          { error: 'Insufficient permissions to delete this store' }, 
-          { status: 403 }
-        );
-      }
+    if (!role?.permissions?.stores?.delete && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to delete this store' },
+        { status: 403 }
+      );
     }
 
     // Soft delete all brands associated with this store
@@ -305,13 +135,13 @@ export async function DELETE(request, { params }) {
     console.log(`Soft deleted all brands for store ${store.public_id}`);
 
     // Remove store access from all seats
+    const ContractSeat = (await import('@/models/ContractSeat')).default;
     await ContractSeat.updateMany(
       { 'store_access.store_id': store._id },
       { $pull: { store_access: { store_id: store._id } } }
     );
 
     // Remove store tags from all ContractSeats
-    // We need to unset the specific store's tags from the Map
     const storeIdStr = store._id.toString();
     await ContractSeat.updateMany(
       { [`storeTags.${storeIdStr}`]: { $exists: true } },
@@ -320,41 +150,38 @@ export async function DELETE(request, { params }) {
     console.log(`Removed tags for store ${store.public_id} from all contract seats`);
 
     // Update user's store access (legacy)
+    const User = (await import('@/models/User')).default;
     await User.updateMany(
       { 'store_permissions.store_id': store._id },
       { $pull: { store_permissions: { store_id: store._id } } }
     );
-    
+
     await User.updateMany(
       { 'stores.store_id': store._id },
       { $pull: { stores: { store_id: store._id } } }
     );
 
     // Decrement store count in contract
-    if (store.contract_id) {
-      const contract = await Contract.findById(store.contract_id._id);
-      if (contract) {
-        await contract.decrementStoreCount();
-      }
+    const Contract = (await import('@/models/Contract')).default;
+    const contractDoc = await Contract.findById(contract._id);
+    if (contractDoc) {
+      await contractDoc.decrementStoreCount();
     }
-
-    // Note: Credit tracking for store deletion could be added here if needed
-    // Currently no credit consumption is tracked for store operations
 
     // Soft delete the store - mark as deleted but keep in database
     store.isActive = false;
     store.is_deleted = true;
     store.deletedAt = new Date();
-    store.deletedBy = session.user.id;
+    store.deletedBy = user._id;
     await store.save();
     console.log(`Store ${store.public_id} soft deleted`);
 
     return NextResponse.json({
       message: 'Store deleted successfully'
     });
-    
+
   } catch (error) {
     console.error('Store DELETE error:', error);
     return NextResponse.json({ error: 'Failed to delete store' }, { status: 500 });
   }
-}
+});

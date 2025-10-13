@@ -1,38 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectToDatabase from '@/lib/mongoose';
-import Store from '@/models/Store';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import { buildKlaviyoAuthOptions } from '@/lib/klaviyo-auth-helper';
 import { klaviyoRequest } from '@/lib/klaviyo-api';
 
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { store, user, role } = request;
 
-    const { storePublicId } = await params;
-    
-    await connectToDatabase();
-    
-    // Find the store
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    });
-
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
     }
 
     // Check if Klaviyo is connected
     if (store.klaviyo_integration?.status !== 'connected') {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Klaviyo not connected',
         metrics: [],
-        account: null 
+        account: null
       }, { status: 200 });
     }
 
@@ -153,4 +141,4 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

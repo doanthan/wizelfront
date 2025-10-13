@@ -224,9 +224,9 @@ export async function GET(request) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Compliance API error:', error);
+    console.error('Superuser API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch compliance data' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

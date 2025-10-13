@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import Store from '@/models/Store';
-import ContractSeat from '@/models/ContractSeat';
-import Role from '@/models/Role';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import connectToDatabase from '@/lib/mongoose';
 import { klaviyoGetAll } from '@/lib/klaviyo-api';
 import { logAuditEvent } from '@/lib/posthog-audit';
@@ -126,109 +122,17 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
   }
 }
 
-async function validatePermissions(userId, storeId) {
-  // First, get the store to find its contract
-  const store = await Store.findById(storeId);
-  if (!store) {
-    return { hasPermission: false, error: 'Store not found' };
-  }
-
-  // Special case: Check if user is the store owner directly
-  if (store.owner_id && store.owner_id.toString() === userId.toString()) {
-    return { hasPermission: true };
-  }
-
-  // Find the user's contract seat for this store's contract
-  const contractSeat = await ContractSeat.findOne({
-    user_id: userId,
-    contract_id: store.contract_id,
-    status: 'active'
-  }).populate('default_role_id');
-
-  if (!contractSeat) {
-    return { hasPermission: false, error: 'User not associated with this store' };
-  }
-
-  // Use the hasStoreAccess method to check if user has access to this store
-  // Empty store_access array means access to all stores in the contract
-  if (!contractSeat.hasStoreAccess(storeId)) {
-    return { hasPermission: false, error: 'User does not have access to this store' };
-  }
-
-  // Get the role for this specific store or default role
-  const storeAccess = contractSeat.store_access?.find(access =>
-    access.store_id.toString() === storeId.toString()
-  );
-
-  const roleToCheck = storeAccess ?
-    await Role.findById(storeAccess.role_id) :
-    contractSeat.default_role_id;
-
-  if (!roleToCheck) {
-    return {
-      hasPermission: false,
-      error: 'No valid role found for this store'
-    };
-  }
-
-  // According to PERMISSIONS_GUIDE.md:
-  // - owner (level 100) has manage_integrations: true
-  // - admin (level 80) has manage_integrations: true
-  // - manager (level 60) has manage_integrations: false
-
-  // Check if user has manage_integrations permission
-  // For owner and admin roles, default to true if not explicitly set
-  const hasManageIntegrations = roleToCheck.permissions?.stores?.manage_integrations !== false;
-
-  // Check role level or name
-  const isOwnerOrAdmin = (roleToCheck.level && roleToCheck.level >= 80) ||
-                         roleToCheck.name === 'owner' ||
-                         roleToCheck.name === 'admin';
-
-  if (!isOwnerOrAdmin) {
-    return {
-      hasPermission: false,
-      error: 'Insufficient permissions. Manage integrations requires owner or admin role.'
-    };
-  }
-
-  // For owner/admin roles, we don't need to check manage_integrations explicitly
-  // as they should always have this permission
-  if (!hasManageIntegrations && roleToCheck.level < 80) {
-    return {
-      hasPermission: false,
-      error: 'This role does not have manage_integrations permission.'
-    };
-  }
-
-  return { hasPermission: true };
-}
-
-
-
 // GET - Fetch current Klaviyo integration status
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const { storePublicId } = await params;
-    
-    // Get user from authentication session
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { store, user, role } = request;
 
-    // Find store by storePublicId
-    const store = await Store.findByIdOrPublicId(storePublicId);
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Validate permissions
-    const permissionCheck = await validatePermissions(session.user.id, store._id);
-    if (!permissionCheck.hasPermission) {
-      return NextResponse.json({ error: permissionCheck.error }, { status: 403 });
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
     }
 
     // Return klaviyo integration status matching old code format
@@ -250,37 +154,26 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST - Connect/Update Klaviyo integration
-export async function POST(request, { params }) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const { storePublicId } = await params;
+    const { store, user, role } = request;
+
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { apiKey, action, conversionMetricId, conversion_metric_id, reporting_metric_id, refund_metric_ids, conversion_type } = body;
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
-    }
-
-    // Get user from authentication session
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Find store by storePublicId
-    const store = await Store.findByIdOrPublicId(storePublicId);
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Validate permissions
-    const permissionCheck = await validatePermissions(session.user.id, store._id);
-    if (!permissionCheck.hasPermission) {
-      return NextResponse.json({ error: permissionCheck.error }, { status: 403 });
     }
 
     // If action is "test", just test the API and return metrics
@@ -457,8 +350,8 @@ export async function POST(request, { params }) {
       // Log audit event for successful connection
       await logAuditEvent({
         action: 'KLAVIYO_CONNECT',
-        userId: session.user.id,
-        userEmail: session.user.email,
+        userId: user._id.toString(),
+        userEmail: user.email,
         storeId: store.public_id,
         ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
         metadata: {
@@ -543,31 +436,19 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
 // DELETE - Disconnect Klaviyo integration
-export async function DELETE(request, { params }) {
+export const DELETE = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const { storePublicId } = await params;
+    const { store, user, role } = request;
 
-    // Get user from authentication session
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Find store by storePublicId
-    const store = await Store.findByIdOrPublicId(storePublicId);
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Validate permissions
-    const permissionCheck = await validatePermissions(session.user.id, store._id);
-    if (!permissionCheck.hasPermission) {
-      return NextResponse.json({ error: permissionCheck.error }, { status: 403 });
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
     }
 
     // Check if integration exists
@@ -593,14 +474,14 @@ export async function DELETE(request, { params }) {
       flow_series_last_update: null,
       form_series_last_update: null
     };
-    
+
     await store.save();
 
     // Log audit event for Klaviyo disconnection
     await logAuditEvent({
       action: 'KLAVIYO_DISCONNECT',
-      userId: session.user.id,
-      userEmail: session.user.email,
+      userId: user._id.toString(),
+      userEmail: user.email,
       storeId: store.public_id,
       ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
       metadata: {
@@ -623,4 +504,4 @@ export async function DELETE(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

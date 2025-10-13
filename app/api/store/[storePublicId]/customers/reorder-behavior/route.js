@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
-import Store from '@/models/Store';
 import { createClient } from '@clickhouse/client';
+import { validateStoreAccess } from '@/middleware/storeAccess';
 
 export async function GET(request, { params }) {
   try {
     const { storePublicId } = await params;
 
-    // Connect to MongoDB and get store
-    await connectToDatabase();
-    const store = await Store.findOne({
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    });
+    // Validate store access (replaces separate /api/store call + store lookup)
+    const { hasAccess, store, user, error } = await validateStoreAccess(storePublicId);
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: error || 'Access denied' }, { status: 403 });
+    }
 
     if (!store) {
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
@@ -122,12 +121,12 @@ export async function GET(request, { params }) {
       ...(bucketsData[0] || {})
     };
 
-    // Step 2: Get overdue customers
-    const overdueQuery = `
-      WITH customer_last_order AS (
+    // Step 2: Get customer breakdown (one-time vs repeat)
+    // IMPORTANT: Must use klaviyo_orders (same as overdue query) for data consistency
+    const customerBreakdownQuery = `
+      WITH customer_order_counts AS (
         SELECT
           customer_email,
-          MAX(toDate(order_timestamp)) as last_order_date,
           COUNT(*) as total_orders
         FROM klaviyo_orders
         WHERE klaviyo_public_id = '${klaviyoPublicId}'
@@ -137,59 +136,96 @@ export async function GET(request, { params }) {
           AND customer_email NOT LIKE '%@anonymous.local%'
           AND customer_email LIKE '%@%.%'
         GROUP BY customer_email
+      )
+      SELECT
+        COUNT(*) as total_customers,
+        countIf(total_orders = 1) as one_time_customers,
+        countIf(total_orders > 1) as repeat_customers,
+        countIf(total_orders = 1) * 100.0 / COUNT(*) as one_time_percentage,
+        countIf(total_orders > 1) * 100.0 / COUNT(*) as repeat_percentage
+      FROM customer_order_counts
+    `;
+
+    const breakdownResult = await clickhouse.query({ query: customerBreakdownQuery });
+    const breakdownJson = await breakdownResult.json();
+    const breakdownData = (breakdownJson.data || breakdownJson || [])[0] || {};
+
+    // Step 3: Get high-value win-back opportunities
+    // Use a more aggressive threshold (1.5x median) to identify truly at-risk customers
+    // This focuses on customers who are significantly overdue, not just past the median
+    const winbackThreshold = Math.round(stats.median * 1.5);
+
+    const overdueQuery = `
+      WITH customer_orders_agg AS (
+        SELECT
+          customer_email,
+          MAX(toDate(order_timestamp)) as last_order_date,
+          COUNT(*) as total_orders,
+          MIN(toDate(order_timestamp)) as first_order_date
+        FROM klaviyo_orders
+        WHERE klaviyo_public_id = '${klaviyoPublicId}'
+          AND customer_email != ''
+          AND customer_email NOT LIKE '%redacted%'
+          AND customer_email NOT LIKE '%null%'
+          AND customer_email NOT LIKE '%@anonymous.local%'
+          AND customer_email LIKE '%@%.%'
+        GROUP BY customer_email
         HAVING total_orders > 1
+      ),
+      repeat_customer_base AS (
+        SELECT COUNT(*) as total_repeat_customers
+        FROM customer_orders_agg
       )
       SELECT
         COUNT(*) as overdue_count,
-        COUNT(*) * 100.0 / (SELECT COUNT(DISTINCT customer_email) FROM customer_last_order) as overdue_percentage
-      FROM customer_last_order
-      WHERE dateDiff('day', last_order_date, today()) > ${Math.round(stats.median)}
-      
+        (SELECT total_repeat_customers FROM repeat_customer_base) as total_repeat_customers,
+        COUNT(*) * 100.0 / (SELECT total_repeat_customers FROM repeat_customer_base) as overdue_percentage
+      FROM customer_orders_agg
+      WHERE dateDiff('day', last_order_date, today()) > ${winbackThreshold}
+        AND dateDiff('day', last_order_date, today()) <= ${winbackThreshold * 3}
+
     `;
 
     const overdueResult = await clickhouse.query({ query: overdueQuery });
     const overdueJsonResult = await overdueResult.json();
     const overdueData = overdueJsonResult.data || overdueJsonResult || [];
 
-    // Step 3: Get list of overdue customers
-    const overdueListQuery = `
-      WITH customer_last_order AS (
-        SELECT
-          customer_email,
-          MAX(toDate(order_timestamp)) as last_order_date,
-          COUNT(*) as total_orders
-        FROM klaviyo_orders
-        WHERE klaviyo_public_id = '${klaviyoPublicId}'
-          AND customer_email != ''
-          AND customer_email NOT LIKE '%redacted%'
-          AND customer_email NOT LIKE '%null%'
-          AND customer_email NOT LIKE '%@anonymous.local%'
-          AND customer_email LIKE '%@%.%'
-        GROUP BY customer_email
-        HAVING total_orders > 1
-      )
+    console.log('Overdue customers data:', overdueData[0]);
+    console.log('Customer breakdown:', breakdownData);
+
+    // Step 4: Get product repurchase recommendations
+    const productRepurchaseQuery = `
       SELECT
-        customer_email,
-        last_order_date,
-        dateDiff('day', last_order_date, today()) as days_since_last_order,
-        total_orders,
-        dateDiff('day', last_order_date, today()) - ${Math.round(stats.median)} as days_overdue
-      FROM customer_last_order
-      WHERE dateDiff('day', last_order_date, today()) > ${Math.round(stats.median)}
-      ORDER BY days_since_last_order DESC
-      LIMIT 100
-      
+        product_id,
+        product_name,
+        median_repurchase_days,
+        total_repurchases,
+        repeat_customers,
+        recommended_reminder_day,
+        product_type
+      FROM product_repurchase_stats
+      WHERE klaviyo_public_id = '${klaviyoPublicId}'
+        AND total_repurchases >= 5
+      ORDER BY total_repurchases DESC
+      LIMIT 10
     `;
 
-    const overdueListResult = await clickhouse.query({ query: overdueListQuery });
-    const overdueListJsonResult = await overdueListResult.json();
-    const overdueCustomers = overdueListJsonResult.data || overdueListJsonResult || [];
+    const productRepurchaseResult = await clickhouse.query({ query: productRepurchaseQuery });
+    const productRepurchaseJsonResult = await productRepurchaseResult.json();
+    const productRepurchaseData = productRepurchaseJsonResult.data || productRepurchaseJsonResult || [];
 
     return NextResponse.json({
       status: 'success',
       store: {
         name: store.name,
         public_id: store.public_id
+      },
+      customer_breakdown: {
+        total_customers: parseInt(breakdownData.total_customers) || 0,
+        one_time_customers: parseInt(breakdownData.one_time_customers) || 0,
+        repeat_customers: parseInt(breakdownData.repeat_customers) || 0,
+        one_time_percentage: Math.round((parseFloat(breakdownData.one_time_percentage) || 0) * 10) / 10,
+        repeat_percentage: Math.round((parseFloat(breakdownData.repeat_percentage) || 0) * 10) / 10,
       },
       summary: {
         median_reorder_days: Math.round(stats.median),
@@ -232,13 +268,22 @@ export async function GET(request, { params }) {
       overdue_customers: {
         count: overdueData[0]?.overdue_count || 0,
         percentage: Math.round((overdueData[0]?.overdue_percentage || 0) * 10) / 10,
-        customers: overdueCustomers.slice(0, 20), // Top 20
       },
+      product_repurchase_recommendations: productRepurchaseData.map(p => ({
+        product_id: p.product_id,
+        product_name: p.product_name,
+        median_repurchase_days: p.median_repurchase_days,
+        total_repurchases: p.total_repurchases,
+        repeat_customers: p.repeat_customers,
+        recommended_reminder_day: p.recommended_reminder_day,
+        product_type: p.product_type || 'Unknown'
+      })),
       actionable_insights: [
-        `📊 Your typical customer reorders every ${Math.round(stats.median)} days`,
-        `⚠️ ${overdueData[0]?.overdue_count || 0} customers (${Math.round((overdueData[0]?.overdue_percentage || 0) * 10) / 10}%) are overdue for reorder`,
-        `💡 Set up automated email at day ${Math.round(stats.median * 0.9)} to capture reorders`,
-        `🎯 Focus on the ${Math.round(stats.bucket1_pct * 10) / 10}% who reorder within ${Math.round(stats.q1)} days - they're your best customers`,
+        `📊 Repeat customers reorder every ${Math.round(stats.median)} days on average - use this for campaign timing`,
+        `⚠️ ${Math.round(breakdownData.one_time_percentage || 0)}% of customers only buy once - significant retention opportunity`,
+        `🔄 ${overdueData[0]?.overdue_count || 0} high-value customers (${Math.round((overdueData[0]?.overdue_percentage || 0) * 10) / 10}%) are ${winbackThreshold}+ days past last order - priority win-back targets`,
+        `💡 Optimal win-back timing: Day ${Math.round(stats.median * 0.9)} (proactive) and Day ${winbackThreshold} (reactive)`,
+        `🎯 Fast reorderers (within ${Math.round(stats.q1)} days) represent ${Math.round(stats.bucket1_pct * 10) / 10}% of repeat purchases - your VIP segment`,
       ],
       quartile_stats: {
         q1_25th_percentile: Math.round(stats.q1),

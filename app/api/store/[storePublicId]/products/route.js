@@ -1,17 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectToDatabase from '@/lib/mongoose';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import mongoose from 'mongoose';
-import Store from '@/models/Store';
-import Brand from '@/models/Brand';
-import User from '@/models/User';
-import Role from '@/models/Role';
-import Contract from '@/models/Contract';
-import ContractSeat from '@/models/ContractSeat';
-// Removed checkStorePermissions import - will use inline permission checking like collections route
 
-export async function GET(request, context) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
     const { storePublicId } = await context.params;
     const { searchParams } = new URL(request.url);
@@ -25,77 +16,15 @@ export async function GET(request, context) {
     const productType = searchParams.get('productType') || '';
     const vendor = searchParams.get('vendor') || '';
     const skip = (page - 1) * limit;
-    
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      console.log('No session found');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    await connectToDatabase();
+
+    // Access validated entities from middleware
+    const { store, user, role } = request;
     const db = mongoose.connection.db;
-    
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId }).lean();
-    if (!store) {
-      return NextResponse.json(
-        { error: 'Store not found' },
-        { status: 404 }
-      );
-    }
-    
-    // Find the user
-    const user = await User.findOne({ email: session.user.email }).lean();
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
-    // Check if user has permission to view this store
-    let hasAccess = false;
-    let userRole = null;
-
-    const storeOwnerId = store.owner_id ? store.owner_id.toString() : null;
-    const userId = user._id ? user._id.toString() : null;
-    
-    if (storeOwnerId && userId && storeOwnerId === userId) {
-      hasAccess = true;
-      userRole = 'owner';
-    }
-
-    // Check store_permissions array
-    if (!hasAccess && user.store_permissions) {
-      const storeId = store._id ? store._id.toString() : null;
-      const storePermission = user.store_permissions.find(
-        sp => {
-          const spStoreId = sp.store_id ? sp.store_id.toString() : null;
-          return spStoreId && storeId && spStoreId === storeId;
-        }
-      );
-      
-      if (storePermission) {
-        hasAccess = true;
-        userRole = storePermission.role;
-      }
-    }
-
-    // Check if user is super admin
-    if (user.is_super_admin || user.super_user_role === 'SUPER_ADMIN') {
-      hasAccess = true;
-      userRole = 'super_admin';
-    }
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
-
-    // Define permissions based on role
-    const canEditProducts = ['owner', 'admin', 'manager', 'super_admin'].includes(userRole);
-    const canCreateProducts = ['owner', 'admin', 'super_admin'].includes(userRole);
-    const canDeleteProducts = ['owner', 'admin', 'super_admin'].includes(userRole);
+    // Check specific permissions for products
+    const canEditProducts = user.is_super_user || role?.permissions?.products?.edit === true;
+    const canCreateProducts = user.is_super_user || role?.permissions?.products?.create === true;
+    const canDeleteProducts = user.is_super_user || role?.permissions?.products?.delete === true;
     
     // Build query
     const query = { store_public_id: storePublicId };
@@ -250,7 +179,7 @@ export async function GET(request, context) {
         canEdit: canEditProducts,
         canCreate: canCreateProducts,
         canDelete: canDeleteProducts,
-        userRole: userRole
+        userRole: role?.name || 'user'
       },
       store: {
         id: store._id.toString(),
@@ -271,75 +200,18 @@ export async function GET(request, context) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST endpoint for importing products from Shopify
-export async function POST(request, context) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
     const { storePublicId } = await context.params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    await connectToDatabase();
-    
-    // Find the store first
-    const store = await Store.findOne({ public_id: storePublicId }).lean();
-    if (!store) {
-      return NextResponse.json(
-        { error: 'Store not found' },
-        { status: 404 }
-      );
-    }
-    
-    // Find the user
-    const user = await User.findOne({ email: session.user.email }).lean();
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const { store, user, role } = request;
 
-    // Check if user has permission to edit this store
-    let hasAccess = false;
-    let userRole = null;
+    // Check if user has permission to import products
+    const canEditProducts = user.is_super_user || role?.permissions?.products?.edit === true;
 
-    const storeOwnerId = store.owner_id ? store.owner_id.toString() : null;
-    const userId = user._id ? user._id.toString() : null;
-    
-    if (storeOwnerId && userId && storeOwnerId === userId) {
-      hasAccess = true;
-      userRole = 'owner';
-    }
-
-    // Check store_permissions array
-    if (!hasAccess && user.store_permissions) {
-      const storeId = store._id ? store._id.toString() : null;
-      const storePermission = user.store_permissions.find(
-        sp => {
-          const spStoreId = sp.store_id ? sp.store_id.toString() : null;
-          return spStoreId && storeId && spStoreId === storeId;
-        }
-      );
-      
-      if (storePermission) {
-        hasAccess = true;
-        userRole = storePermission.role;
-      }
-    }
-
-    // Check if user is super admin
-    if (user.is_super_admin || user.super_user_role === 'SUPER_ADMIN') {
-      hasAccess = true;
-      userRole = 'super_admin';
-    }
-
-    const canEditProducts = ['owner', 'admin', 'manager', 'super_admin'].includes(userRole);
-    
-    if (!hasAccess || !canEditProducts) {
+    if (!canEditProducts) {
       return NextResponse.json(
         { error: 'You do not have permission to import products' },
         { status: 403 }
@@ -371,4 +243,4 @@ export async function POST(request, context) {
       { status: 500 }
     );
   }
-}
+});

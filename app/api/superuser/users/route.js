@@ -74,6 +74,9 @@ export async function GET(request) {
     const hasNextPage = page < totalPages;
     const hasPreviousPage = page > 1;
 
+    // Log superuser action for audit purposes
+    console.log(`[AUDIT] Superuser ${user.email} accessed user list at ${new Date().toISOString()}`);
+
     return NextResponse.json({
       users: enhancedUsers,
       pagination: {
@@ -87,9 +90,9 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('Superuser API error:', error);
     return NextResponse.json(
-      { error: "Failed to fetch users" }, 
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

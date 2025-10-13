@@ -10,11 +10,16 @@ import connectToDatabase from '@/lib/mongoose';
 // GET - Get contract details with stores and users
 export async function GET(request) {
   try {
-    await connectToDatabase();
-    
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -22,22 +27,21 @@ export async function GET(request) {
 
     if (!contractId) {
       // Get all user's contracts via ContractSeat
-      const user = await User.findById(session.user.id).populate('active_seats');
-      const contracts = [];
-      
-      for (const seatInfo of user.active_seats || []) {
-        const contract = await Contract.findById(seatInfo.contract_id);
-        if (contract) {
-          contracts.push({
-            id: contract._id,
-            name: contract.contract_name,
-            public_id: contract.public_id,
-            status: contract.status,
-            role: seatInfo.role || 'owner'
-          });
-        }
-      }
-      
+      const userSeats = await ContractSeat.find({
+        user_id: user._id,
+        status: 'active'
+      }).populate('contract_id');
+
+      const contracts = userSeats
+        .filter(seat => seat.contract_id && seat.contract_id.status === 'active')
+        .map(seat => ({
+          id: seat.contract_id._id,
+          name: seat.contract_id.contract_name,
+          public_id: seat.contract_id.public_id,
+          status: seat.contract_id.status,
+          role: seat.default_role_id?.name || 'member'
+        }));
+
       return NextResponse.json({ contracts });
     }
 
@@ -48,14 +52,19 @@ export async function GET(request) {
     }
 
     // Check if user has access to this contract via ContractSeat
-    const userSeat = await ContractSeat.findUserSeatForContract(session.user.id, contractId);
-    if (!userSeat && contract.owner_id.toString() !== session.user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    const userSeat = await ContractSeat.findOne({
+      user_id: user._id,
+      contract_id: contractId,
+      status: 'active'
+    });
+
+    if (!userSeat && !user.is_super_user) {
+      return NextResponse.json({ error: 'Access denied to this contract' }, { status: 403 });
     }
 
     // Get contract stores and seats
     const stores = await Store.find({ contract_id: contractId, is_deleted: { $ne: true } });
-    const seats = await ContractSeat.findByContract(contractId);
+    const seats = await ContractSeat.find({ contract_id: contractId });
 
     return NextResponse.json({
       contract: {
@@ -97,8 +106,15 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -111,36 +127,50 @@ export async function POST(request) {
       );
     }
 
-    // Get contract and check ownership
-    const contract = await ContractModel.getContractById(contractId);
+    // Get contract
+    const contract = await Contract.findById(contractId);
     if (!contract) {
       return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
     }
 
-    if (contract.owner_id.toString() !== session.user.id) {
-      return NextResponse.json({ error: 'Only contract owner can add users' }, { status: 403 });
+    // Check if user has a seat in this contract
+    const seat = await ContractSeat.findOne({
+      user_id: user._id,
+      contract_id: contractId,
+      status: 'active'
+    });
+
+    if (!seat && !user.is_super_user) {
+      return NextResponse.json({ error: 'Access denied to this contract' }, { status: 403 });
     }
 
-    // Ensure mongoose connection
-    await connectToDatabase();
-
-    // Find user by email
+    // Find user to add by email
     const userToAdd = await User.findOne({ email });
     if (!userToAdd) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if user already has access
-    if (userToAdd.contract_access?.some(ca => ca.contract_id.toString() === contractId)) {
+    // Check if user already has a seat
+    const existingSeat = await ContractSeat.findOne({
+      user_id: userToAdd._id,
+      contract_id: contractId
+    });
+
+    if (existingSeat) {
       return NextResponse.json({ error: 'User already has access to this contract' }, { status: 400 });
     }
 
-    // Add user to contract
-    try {
-      await ContractModel.addUserToContract(contractId, userToAdd._id.toString(), role);
-    } catch (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+    // Create new seat for user
+    // Note: This is simplified - you'll need to implement proper seat creation logic
+    const newSeat = new ContractSeat({
+      user_id: userToAdd._id,
+      contract_id: contractId,
+      status: 'active',
+      seat_type: 'standard',
+      store_access: [] // Empty array means access to all stores
+    });
+
+    await newSeat.save();
 
     return NextResponse.json({
       message: 'User added to contract successfully',
@@ -161,8 +191,15 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -172,27 +209,34 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Contract ID is required' }, { status: 400 });
     }
 
-    // Get contract and check ownership
-    const contract = await ContractModel.getContractById(contractId);
+    // Get contract
+    const contract = await Contract.findById(contractId);
     if (!contract) {
       return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
     }
 
-    if (contract.owner_id.toString() !== session.user.id) {
-      return NextResponse.json({ error: 'Only contract owner can update contract' }, { status: 403 });
+    // Check if user has a seat in this contract
+    const seat = await ContractSeat.findOne({
+      user_id: user._id,
+      contract_id: contractId,
+      status: 'active'
+    });
+
+    if (!seat && !user.is_super_user) {
+      return NextResponse.json({ error: 'Access denied to this contract' }, { status: 403 });
     }
 
     // Update contract
-    const allowedUpdates = ['name', 'billing_email', 'billing_plan', 'max_stores', 'max_users'];
+    const allowedUpdates = ['contract_name', 'billing_email', 'billing_plan', 'max_stores', 'max_users'];
     const filteredUpdates = {};
-    
+
     for (const key of allowedUpdates) {
       if (updates[key] !== undefined) {
         filteredUpdates[key] = updates[key];
       }
     }
 
-    await ContractModel.updateContract(contractId, filteredUpdates);
+    await Contract.findByIdAndUpdate(contractId, filteredUpdates);
 
     return NextResponse.json({
       message: 'Contract updated successfully',
@@ -208,8 +252,15 @@ export async function PUT(request) {
 export async function DELETE(request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -223,27 +274,36 @@ export async function DELETE(request) {
       );
     }
 
-    // Get contract and check ownership
-    const contract = await ContractModel.getContractById(contractId);
+    // Get contract
+    const contract = await Contract.findById(contractId);
     if (!contract) {
       return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
     }
 
-    if (contract.owner_id.toString() !== session.user.id) {
-      return NextResponse.json({ error: 'Only contract owner can remove users' }, { status: 403 });
+    // Check if user has a seat in this contract
+    const seat = await ContractSeat.findOne({
+      user_id: user._id,
+      contract_id: contractId,
+      status: 'active'
+    });
+
+    if (!seat && !user.is_super_user) {
+      return NextResponse.json({ error: 'Access denied to this contract' }, { status: 403 });
     }
 
-    // Can't remove the owner
-    if (userId === contract.owner_id.toString()) {
-      return NextResponse.json({ error: 'Cannot remove contract owner' }, { status: 400 });
+    // Find the seat to remove
+    const seatToRemove = await ContractSeat.findOne({
+      user_id: userId,
+      contract_id: contractId
+    });
+
+    if (!seatToRemove) {
+      return NextResponse.json({ error: 'User seat not found' }, { status: 404 });
     }
 
-    // Remove user from contract
-    await ContractModel.removeUserFromContract(contractId, userId);
-    
-    // Decrement user count
-    await ContractModel.updateContract(contractId, {
-      $inc: { current_users_count: -1 }
+    // Remove the seat
+    await ContractSeat.findByIdAndUpdate(seatToRemove._id, {
+      status: 'inactive'
     });
 
     return NextResponse.json({

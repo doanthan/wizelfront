@@ -120,13 +120,9 @@ export async function GET(request) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error("ClickHouse API error:", error);
+    console.error("Superuser API error:", error);
     return NextResponse.json(
-      { 
-        error: "Internal server error", 
-        message: error.message,
-        details: process.env.NODE_ENV === "development" ? error.toString() : undefined
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -174,13 +170,9 @@ export async function POST(request) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error("ClickHouse POST API error:", error);
+    console.error("Superuser API error:", error);
     return NextResponse.json(
-      { 
-        error: "Internal server error", 
-        message: error.message,
-        details: process.env.NODE_ENV === "development" ? error.toString() : undefined
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

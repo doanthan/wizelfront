@@ -1,96 +1,28 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import connectToDatabase from '@/lib/mongoose';
 import mongoose from 'mongoose';
 
-export async function GET(request, context) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    // Get the authenticated session
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
-      console.log('No session found in collections API');
-      return NextResponse.json({ error: 'Unauthorized - Please log in' }, { status: 401 });
-    }
-    
-    console.log('Session found for user:', session.user.email);
-
-    // Await params as required in Next.js 14+
-    const { storePublicId } = await context.params;
-
-    // Connect to MongoDB
-    await connectToDatabase();
-    const db = mongoose.connection.db;
-    
-    // Get the store to verify access
-    const storesCollection = db.collection('stores');
-    const store = await storesCollection.findOne({ public_id: storePublicId });
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check user permissions for this store
-    const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ 
-      email: session.user.email 
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Check if user has permission to view this store
-    // First check if they're the owner
-    let hasAccess = false;
-    let userRole = null;
-
-    const storeOwnerId = store.owner_id ? store.owner_id.toString() : null;
-    const userId = user._id ? user._id.toString() : null;
-    
-    if (storeOwnerId && userId && storeOwnerId === userId) {
-      hasAccess = true;
-      userRole = 'owner';
-    }
-
-    // Check store_permissions array
-    if (!hasAccess && user.store_permissions) {
-      const storeId = store._id ? store._id.toString() : null;
-      const storePermission = user.store_permissions.find(
-        sp => {
-          const spStoreId = sp.store_id ? sp.store_id.toString() : null;
-          return spStoreId && storeId && spStoreId === storeId;
-        }
-      );
-      
-      if (storePermission) {
-        hasAccess = true;
-        userRole = storePermission.role;
-      }
-    }
-
-    // Check if user is super admin
-    if (user.is_super_admin || user.super_user_role === 'SUPER_ADMIN') {
-      hasAccess = true;
-      userRole = 'super_admin';
-    }
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
+    const { store, user, role } = request;
 
     // Check if user can edit brands (to show Collections, Products, CTAs tabs)
-    const canEditBrands = ['owner', 'admin', 'manager', 'super_admin'].includes(userRole);
-    
-    console.log('User role:', userRole, 'Can edit brands:', canEditBrands);
+    // Owner, admin, manager roles can view/edit collections
+    const canEditBrands = role?.level >= 60 || user.is_super_user; // Manager level (60) and above
+
+    console.log('User role:', role?.name, 'Can edit brands:', canEditBrands);
+
+    // Connect to MongoDB for collections data
+    await connectToDatabase();
+    const db = mongoose.connection.db;
 
     // Check if this is a Shopify store
     let formattedCollections = [];
 
     if (store.isShopify && store.shopifyCollections && store.shopifyCollections.length > 0) {
       // Use Shopify collections from the Store document
-      console.log(`Using Shopify collections for store ${storePublicId}: ${store.shopifyCollections.length} collections`);
+      console.log(`Using Shopify collections for store ${store.public_id}: ${store.shopifyCollections.length} collections`);
 
       formattedCollections = store.shopifyCollections.map(collection => ({
         id: collection.id,
@@ -133,17 +65,17 @@ export async function GET(request, context) {
     } else {
       // Use regular collections from MongoDB collections collection
       const collectionsCollection = db.collection('collections');
-      console.log('Fetching collections for store_public_id:', storePublicId);
+      console.log('Fetching collections for store_public_id:', store.public_id);
 
       // Also try to find collections with store_id field in case they use that
       const collections = await collectionsCollection.find({
         $or: [
-          { store_public_id: storePublicId },
+          { store_public_id: store.public_id },
           { store_id: store._id }
         ]
       }).toArray();
 
-      console.log(`Found ${collections.length} collections for store ${storePublicId}`);
+      console.log(`Found ${collections.length} collections for store ${store.public_id}`);
 
       // Format collections for frontend
       formattedCollections = collections.map(collection => ({
@@ -189,8 +121,8 @@ export async function GET(request, context) {
         canEditBrands,
         canCreateCollections: canEditBrands,
         canEditCollections: canEditBrands,
-        canDeleteCollections: ['owner', 'admin', 'super_admin'].includes(userRole),
-        userRole
+        canDeleteCollections: role?.level >= 80 || user.is_super_user, // Admin level (80) and above
+        userRole: role?.name || 'unknown'
       },
       store: {
         id: store._id.toString(),
@@ -208,69 +140,31 @@ export async function GET(request, context) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST endpoint to create a new collection
-export async function POST(request, context) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { store, user, role } = request;
+
+    // Check if user has permission to create collections (manager level and above)
+    if (role?.level < 60 && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to create collections' },
+        { status: 403 }
+      );
     }
 
-    // Await params as required in Next.js 14+
-    const { storePublicId } = await context.params;
     const body = await request.json();
 
     // Connect to MongoDB
     await connectToDatabase();
     const db = mongoose.connection.db;
-    
-    // Verify store and permissions
-    const storesCollection = db.collection('stores');
-    const store = await storesCollection.findOne({ public_id: storePublicId });
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check user permissions
-    const usersCollection = db.collection('users');
-    const user = await usersCollection.findOne({ 
-      email: session.user.email 
-    });
-
-    let canCreate = false;
-    const storeOwnerId = store.owner_id ? store.owner_id.toString() : null;
-    const userId = user._id ? user._id.toString() : null;
-    
-    if (storeOwnerId && userId && storeOwnerId === userId) {
-      canCreate = true;
-    } else if (user.store_permissions) {
-      const storeId = store._id ? store._id.toString() : null;
-      const storePermission = user.store_permissions.find(
-        sp => {
-          const spStoreId = sp.store_id ? sp.store_id.toString() : null;
-          return spStoreId && storeId && spStoreId === storeId;
-        }
-      );
-      if (storePermission && ['owner', 'admin', 'manager'].includes(storePermission.role)) {
-        canCreate = true;
-      }
-    }
-    
-    if (user.is_super_admin) {
-      canCreate = true;
-    }
-
-    if (!canCreate) {
-      return NextResponse.json({ error: 'Insufficient permissions to create collections' }, { status: 403 });
-    }
 
     // Create new collection
     const collectionsCollection = db.collection('collections');
     const newCollection = {
-      store_public_id: storePublicId,
+      store_public_id: store.public_id,
       title: body.title,
       handle: body.handle || body.title.toLowerCase().replace(/\s+/g, '-'),
       body_html: body.body_html || '',
@@ -314,4 +208,4 @@ export async function POST(request, context) {
       { status: 500 }
     );
   }
-}
+});

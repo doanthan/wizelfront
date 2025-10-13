@@ -802,19 +802,343 @@ import { buildKlaviyoAuthOptions } from '@/lib/klaviyo-auth-helper';
 
 export async function GET(request) {
   await connectToDatabase();
-  
+
   // Get store with klaviyo_integration
   const store = await Store.findOne({ public_id: storeId });
-  
+
   // Build OAuth-first authentication options
   const authOptions = buildKlaviyoAuthOptions(store);
-  
+
   // Make API call using centralized function
   const campaigns = await klaviyoRequest('GET', 'campaigns', authOptions);
-  
+
   return NextResponse.json({ data: campaigns });
 }
 ```
+
+## 🔍 CRITICAL: API Debugging Guidelines
+
+### **IMPORTANT: Enable Debug Mode for ALL API Development**
+
+**When developing or debugging Klaviyo API integrations, ALWAYS enable debug mode to see detailed request/response information.**
+
+### Debug Mode Usage
+
+#### Method 1: Enable in Individual API Calls
+
+```javascript
+// ✅ CORRECT - Enable debug for specific API call
+import { klaviyoRequest } from '@/lib/klaviyo-api';
+import { buildKlaviyoAuthOptions } from '@/lib/klaviyo-auth-helper';
+
+export async function GET(request) {
+  await connectToDatabase();
+  const store = await Store.findOne({ public_id: storeId });
+  const authOptions = buildKlaviyoAuthOptions(store);
+
+  // Enable debug mode
+  const campaigns = await klaviyoRequest('GET', 'campaigns', {
+    ...authOptions,
+    debug: true  // 🔍 Shows detailed request/response logs
+  });
+
+  return NextResponse.json({ data: campaigns });
+}
+```
+
+#### Method 2: Debug with Auth Analysis
+
+```javascript
+// ✅ CORRECT - Comprehensive debugging with auth analysis
+import { klaviyoRequest } from '@/lib/klaviyo-api';
+import { buildKlaviyoAuthOptionsWithLogging } from '@/lib/klaviyo-auth-helper';
+
+export async function GET(request) {
+  await connectToDatabase();
+  const store = await Store.findOne({ public_id: storeId });
+
+  // Build auth options WITH debug logging
+  const authOptions = buildKlaviyoAuthOptionsWithLogging(store, { debug: true });
+
+  // Make API call with debug enabled
+  const campaigns = await klaviyoRequest('GET', 'campaigns', {
+    ...authOptions,
+    debug: true  // 🔍 Full request/response debugging
+  });
+
+  return NextResponse.json({ data: campaigns });
+}
+```
+
+### What Debug Mode Shows
+
+When `debug: true` is enabled, you'll see:
+
+```
+🔵 Klaviyo API Request Debug: {
+  method: 'GET',
+  endpoint: 'campaigns',
+  url: 'https://a.klaviyo.com/api/campaigns',
+  authMethod: 'OAuth',
+  hasTokenManager: true,
+  hasRefreshToken: true,
+  rateLimits: { burst: 10, steady: 150 },
+  skipRateLimit: false,
+  maxRetries: 3
+}
+
+🔑 Using OAuth token (attempt 1/4)
+
+📤 Request Headers: {
+  revision: '2025-07-15',
+  Accept: 'application/vnd.api+json',
+  'Content-Type': 'application/json',
+  Authorization: 'Bearer eyJhbGciOiJ...'
+}
+
+📥 Response: 200 OK (342ms)
+
+✅ Success Response: {
+  dataCount: 45,
+  hasIncluded: false,
+  includedCount: 0,
+  rateLimit: { remaining: '148', limit: '150', retryAfter: null },
+  responseTime: '342ms'
+}
+```
+
+### Debug Mode for Error Handling
+
+Debug mode provides detailed error information:
+
+```javascript
+// With debug: true, errors show:
+
+// 401 Unauthorized:
+⚠️ 401 Unauthorized - Token may be expired: {
+  errors: [{
+    code: 'not_authenticated',
+    detail: 'Access token expired',
+    ...
+  }]
+}
+🔄 Access token expired, refreshing...
+✅ Token refreshed, retrying request...
+
+// 429 Rate Limit:
+⏳ Rate limited (429), waiting 3000ms before retry 1/3
+
+// API Errors:
+❌ API Error Response: {
+  status: 400,
+  error: {
+    code: 'invalid_parameter',
+    detail: 'Invalid campaign ID format',
+    ...
+  },
+  fullResponse: { ... }
+}
+
+// Retry attempts:
+❌ Request failed (attempt 1/4): Network error
+⏳ Retrying in 1000ms...
+```
+
+### Common Debugging Patterns
+
+#### 1. Debug Authentication Issues
+
+```javascript
+// Show which auth method is being used
+import { buildKlaviyoAuthOptionsWithLogging, getAuthMethod } from '@/lib/klaviyo-auth-helper';
+
+const authMethod = getAuthMethod(store);
+console.log('Using auth method:', authMethod); // 'oauth', 'apikey', or 'none'
+
+// Auth debug (automatically development-only)
+const authOptions = buildKlaviyoAuthOptionsWithLogging(store, { debug: true });
+
+// Console output (development only):
+// 🔐 Klaviyo Authentication Analysis: {
+//   storeId: 'XAeU8VL',
+//   storeName: 'My Store',
+//   hasOAuth: true,
+//   hasApiKey: true,
+//   selectedMethod: 'oauth',
+//   hasRefreshToken: true,
+//   tokenExpiry: '2025-10-14T12:00:00.000Z'
+// }
+```
+
+#### 2. Debug Token Refresh Flow
+
+```javascript
+// Watch OAuth token refresh in action
+const authOptions = buildKlaviyoAuthOptions(store);
+const response = await klaviyoRequest('GET', 'campaigns', {
+  ...authOptions,
+  debug: true  // Will show token refresh attempts
+});
+
+// Console output:
+// 🔑 Using OAuth token (attempt 1/4)
+// ⚠️ 401 Unauthorized - Token may be expired
+// 🔄 Access token expired, refreshing...
+// ✅ Token refreshed, retrying request...
+// 🔑 Using OAuth token (attempt 2/4)
+// ✅ Success Response
+```
+
+#### 3. Debug Rate Limiting
+
+```javascript
+// See rate limit details
+const response = await klaviyoRequest('GET', 'campaigns', {
+  ...authOptions,
+  debug: true
+});
+
+// Console shows:
+// rateLimits: { burst: 10, steady: 150 }
+// rateLimit: { remaining: '148', limit: '150' }
+```
+
+#### 4. Debug Paginated Requests
+
+```javascript
+import { klaviyoGetAll } from '@/lib/klaviyo-api';
+
+const allCampaigns = await klaviyoGetAll('campaigns', {
+  ...authOptions,
+  debug: true,  // Shows progress for each page
+  maxPages: 10
+});
+
+// Console shows:
+// Fetched page 1, total items: 50
+// Fetched page 2, total items: 100
+// Fetched page 3, total items: 145
+```
+
+### When to Use Debug Mode
+
+**ALWAYS enable debug mode when:**
+1. ✅ Developing new API integrations
+2. ✅ Troubleshooting authentication issues
+3. ✅ Investigating rate limiting problems
+4. ✅ Debugging failed API calls
+5. ✅ Testing OAuth token refresh
+6. ✅ Analyzing API response times
+7. ✅ Working with new Klaviyo endpoints
+
+**Disable debug mode when:**
+1. ❌ Code is production-ready
+2. ❌ Running scheduled jobs in production
+3. ❌ Performance testing (logs add overhead)
+
+### Debug Mode Performance
+
+- Debug logs are **automatically development-only** (checks `NODE_ENV === 'development'`)
+- Minimal performance impact (~5-10ms per request)
+- Logs are not sent to client (server-side only)
+- **Safe to commit `debug: true`** - will automatically disable in production!
+
+### Automatic Environment-Based Debug Toggle
+
+**The debug mode is now automatically environment-aware:**
+
+```javascript
+// ✅ BEST PRACTICE - Just set debug: true (auto-disabled in production)
+const response = await klaviyoRequest('GET', 'campaigns', {
+  ...authOptions,
+  debug: true  // Automatically only logs in NODE_ENV=development
+});
+
+// 🔒 In production: debug: true is ignored, no logs are shown
+// 🛠️ In development: debug: true shows full request/response logs
+```
+
+**How it works:**
+- The `klaviyoRequest` function checks `process.env.NODE_ENV === 'development'`
+- Debug logs only appear when BOTH `debug: true` AND `NODE_ENV=development`
+- This means you can safely commit `debug: true` without worrying about production logs
+- No need to manually toggle debug flags between environments
+
+### Troubleshooting Checklist
+
+When API calls fail, check debug output for:
+
+1. **Auth Method**: Is it using OAuth or API Key?
+2. **Token Status**: Is the OAuth token expired?
+3. **Rate Limits**: Are you hitting rate limits?
+4. **Response Time**: Is the API slow?
+5. **Error Details**: What's the specific error message?
+6. **Retry Attempts**: Is it retrying properly?
+7. **Headers**: Are all required headers present?
+8. **Payload**: Is the request payload valid?
+
+### Example Debug Session
+
+```javascript
+// Complete debugging example
+import { klaviyoRequest } from '@/lib/klaviyo-api';
+import { buildKlaviyoAuthOptionsWithLogging, getAuthMethod } from '@/lib/klaviyo-auth-helper';
+
+export async function GET(request, { params }) {
+  try {
+    const { storePublicId } = await params;
+
+    await connectToDatabase();
+    const store = await Store.findOne({ public_id: storePublicId });
+
+    if (!store) {
+      console.error('❌ Store not found:', storePublicId);
+      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    }
+
+    // 1. Check auth method
+    const authMethod = getAuthMethod(store);
+    console.log('🔐 Auth method:', authMethod);
+
+    // 2. Build auth options with logging
+    const authOptions = buildKlaviyoAuthOptionsWithLogging(store, { debug: true });
+    console.log('✅ Auth options built');
+
+    // 3. Make API call with full debugging
+    console.log('🚀 Fetching campaigns...');
+    const campaigns = await klaviyoRequest('GET', 'campaigns', {
+      ...authOptions,
+      debug: true,  // Enable full request/response logging
+      maxRetries: 3
+    });
+
+    console.log('✅ Campaigns fetched:', campaigns.data.length);
+
+    return NextResponse.json({
+      campaigns: campaigns.data,
+      meta: campaigns.meta
+    });
+
+  } catch (error) {
+    console.error('❌ API Error:', {
+      message: error.message,
+      stack: error.stack
+    });
+
+    return NextResponse.json({
+      error: error.message
+    }, { status: 500 });
+  }
+}
+```
+
+### Remember:
+- **ALWAYS use `debug: true`** when developing or troubleshooting
+- **Check console logs** for detailed request/response information
+- **Use `buildKlaviyoAuthOptionsWithLogging`** to see auth details
+- **Safe to commit `debug: true`** - automatically disabled in production (NODE_ENV check)
+- **Debug mode is your friend** - it shows exactly what's happening!
+- **No manual environment checks needed** - the system handles it automatically
 
 **❌ WRONG - Don't use direct fetch calls:**
 

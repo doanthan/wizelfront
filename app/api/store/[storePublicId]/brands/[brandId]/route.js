@@ -1,43 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import Store from '@/models/Store';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import BrandSettings from '@/models/Brand';
-import ContractSeat from '@/models/ContractSeat';
-import connectToDatabase from '@/lib/mongoose';
 
 // DELETE - Delete a brand
-export async function DELETE(request, { params }) {
+export const DELETE = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { store, user, seat, role } = request;
+    const params = await context.params;
+    const { brandId } = params;
 
-    const { storePublicId, brandId } = params;
-    
-    // Find store by public ID (excluding soft-deleted stores)
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    });
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check if user has access to this store
-    const userSeat = await ContractSeat.findUserSeatForContract(
-      session.user.id, 
-      store.contract_id
-    );
-    
-    const isOwner = store.owner_id?.toString() === session.user.id;
-    
-    if (!userSeat && !isOwner) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    // Check permission - brands delete required
+    if (!role?.permissions?.brands?.delete) {
+      return NextResponse.json({
+        error: 'You do not have permission to delete brands'
+      }, { status: 403 });
     }
 
     // Find the brand
@@ -61,14 +37,14 @@ export async function DELETE(request, { params }) {
 
     // Soft delete the brand
     brand.isActive = false;
-    brand.updatedBy = session.user.id;
+    brand.updatedBy = user._id;
     brand.lastUpdated = new Date();
     await brand.save();
 
     // Track the operation for billing if user has a seat
-    if (userSeat) {
-      userSeat.trackBrandOperation('delete', brand._id, 0.5);
-      await userSeat.save();
+    if (seat) {
+      seat.trackBrandOperation('delete', brand._id, 0.5);
+      await seat.save();
     }
 
     return NextResponse.json({
@@ -79,41 +55,21 @@ export async function DELETE(request, { params }) {
     console.error('Brand DELETE error:', error);
     return NextResponse.json({ error: 'Failed to delete brand' }, { status: 500 });
   }
-}
+});
 
 // PUT - Update a brand
-export async function PUT(request, { params }) {
+export const PUT = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId, brandId } = params;
+    const { store, user, seat, role } = request;
+    const params = await context.params;
+    const { brandId } = params;
     const body = await request.json();
-    
-    // Find store by public ID (excluding soft-deleted stores)
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    });
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
 
-    // Check if user has access to this store
-    const userSeat = await ContractSeat.findUserSeatForContract(
-      session.user.id, 
-      store.contract_id
-    );
-    
-    const isOwner = store.owner_id?.toString() === session.user.id;
-    
-    if (!userSeat && !isOwner) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    // Check permission - brands edit required
+    if (!role?.permissions?.brands?.edit) {
+      return NextResponse.json({
+        error: 'You do not have permission to edit brands'
+      }, { status: 403 });
     }
 
     // Find the brand
@@ -148,14 +104,14 @@ export async function PUT(request, { params }) {
       }
     });
 
-    brand.updatedBy = session.user.id;
+    brand.updatedBy = user._id;
     brand.lastUpdated = new Date();
     await brand.save();
 
     // Track the operation for billing if user has a seat
-    if (userSeat) {
-      userSeat.trackBrandOperation('update', brand._id, 0.5);
-      await userSeat.save();
+    if (seat) {
+      seat.trackBrandOperation('update', brand._id, 0.5);
+      await seat.save();
     }
 
     return NextResponse.json({
@@ -172,4 +128,4 @@ export async function PUT(request, { params }) {
     console.error('Brand PUT error:', error);
     return NextResponse.json({ error: 'Failed to update brand' }, { status: 500 });
   }
-}
+});

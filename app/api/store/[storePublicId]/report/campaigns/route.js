@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import connectToDatabase from "@/lib/mongoose";
+import { withStoreAccess } from '@/middleware/storeAccess';
 import mongoose from "mongoose";
-import Store from "@/models/Store";
 import { createClient } from '@clickhouse/client';
 
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Access validated entities from request
+    const { store, user, role } = request;
+
+    // Check if user has analytics view permissions
+    if (!role?.permissions?.analytics?.view_all && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to view analytics' },
+        { status: 403 }
+      );
     }
 
-    await connectToDatabase();
-
-    const { storePublicId } = await params;
     const { searchParams } = new URL(request.url);
 
     // Get date range from query params (default to last 30 days)
@@ -35,14 +35,10 @@ export async function GET(request, { params }) {
     const previousStart = new Date(startDate.getTime() - periodLength);
     const previousEnd = startDate;
 
-    // Get store with Klaviyo integration
-    const store = await Store.findOne({ public_id: storePublicId })
-      .select('public_id name klaviyo_integration.public_id')
-      .lean();
-
-    if (!store || !store.klaviyo_integration?.public_id) {
+    // Check if Klaviyo is connected
+    if (!store.klaviyo_integration?.public_id) {
       return NextResponse.json({
-        error: 'Store not found or Klaviyo not connected'
+        error: 'Klaviyo not connected to this store'
       }, { status: 404 });
     }
 
@@ -95,7 +91,7 @@ export async function GET(request, { params }) {
       });
 
       console.log('[Campaign Report] ClickHouse Debug:', {
-        storePublicId,
+        storePublicId: store.public_id,
         klaviyoPublicId,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0]
@@ -254,7 +250,7 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
 // Helper function to calculate statistics for a period
 function calculatePeriodStats(campaigns) {

@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectToDatabase from '@/lib/mongoose';
-import Store from '@/models/Store';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import { getClickHouseClient } from '@/lib/clickhouse';
 
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { store, user, role } = request;
+
+    // Check analytics permissions
+    if (!role?.permissions?.analytics?.view_all && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to view analytics' },
+        { status: 403 }
+      );
     }
 
-    const { storePublicId } = await params;
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -21,17 +22,10 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Start date and end date required' }, { status: 400 });
     }
 
-    await connectToDatabase();
-
-    // Get store and verify access
-    const store = await Store.findOne({ public_id: storePublicId });
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
+    // Use store directly - it's already fetched by middleware
     const klaviyoPublicId = store.klaviyo_integration?.public_id;
     if (!klaviyoPublicId) {
-      return NextResponse.json({ error: 'No Klaviyo integration found' }, { status: 404 });
+      return NextResponse.json({ error: 'Klaviyo not connected' }, { status: 404 });
     }
 
     // Initialize ClickHouse client
@@ -167,4 +161,4 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

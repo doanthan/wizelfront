@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Contract from '@/models/Contract';
+import ContractSeat from '@/models/ContractSeat';
 import User from '@/models/User';
+import Store from '@/models/Store';
 import AICredits from '@/models/AICredits';
 import connectToDatabase from '@/lib/mongoose';
 // import Stripe from 'stripe';
@@ -15,10 +17,20 @@ export async function POST(request) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
@@ -33,8 +45,8 @@ export async function POST(request) {
       );
     }
 
-    // Get contract and verify user has access
-    const contract = await ContractModel.getContractById(contract_id);
+    // Get contract
+    const contract = await Contract.findById(contract_id);
     if (!contract) {
       return NextResponse.json(
         { error: 'Contract not found' },
@@ -42,12 +54,14 @@ export async function POST(request) {
       );
     }
 
-    // Check if user owns or has access to this contract
-    const user = await UserModel.getUserById(session.user.id);
-    const hasAccess = contract.owner_id.toString() === session.user.id ||
-      user.contract_access?.some(access => access.contract_id.toString() === contract_id);
-    
-    if (!hasAccess) {
+    // Check if user has a seat in this contract
+    const seat = await ContractSeat.findOne({
+      user_id: user._id,
+      contract_id: contract_id,
+      status: 'active'
+    });
+
+    if (!seat && !user.is_super_user) {
       return NextResponse.json(
         { error: 'Access denied to this contract' },
         { status: 403 }
@@ -55,9 +69,9 @@ export async function POST(request) {
     }
 
     // Get credit package details
-    const packages = AICreditsModel.getCreditPackages();
+    const packages = AICredits.getCreditPackages ? AICredits.getCreditPackages() : [];
     const selectedPackage = packages.find(pkg => pkg.credits === credits_package);
-    
+
     if (!selectedPackage) {
       return NextResponse.json(
         { error: 'Invalid credits package' },
@@ -94,7 +108,10 @@ export async function POST(request) {
     // });
 
     // For testing, just add credits directly
-    await ContractModel.updateAICredits(contract_id, selectedPackage.credits, 'purchase');
+    // Update contract AI credits (simplified - adjust based on your Contract model structure)
+    await Contract.findByIdAndUpdate(contract_id, {
+      $inc: { 'ai_credits.current_balance': selectedPackage.credits }
+    });
 
     return NextResponse.json({
       checkout_url: '/dashboard/billing?credits_success=true', // Mock URL for testing
@@ -115,10 +132,20 @@ export async function GET(request) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
@@ -127,20 +154,51 @@ export async function GET(request) {
 
     if (contractId) {
       // Get specific contract balance
-      const balance = await AICreditsModel.getContractBalance(contractId);
-      return NextResponse.json({ balance, contract_id: contractId });
+      const contract = await Contract.findById(contractId);
+      if (!contract) {
+        return NextResponse.json({ error: 'Contract not found' }, { status: 404 });
+      }
+
+      // Verify user has access
+      const seat = await ContractSeat.findOne({
+        user_id: user._id,
+        contract_id: contractId,
+        status: 'active'
+      });
+
+      if (!seat && !user.is_super_user) {
+        return NextResponse.json({ error: 'Access denied to this contract' }, { status: 403 });
+      }
+
+      return NextResponse.json({
+        balance: contract.ai_credits?.current_balance || 0,
+        contract_id: contractId
+      });
     } else {
       // Get all user's contract balances
-      const user = await UserModel.getUserWithContracts(session.user.id);
+      const userSeats = await ContractSeat.find({
+        user_id: user._id,
+        status: 'active'
+      }).populate('contract_id');
+
       const balances = await Promise.all(
-        user.contracts.map(async (contract) => ({
-          contract_id: contract._id,
-          contract_name: contract.name,
-          balance: contract.ai_credits_balance,
-          stores_count: (await ContractModel.getContractStores(contract._id)).length
-        }))
+        userSeats
+          .filter(seat => seat.contract_id)
+          .map(async (seat) => {
+            const storesCount = await Store.countDocuments({
+              contract_id: seat.contract_id._id,
+              is_deleted: { $ne: true }
+            });
+
+            return {
+              contract_id: seat.contract_id._id,
+              contract_name: seat.contract_id.contract_name,
+              balance: seat.contract_id.ai_credits?.current_balance || 0,
+              stores_count: storesCount
+            };
+          })
       );
-      
+
       return NextResponse.json({ balances });
     }
   } catch (error) {

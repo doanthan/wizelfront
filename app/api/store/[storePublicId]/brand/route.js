@@ -1,26 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withStoreAccess } from "@/middleware/storeAccess";
 import connectToDatabase from "@/lib/mongodb";
-import Store from "@/models/Store";
 import BrandSettings from "@/models/Brand";
 
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { store, user } = request;
 
     await connectToDatabase();
-
-    const { storePublicId } = params;
-
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId });
-    if (!store) {
-      return NextResponse.json({ error: "Store not found" }, { status: 404 });
-    }
 
     // Find the default brand for this store
     let brand = await BrandSettings.findOne({ 
@@ -30,7 +17,7 @@ export async function GET(request, { params }) {
 
     // If no default brand exists, create one
     if (!brand) {
-      brand = await BrandSettings.findOrCreateDefault(store._id, session.user.id);
+      brand = await BrandSettings.findOrCreateDefault(store._id, user._id);
     }
 
     // Format brand data for frontend use
@@ -75,4 +62,4 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

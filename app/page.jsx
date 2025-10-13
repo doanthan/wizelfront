@@ -104,7 +104,7 @@ export default function Home() {
                   </h1>
 
                   <p className="text-lg md:text-xl text-neutral-gray dark:text-gray-300 leading-relaxed max-w-xl">
-                    Save 10+ hours a week by automating your email campaigns with our AI-powered platform that creates, schedules, and optimizes — 24/7. ✨
+                    Save 10+ hours a week by automating your email campaigns with our AI-powered platform that knows your brand and creates, schedules, and optimises — 24/7. ✨
                   </p>
                 </div>
 
@@ -146,7 +146,7 @@ export default function Home() {
                           Set up in minutes
                         </h3>
                         <p className="text-sm text-neutral-gray dark:text-gray-400">
-                          Connect your store and start sending AI-optimized campaigns instantly
+                          Connect your stores and start sending AI-optimised campaigns instantly
                         </p>
                       </div>
                     </div>
@@ -157,7 +157,7 @@ export default function Home() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-slate-gray dark:text-white mb-1">
-                          Smart targeting
+                          AI Powered Decisions and Campaigns
                         </h3>
                         <p className="text-sm text-neutral-gray dark:text-gray-400">
                           AI segments your audience for maximum engagement and conversions

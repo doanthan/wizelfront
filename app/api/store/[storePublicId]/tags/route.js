@@ -1,40 +1,14 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import mongoose from 'mongoose';
-import Store from '@/models/Store';
-import ContractSeat from '@/models/ContractSeat';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId } = await params;
-    await connectToDatabase();
-
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId });
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Find user's contract seat
-    const contractSeat = await ContractSeat.findUserAccessToStore(
-      session.user.id,
-      store._id
-    );
-
-    if (!contractSeat) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    const { store, seat } = request;
 
     // Get tags for this store - access the Map directly since the method might not be available
     const storeIdStr = store._id.toString();
-    const tags = contractSeat.storeTags?.get(storeIdStr) || [];
+    const tags = seat.storeTags?.get(storeIdStr) || [];
 
     return NextResponse.json({ tags });
   } catch (error) {
@@ -44,46 +18,19 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(request, { params }) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId } = await params;
+    const { store, seat, role } = request;
     const { tag } = await request.json();
 
     if (!tag || typeof tag !== 'string') {
       return NextResponse.json({ error: 'Invalid tag' }, { status: 400 });
     }
 
-    await connectToDatabase();
-
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId });
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Find user's contract seat
-    const contractSeat = await ContractSeat.findUserAccessToStore(
-      session.user.id,
-      store._id
-    );
-
-    if (!contractSeat) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     // Check if user has manage permission
-    const storeRole = contractSeat.getStoreRole(store._id);
-    const Role = mongoose.model('Role');
-    const role = await Role.findById(storeRole);
-    
-    if (!role || !role.permissions.stores?.manage) {
+    if (!role?.permissions?.stores?.manage) {
       return NextResponse.json(
         { error: 'You do not have permission to manage store tags' },
         { status: 403 }
@@ -92,15 +39,15 @@ export async function POST(request, { params }) {
 
     // Add the tag - access the Map directly
     const storeIdStr = store._id.toString();
-    const currentTags = contractSeat.storeTags?.get(storeIdStr) || [];
+    const currentTags = seat.storeTags?.get(storeIdStr) || [];
     if (!currentTags.includes(tag)) {
       currentTags.push(tag);
-      if (!contractSeat.storeTags) {
-        contractSeat.storeTags = new Map();
+      if (!seat.storeTags) {
+        seat.storeTags = new Map();
       }
-      contractSeat.storeTags.set(storeIdStr, currentTags);
+      seat.storeTags.set(storeIdStr, currentTags);
     }
-    await contractSeat.save();
+    await seat.save();
     const updatedTags = currentTags;
 
     return NextResponse.json({ tags: updatedTags });
@@ -111,46 +58,19 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function PUT(request, { params }) {
+export const PUT = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId } = await params;
+    const { store, seat, role } = request;
     const { tags } = await request.json();
 
     if (!Array.isArray(tags)) {
       return NextResponse.json({ error: 'Invalid tags' }, { status: 400 });
     }
 
-    await connectToDatabase();
-
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId });
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Find user's contract seat
-    const contractSeat = await ContractSeat.findUserAccessToStore(
-      session.user.id,
-      store._id
-    );
-
-    if (!contractSeat) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     // Check if user has manage permission
-    const storeRole = contractSeat.getStoreRole(store._id);
-    const Role = mongoose.model('Role');
-    const role = await Role.findById(storeRole);
-    
-    if (!role || !role.permissions.stores?.manage) {
+    if (!role?.permissions?.stores?.manage) {
       return NextResponse.json(
         { error: 'You do not have permission to manage store tags' },
         { status: 403 }
@@ -159,15 +79,15 @@ export async function PUT(request, { params }) {
 
     // Set all tags - access the Map directly
     const storeIdStr = store._id.toString();
-    if (!contractSeat.storeTags) {
-      contractSeat.storeTags = new Map();
+    if (!seat.storeTags) {
+      seat.storeTags = new Map();
     }
     if (tags && tags.length > 0) {
-      contractSeat.storeTags.set(storeIdStr, tags);
+      seat.storeTags.set(storeIdStr, tags);
     } else {
-      contractSeat.storeTags.delete(storeIdStr);
+      seat.storeTags.delete(storeIdStr);
     }
-    await contractSeat.save();
+    await seat.save();
     const updatedTags = tags || [];
 
     return NextResponse.json({ tags: updatedTags });
@@ -178,16 +98,11 @@ export async function PUT(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(request, { params }) {
+export const DELETE = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId } = await params;
+    const { store, seat, role } = request;
     const { searchParams } = new URL(request.url);
     const tag = searchParams.get('tag');
 
@@ -195,30 +110,8 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Tag parameter required' }, { status: 400 });
     }
 
-    await connectToDatabase();
-
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId });
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Find user's contract seat
-    const contractSeat = await ContractSeat.findUserAccessToStore(
-      session.user.id,
-      store._id
-    );
-
-    if (!contractSeat) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
     // Check if user has manage permission
-    const storeRole = contractSeat.getStoreRole(store._id);
-    const Role = mongoose.model('Role');
-    const role = await Role.findById(storeRole);
-    
-    if (!role || !role.permissions.stores?.manage) {
+    if (!role?.permissions?.stores?.manage) {
       return NextResponse.json(
         { error: 'You do not have permission to manage store tags' },
         { status: 403 }
@@ -227,19 +120,19 @@ export async function DELETE(request, { params }) {
 
     // Remove the tag - access the Map directly
     const storeIdStr = store._id.toString();
-    const currentTags = contractSeat.storeTags?.get(storeIdStr) || [];
+    const currentTags = seat.storeTags?.get(storeIdStr) || [];
     const updatedTags = currentTags.filter(t => t !== tag);
-    
-    if (!contractSeat.storeTags) {
-      contractSeat.storeTags = new Map();
+
+    if (!seat.storeTags) {
+      seat.storeTags = new Map();
     }
-    
+
     if (updatedTags.length > 0) {
-      contractSeat.storeTags.set(storeIdStr, updatedTags);
+      seat.storeTags.set(storeIdStr, updatedTags);
     } else {
-      contractSeat.storeTags.delete(storeIdStr);
+      seat.storeTags.delete(storeIdStr);
     }
-    await contractSeat.save();
+    await seat.save();
 
     return NextResponse.json({ tags: updatedTags });
   } catch (error) {
@@ -249,4 +142,4 @@ export async function DELETE(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

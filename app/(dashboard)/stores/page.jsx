@@ -69,7 +69,7 @@ export default function StoresPage() {
     if (refreshStores) {
       refreshStores();
     }
-    
+
     // Check if we should open the add store dialog
     if (searchParams.get('action') === 'new') {
       setShowStoreDialog(true);
@@ -134,16 +134,26 @@ export default function StoresPage() {
           </p>
         </div>
 
-        <Button
-          onClick={() => {
-            setEditingStore(null);
-            setShowStoreDialog(true);
-          }}
-          className="gap-2 bg-royal-blue hover:bg-blue-700 text-white transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Store
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => router.push('/stores/users')}
+            variant="outline"
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Manage Users
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingStore(null);
+              setShowStoreDialog(true);
+            }}
+            className="gap-2 bg-royal-blue hover:bg-blue-700 text-white transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Store
+          </Button>
+        </div>
       </div>
 
 

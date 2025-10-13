@@ -1,20 +1,15 @@
 import { NextResponse } from 'next/server';
-import connectToDatabase from '@/lib/mongoose';
-import Store from '@/models/Store';
+import { withStoreAccess } from '@/middleware/storeAccess';
 
-export async function POST(request, { params }) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
-    const { storePublicId } = await params;
+    const { store, role } = request;
 
-    // Connect to MongoDB and get store
-    await connectToDatabase();
-    const store = await Store.findOne({
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    });
-
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    // Check permission - analytics view required to calculate RFM
+    if (!role?.permissions?.analytics?.view_all) {
+      return NextResponse.json({
+        error: 'You do not have permission to calculate RFM'
+      }, { status: 403 });
     }
 
     const klaviyoPublicId = store.klaviyo_integration?.public_id;
@@ -66,4 +61,4 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

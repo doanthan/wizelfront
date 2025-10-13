@@ -227,15 +227,15 @@ export async function POST(request) {
           body: JSON.stringify(scrapePayload)
         });
 
-        // const productsSyncPromise = fetch(productsSyncUrl.toString(), {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify({
-        //     domain: url
-        //   })
-        // });
+        const productsSyncPromise = fetch(productsSyncUrl.toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            domain: url
+          })
+        });
 
         // Wait for both requests to complete
         const [scrapeResponse, productsSyncResponse] = await Promise.all([

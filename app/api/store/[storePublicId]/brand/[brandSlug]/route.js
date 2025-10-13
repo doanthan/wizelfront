@@ -1,44 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import Store from '@/models/Store';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import BrandSettings from '@/models/Brand';
-import ContractSeat from '@/models/ContractSeat';
-import connectToDatabase from '@/lib/mongoose';
 
 // GET - Get a single brand by slug
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId, brandSlug } = await params;
-    
-    // Find store by public ID (excluding soft-deleted stores)
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    });
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check if user has access to this store
-    const userSeat = await ContractSeat.findUserSeatForContract(
-      session.user.id, 
-      store.contract_id
-    );
-    
-    const isOwner = store.owner_id?.toString() === session.user.id;
-    
-    if (!userSeat && !isOwner) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    const { store } = request;
+    const params = await context.params;
+    const { brandSlug } = params;
 
     // Find the brand by slug
     const brand = await BrandSettings.findOne({
@@ -60,41 +29,21 @@ export async function GET(request, { params }) {
     console.error('Brand GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch brand' }, { status: 500 });
   }
-}
+});
 
 // PUT - Update brand by slug
-export async function PUT(request, { params }) {
+export const PUT = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId, brandSlug } = await params;
+    const { store, user, seat, role } = request;
+    const params = await context.params;
+    const { brandSlug } = params;
     const body = await request.json();
-    
-    // Find store by public ID (excluding soft-deleted stores)
-    const store = await Store.findOne({ 
-      public_id: storePublicId,
-      is_deleted: { $ne: true }
-    });
-    
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
 
-    // Check if user has access to this store
-    const userSeat = await ContractSeat.findUserSeatForContract(
-      session.user.id, 
-      store.contract_id
-    );
-    
-    const isOwner = store.owner_id?.toString() === session.user.id;
-    
-    if (!userSeat && !isOwner) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    // Check permission - brands edit required
+    if (!role?.permissions?.brands?.edit) {
+      return NextResponse.json({
+        error: 'You do not have permission to edit brands'
+      }, { status: 403 });
     }
 
     // Find the brand by slug
@@ -136,14 +85,14 @@ export async function PUT(request, { params }) {
       brand.name = body.brandName;
     }
 
-    brand.updatedBy = session.user.id;
+    brand.updatedBy = user._id;
     brand.lastUpdated = new Date();
     await brand.save();
 
     // Track the operation for billing if user has a seat
-    if (userSeat) {
-      userSeat.trackBrandOperation('update', brand._id, 0.5);
-      await userSeat.save();
+    if (seat) {
+      seat.trackBrandOperation('update', brand._id, 0.5);
+      await seat.save();
     }
 
     return NextResponse.json({
@@ -155,4 +104,4 @@ export async function PUT(request, { params }) {
     console.error('Brand PUT error:', error);
     return NextResponse.json({ error: 'Failed to update brand' }, { status: 500 });
   }
-}
+});

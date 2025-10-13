@@ -1,85 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectToDatabase from '@/lib/mongoose';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import mongoose from 'mongoose';
-import Store from '@/models/Store';
-import User from '@/models/User';
 
-export async function GET(request, context) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
     const { storePublicId, productId } = await context.params;
-    
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      console.log('No session found');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    await connectToDatabase();
+    const { store, user, role } = request;
     const db = mongoose.connection.db;
-    
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId }).lean();
-    if (!store) {
-      return NextResponse.json(
-        { error: 'Store not found' },
-        { status: 404 }
-      );
-    }
-    
-    // Find the user
-    const user = await User.findOne({ email: session.user.email }).lean();
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
-    // Check if user has permission to view this store
-    let hasAccess = false;
-    let userRole = null;
-
-    const storeOwnerId = store.owner_id ? store.owner_id.toString() : null;
-    const userId = user._id ? user._id.toString() : null;
-    
-    if (storeOwnerId && userId && storeOwnerId === userId) {
-      hasAccess = true;
-      userRole = 'owner';
-    }
-
-    // Check store_permissions array
-    if (!hasAccess && user.store_permissions) {
-      const storeId = store._id ? store._id.toString() : null;
-      const storePermission = user.store_permissions.find(
-        sp => {
-          const spStoreId = sp.store_id ? sp.store_id.toString() : null;
-          return spStoreId && storeId && spStoreId === storeId;
-        }
-      );
-      
-      if (storePermission) {
-        hasAccess = true;
-        userRole = storePermission.role;
-      }
-    }
-
-    // Check if user is super admin
-    if (user.is_super_admin || user.super_user_role === 'SUPER_ADMIN') {
-      hasAccess = true;
-      userRole = 'super_admin';
-    }
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
-
-    // Define permissions based on role
-    const canEditProducts = ['owner', 'admin', 'manager', 'super_admin'].includes(userRole);
-    const canCreateProducts = ['owner', 'admin', 'super_admin'].includes(userRole);
-    const canDeleteProducts = ['owner', 'admin', 'super_admin'].includes(userRole);
+    // Check specific permissions for products
+    const canEditProducts = user.is_super_user || role?.permissions?.products?.edit === true;
+    const canCreateProducts = user.is_super_user || role?.permissions?.products?.create === true;
+    const canDeleteProducts = user.is_super_user || role?.permissions?.products?.delete === true;
     
     // Try to find product with different collection names and ID formats
     let product = null;
@@ -176,7 +108,7 @@ export async function GET(request, context) {
         canEdit: canEditProducts,
         canCreate: canCreateProducts,
         canDelete: canDeleteProducts,
-        userRole: userRole
+        userRole: role?.name || 'user'
       },
       store: {
         id: store._id.toString(),
@@ -193,77 +125,19 @@ export async function GET(request, context) {
       { status: 500 }
     );
   }
-}
+});
 
 // PATCH endpoint for updating marketing fields only
-export async function PATCH(request, context) {
+export const PATCH = withStoreAccess(async (request, context) => {
   try {
     const { storePublicId, productId } = await context.params;
-    
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    await connectToDatabase();
+    const { store, user, role } = request;
     const db = mongoose.connection.db;
-    
-    // Find the store
-    const store = await Store.findOne({ public_id: storePublicId }).lean();
-    if (!store) {
-      return NextResponse.json(
-        { error: 'Store not found' },
-        { status: 404 }
-      );
-    }
-    
-    // Find the user
-    const user = await User.findOne({ email: session.user.email }).lean();
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
-    // Check if user has permission to edit this store
-    let hasAccess = false;
-    let userRole = null;
+    // Check if user has permission to edit products
+    const canEditProducts = user.is_super_user || role?.permissions?.products?.edit === true;
 
-    const storeOwnerId = store.owner_id ? store.owner_id.toString() : null;
-    const userId = user._id ? user._id.toString() : null;
-    
-    if (storeOwnerId && userId && storeOwnerId === userId) {
-      hasAccess = true;
-      userRole = 'owner';
-    }
-
-    // Check store_permissions array
-    if (!hasAccess && user.store_permissions) {
-      const storeId = store._id ? store._id.toString() : null;
-      const storePermission = user.store_permissions.find(
-        sp => {
-          const spStoreId = sp.store_id ? sp.store_id.toString() : null;
-          return spStoreId && storeId && spStoreId === storeId;
-        }
-      );
-      
-      if (storePermission) {
-        hasAccess = true;
-        userRole = storePermission.role;
-      }
-    }
-
-    // Check if user is super admin
-    if (user.is_super_admin || user.super_user_role === 'SUPER_ADMIN') {
-      hasAccess = true;
-      userRole = 'super_admin';
-    }
-
-    const canEditProducts = ['owner', 'admin', 'manager', 'super_admin'].includes(userRole);
-    
-    if (!hasAccess || !canEditProducts) {
+    if (!canEditProducts) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
@@ -399,4 +273,4 @@ export async function PATCH(request, context) {
       { status: 500 }
     );
   }
-}
+});

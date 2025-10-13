@@ -1,48 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import connectToDatabase from '@/lib/mongoose';
-import Store from '@/models/Store';
 
-export async function POST(request, context) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
-    // Get the authenticated session
-    const session = await getServerSession(authOptions);
+    const { store, user, role } = request;
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized - Please log in' }, { status: 401 });
-    }
-
-    // Await params as required in Next.js 14+
-    const { storePublicId } = await context.params;
-
-    // Connect to MongoDB
-    await connectToDatabase();
-
-    // Get the store
-    const store = await Store.findOne({ public_id: storePublicId });
-
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
-
-    // Check if user has permission to sync this store
-    const userId = session.user.id;
-    let hasPermission = false;
-
-    // Check if user is owner
-    if (store.owner_id?.toString() === userId) {
-      hasPermission = true;
-    }
-
-    // Check if user has admin/manager permissions
-    const user = store.users?.find(u => u.userId?.toString() === userId);
-    if (user && ['owner', 'admin', 'manager'].includes(user.role)) {
-      hasPermission = true;
-    }
-
-    if (!hasPermission) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
     }
 
     // Check if store has Shopify integration
@@ -135,7 +104,7 @@ export async function POST(request, context) {
 
     await store.save();
 
-    console.log(`Synced ${formattedCollections.length} Shopify collections for store ${storePublicId}`);
+    console.log(`Synced ${formattedCollections.length} Shopify collections for store ${store.public_id}`);
 
     return NextResponse.json({
       success: true,
@@ -151,26 +120,19 @@ export async function POST(request, context) {
       { status: 500 }
     );
   }
-}
+});
 
 // GET endpoint to check sync status
-export async function GET(request, context) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    const session = await getServerSession(authOptions);
+    const { store, user, role } = request;
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { storePublicId } = await context.params;
-
-    await connectToDatabase();
-    const store = await Store.findOne({
-      public_id: storePublicId
-    }).select('isShopify shopifyCollectionsUpdatedAt shopifyCollections');
-
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    // Check if user has integration management permissions
+    if (!role?.permissions?.stores?.manage_integrations && !user.is_super_user) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to manage integrations' },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json({
@@ -188,4 +150,4 @@ export async function GET(request, context) {
       { status: 500 }
     );
   }
-}
+});

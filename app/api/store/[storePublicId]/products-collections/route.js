@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import connectToDatabase from "@/lib/mongoose";
+import { withStoreAccess } from '@/middleware/storeAccess';
 import mongoose from "mongoose";
 
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, { params }) => {
   try {
     const { storePublicId } = await params;
     const storeId = storePublicId; // Use consistent naming
@@ -16,13 +14,6 @@ export async function GET(request, { params }) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const skip = (page - 1) * limit;
 
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await connectToDatabase();
     const db = mongoose.connection.db;
 
     let products = [];
@@ -136,4 +127,4 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

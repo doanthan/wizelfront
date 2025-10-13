@@ -133,11 +133,23 @@ export default function StoreCampaignsReportPage() {
         const endDate = dateRangeSelection.ranges.main.end.toISOString();
 
         const response = await fetch(
-          `/api/store/${storePublicId}/report/campaigns?startDate=${startDate}&endDate=${endDate}`
+          `/api/store/${storePublicId}/report/campaigns?startDate=${startDate}&endDate=${endDate}`,
+          {
+            credentials: 'include', // Include cookies for authentication
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
         );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch campaign data');
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('[Campaign Report] API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
+          throw new Error(errorData.error || `Failed to fetch campaign data (${response.status})`);
         }
 
         const data = await response.json();
@@ -425,9 +437,14 @@ export default function StoreCampaignsReportPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-red-600" />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-red-900 dark:text-red-200">Error loading campaign data</h3>
-                <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
+                {error.includes('Unauthorized') && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                    Please ensure you're logged in and have access to this store.
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

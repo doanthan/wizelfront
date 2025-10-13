@@ -1,37 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import Store from '@/models/Store';
+import { withStoreAccess } from '@/middleware/storeAccess';
 import BrandSettings from '@/models/Brand';
-import connectToDatabase from '@/lib/mongoose';
 
 // GET - Fetch brand settings for a store
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const { storePublicId } = await params;
-    
-    // Get user from authentication session
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Find store by storePublicId
-    const store = await Store.findByIdOrPublicId(storePublicId);
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
-    }
+    const { store } = request;
 
     // Find brand settings for this store
-    // Try multiple fields for compatibility
     let brandSettings = await BrandSettings.findOne({
-      $or: [
-        { store_public_id: storePublicId },
-        { store_public_id: store.public_id },
-        { store_id: store._id }
-      ],
+      store_id: store._id,
       isActive: true
     });
 
@@ -63,41 +41,30 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST - Create or update brand settings
-export async function POST(request, { params }) {
+export const POST = withStoreAccess(async (request, context) => {
   try {
-    await connectToDatabase();
-    
-    const { storePublicId } = await params;
+    const { store, user, role } = request;
     const body = await request.json();
-    
-    // Get user from authentication session
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
-    // Find store by storePublicId
-    const store = await Store.findByIdOrPublicId(storePublicId);
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    // Check permission - brands create/edit required
+    if (!role?.permissions?.brands?.create && !role?.permissions?.brands?.edit) {
+      return NextResponse.json({
+        error: 'You do not have permission to manage brand settings'
+      }, { status: 403 });
     }
 
     // Check if brand settings already exist
     let brandSettings = await BrandSettings.findOne({
-      $or: [
-        { store_public_id: storePublicId },
-        { store_public_id: store.public_id },
-        { store_id: store._id }
-      ]
+      store_id: store._id
     });
 
     if (brandSettings) {
       // Update existing brand settings
       Object.assign(brandSettings, body);
-      brandSettings.updatedBy = session.user.id;
+      brandSettings.updatedBy = user._id;
       await brandSettings.save();
     } else {
       // Create new brand settings
@@ -105,8 +72,8 @@ export async function POST(request, { params }) {
         ...body,
         store_id: store._id,
         store_public_id: store.public_id,
-        createdBy: session.user.id,
-        updatedBy: session.user.id,
+        createdBy: user._id,
+        updatedBy: user._id,
         isActive: true,
         isDefault: true // First brand is default
       });
@@ -124,4 +91,4 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

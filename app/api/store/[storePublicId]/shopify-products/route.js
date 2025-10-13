@@ -1,26 +1,10 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import connectToDatabase from "@/lib/mongoose";
-import Store from "@/models/Store";
+import { withStoreAccess } from '@/middleware/storeAccess';
 
-export async function GET(request, { params }) {
+export const GET = withStoreAccess(async (request, { params }) => {
   try {
     const { storePublicId } = await params;
-
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get store to find the Shopify domain
-    await connectToDatabase();
-    const store = await Store.findOne({ public_id: storePublicId });
-
-    if (!store) {
-      return NextResponse.json({ error: "Store not found" }, { status: 404 });
-    }
+    const { store } = request;
 
     // Get the store URL - could be from shopify_domain or url field
     let storeUrl = store.shopify_domain || store.url;
@@ -147,4 +131,4 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});
