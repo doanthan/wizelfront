@@ -146,7 +146,7 @@ export default function Home() {
                           Set up in minutes
                         </h3>
                         <p className="text-sm text-neutral-gray dark:text-gray-400">
-                          Connect your stores and start sending AI-optimised campaigns instantly
+                          Plug and play your stores and start sending AI-optimised campaigns
                         </p>
                       </div>
                     </div>
@@ -246,11 +246,8 @@ export default function Home() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-gray dark:text-white mb-4">
-                Everything you need to succeed
+                Talk to your Klaviyo Accounts
               </h2>
-              <p className="text-lg text-neutral-gray dark:text-gray-400">
-                Powerful features designed to scale with your business
-              </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
@@ -260,7 +257,7 @@ export default function Home() {
                     <Brain className="h-7 w-7 text-white" />
                   </div>
                   <h3 className="font-bold text-lg text-slate-gray dark:text-white mb-2">
-                    AI Content Generation
+                    AI Powered Decisions
                   </h3>
                   <p className="text-sm text-neutral-gray dark:text-gray-400">
                     Create compelling email copy that converts with our advanced AI
@@ -274,7 +271,7 @@ export default function Home() {
                     <Clock className="h-7 w-7 text-white" />
                   </div>
                   <h3 className="font-bold text-lg text-slate-gray dark:text-white mb-2">
-                    Smart Scheduling
+                    Expert Brand Analysis
                   </h3>
                   <p className="text-sm text-neutral-gray dark:text-gray-400">
                     Automatically send emails at the optimal time for each recipient
@@ -288,7 +285,7 @@ export default function Home() {
                     <BarChart3 className="h-7 w-7 text-white" />
                   </div>
                   <h3 className="font-bold text-lg text-slate-gray dark:text-white mb-2">
-                    Real-time Analytics
+                    Advanced Analytics
                   </h3>
                   <p className="text-sm text-neutral-gray dark:text-gray-400">
                     Track performance and optimize campaigns with detailed insights
@@ -302,7 +299,7 @@ export default function Home() {
                     <Rocket className="h-7 w-7 text-white" />
                   </div>
                   <h3 className="font-bold text-lg text-slate-gray dark:text-white mb-2">
-                    A/B Testing
+                    Unlimited Content
                   </h3>
                   <p className="text-sm text-neutral-gray dark:text-gray-400">
                     Optimize your campaigns with built-in split testing tools
@@ -319,7 +316,7 @@ export default function Home() {
                     Enterprise Security
                   </h3>
                   <p className="text-sm text-neutral-gray dark:text-gray-400">
-                    Bank-level security with SOC2 compliance and encryption
+                    Bank-level security with compliance and encryption
                   </p>
                 </CardContent>
               </Card>
@@ -362,9 +359,9 @@ export default function Home() {
               {[
                 {
                   quote: "Wizel AI transformed our email marketing. We've seen a 3x increase in open rates and saved 15 hours per week.",
-                  author: "Sarah Chen",
-                  role: "Marketing Director",
-                  company: "TechCorp"
+                  author: "Gavin Brackenbury",
+                  role: "Owner",
+                  company: "Balmain Body"
                 },
                 {
                   quote: "The AI content generation is incredible. It understands our brand voice and creates emails that actually convert.",
@@ -475,7 +472,7 @@ export default function Home() {
                 <span className="text-lg font-bold text-slate-gray dark:text-white">Wizel AI</span>
               </div>
               <p className="text-sm text-neutral-gray dark:text-gray-400">
-                © 2024 Wizel AI. All rights reserved.
+                © {new Date().getFullYear()} Wizel AI. All rights reserved.
               </p>
             </div>
           </div>

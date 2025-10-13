@@ -37,7 +37,7 @@ export default function WizelLogo({
       </div>
       {showText && (
         <span className={`${sizeConfig.text} font-bold text-slate-gray dark:text-white ${textClassName}`}>
-          Wizel AI
+          Wizel
         </span>
       )}
     </div>
