@@ -3,9 +3,9 @@ export default function ThemeScript() {
   const themeScript = `
     (function() {
       const storedTheme = localStorage.getItem('theme');
-      const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      const theme = storedTheme || systemPreference;
-      
+      // Default to light mode instead of system preference
+      const theme = storedTheme || 'light';
+
       if (theme === 'dark') {
         document.documentElement.classList.add('dark');
       }
