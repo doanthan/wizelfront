@@ -26,8 +26,8 @@ export const GET = withStoreAccess(async (request, context) => {
     const canCreateProducts = user.is_super_user || role?.permissions?.products?.create === true;
     const canDeleteProducts = user.is_super_user || role?.permissions?.products?.delete === true;
     
-    // Build query
-    const query = { store_public_id: storePublicId };
+    // Build query - use store_public_ids array field
+    const query = { store_public_ids: storePublicId };
     
     // Add search conditions
     if (search) {
@@ -92,50 +92,21 @@ export const GET = withStoreAccess(async (request, context) => {
         break;
     }
     
-    // Get products from MongoDB - try both possible collection names
-    let products = [];
-    let totalCount = 0;
-    
-    // Try 'shopifyproducts' first (based on the structure of your data)
-    const productsCollection = db.collection('shopifyproducts');
-    products = await productsCollection
+    // Get products from MongoDB 'products' collection
+    const productsCollection = db.collection('products');
+
+    const products = await productsCollection
       .find(query)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
       .toArray();
-    
-    totalCount = await productsCollection.countDocuments(query);
-    
-    // If no products found, try 'shopify_products' as fallback
-    if (products.length === 0 && !search && !productType && !vendor && availability === 'all') {
-      const altCollection = db.collection('shopify_products');
-      products = await altCollection
-        .find(query)
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(limit)
-        .toArray();
-      
-      totalCount = await altCollection.countDocuments(query);
-    }
-    
-    // If still no products, try 'products'
-    if (products.length === 0 && !search && !productType && !vendor && availability === 'all') {
-      const productsOnlyCollection = db.collection('products');
-      products = await productsOnlyCollection
-        .find(query)
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(limit)
-        .toArray();
-      
-      totalCount = await productsOnlyCollection.countDocuments(query);
-    }
-    
+
+    const totalCount = await productsCollection.countDocuments(query);
+
     // Get unique product types and vendors for filter metadata
-    const allProducts = await db.collection('shopifyproducts')
-      .find({ store_public_id: storePublicId })
+    const allProducts = await productsCollection
+      .find({ store_public_ids: storePublicId })
       .project({ product_type: 1, vendor: 1 })
       .toArray();
     

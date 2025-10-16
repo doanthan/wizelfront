@@ -9,7 +9,8 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Badge } from "@/app/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Edit2, X, Check, Plus, Star, Quote, Trophy, TrendingUp, Users } from "lucide-react";
+import { Edit2, X, Check, Plus, Star, Quote, Trophy, TrendingUp, Users, Target, Heart, Shield, Lightbulb, Zap, AlertCircle, Mail } from "lucide-react";
+import MorphingLoader from "@/app/components/ui/loading";
 
 export default function BrandMarketingPage() {
   const {
@@ -37,11 +38,19 @@ export default function BrandMarketingPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="h-8 w-8 border-4 border-sky-blue border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-neutral-gray dark:text-gray-400">Loading marketing data...</p>
-        </div>
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-950 z-50" style={{ marginLeft: 0, marginRight: 0, left: 0, right: 0 }}>
+        <MorphingLoader
+          size="large"
+          showText={true}
+          customThemeTexts={[
+            "Loading marketing strategy...",
+            "Fetching customer insights...",
+            "Analyzing social proof...",
+            "Compiling email strategies...",
+            "Gathering competitive advantages...",
+            "Almost ready..."
+          ]}
+        />
       </div>
     );
   }
@@ -704,16 +713,408 @@ export default function BrandMarketingPage() {
         </CardContent>
       </Card>
 
+      {/* Customer Journey Insights */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="dark:text-white flex items-center gap-2">
+            <Target className="h-5 w-5 text-sky-blue" />
+            Customer Journey Insights
+          </CardTitle>
+          <CardDescription className="dark:text-gray-400">Understand your customer decision-making process</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Decision Factors */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-600" />
+              Decision Factors
+            </label>
+            <div className="space-y-3">
+              {brand?.customerJourneyInsights?.decisionFactors?.map((factor, idx) => (
+                <div key={idx} className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg border border-green-200 dark:border-green-800/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-gray-900 dark:text-white">{factor.factor}</h4>
+                        <Badge variant={factor.importance === 'high' ? 'destructive' : 'secondary'} className="text-xs">
+                          {factor.importance}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{factor.description}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setBrand(prev => ({
+                          ...prev,
+                          customerJourneyInsights: {
+                            ...prev.customerJourneyInsights,
+                            decisionFactors: prev.customerJourneyInsights?.decisionFactors?.filter((_, i) => i !== idx) || []
+                          }
+                        }));
+                        setHasChanges(true);
+                      }}
+                      className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const factor = prompt("Enter decision factor (e.g., Price, Quality, Brand Reputation):");
+                  if (factor) {
+                    const importance = prompt("Importance level (high/medium/low):");
+                    const description = prompt("Description:");
+
+                    setBrand(prev => ({
+                      ...prev,
+                      customerJourneyInsights: {
+                        ...prev.customerJourneyInsights,
+                        decisionFactors: [...(prev.customerJourneyInsights?.decisionFactors || []), {
+                          factor,
+                          importance: importance || 'medium',
+                          description: description || ''
+                        }]
+                      }
+                    }));
+                    setHasChanges(true);
+                  }
+                }}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Decision Factor
+              </Button>
+            </div>
+          </div>
+
+          {/* Trust Builders */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-blue-600" />
+              Trust Builders
+            </label>
+            <div className="space-y-2">
+              {brand?.customerJourneyInsights?.trustBuilders?.map((builder, idx) => (
+                <div key={idx} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-start gap-3 group">
+                  <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{builder.builder}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{builder.implementation}</p>
+                    <Badge variant="secondary" className="mt-2 text-xs">
+                      Impact: {builder.impact}
+                    </Badge>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setBrand(prev => ({
+                        ...prev,
+                        customerJourneyInsights: {
+                          ...prev.customerJourneyInsights,
+                          trustBuilders: prev.customerJourneyInsights?.trustBuilders?.filter((_, i) => i !== idx) || []
+                        }
+                      }));
+                      setHasChanges(true);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  >
+                    <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                  </button>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const builder = prompt("Enter trust builder (e.g., Money-back guarantee, Free shipping):");
+                  if (builder) {
+                    const impact = prompt("Impact level (high/medium/low):");
+                    const implementation = prompt("How is it implemented?:");
+
+                    setBrand(prev => ({
+                      ...prev,
+                      customerJourneyInsights: {
+                        ...prev.customerJourneyInsights,
+                        trustBuilders: [...(prev.customerJourneyInsights?.trustBuilders || []), {
+                          builder,
+                          impact: impact || 'medium',
+                          implementation: implementation || ''
+                        }]
+                      }
+                    }));
+                    setHasChanges(true);
+                  }
+                }}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Trust Builder
+              </Button>
+            </div>
+          </div>
+
+          {/* Purchase Triggers */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-600" />
+              Purchase Triggers
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {brand?.customerJourneyInsights?.purchaseTriggers?.map((trigger, idx) => (
+                <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-yellow-50 text-yellow-700 border-yellow-200">
+                  {trigger}
+                  <button
+                    onClick={() => {
+                      setBrand(prev => ({
+                        ...prev,
+                        customerJourneyInsights: {
+                          ...prev.customerJourneyInsights,
+                          purchaseTriggers: prev.customerJourneyInsights?.purchaseTriggers?.filter((_, i) => i !== idx) || []
+                        }
+                      }));
+                      setHasChanges(true);
+                    }}
+                    className="ml-2 hover:text-red-500"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const trigger = prompt("Enter purchase trigger (e.g., Flash sale, Limited stock):");
+                  if (trigger) {
+                    setBrand(prev => ({
+                      ...prev,
+                      customerJourneyInsights: {
+                        ...prev.customerJourneyInsights,
+                        purchaseTriggers: [...(prev.customerJourneyInsights?.purchaseTriggers || []), trigger]
+                      }
+                    }));
+                    setHasChanges(true);
+                  }
+                }}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Trigger
+              </Button>
+            </div>
+          </div>
+
+          {/* Purchase Barriers */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              Purchase Barriers
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {brand?.purchaseBarriers?.map((barrier, idx) => (
+                <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-red-50 text-red-700 border-red-200">
+                  {barrier}
+                  <button
+                    onClick={() => handleArrayItemRemove('purchaseBarriers', idx)}
+                    className="ml-2 hover:text-red-500"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const barrier = prompt("Enter purchase barrier (e.g., High price, Shipping costs):");
+                  if (barrier) handleArrayItemAdd('purchaseBarriers', barrier);
+                }}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Barrier
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Email Marketing Strategy */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="dark:text-white flex items-center gap-2">
+            <Mail className="h-5 w-5 text-vivid-violet" />
+            Email Marketing Strategy
+          </CardTitle>
+          <CardDescription className="dark:text-gray-400">Configure your email marketing approach</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Email Frequency */}
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Email Frequency</label>
+              {editingField === 'emailFrequency' ? (
+                <div className="space-y-2">
+                  <Input
+                    value={tempValue}
+                    onChange={(e) => setTempValue(e.target.value)}
+                    placeholder="e.g., 3-4 per week"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleFieldSave('emailFrequency')} className="bg-green-500 hover:bg-green-600">
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                     onClick={() => handleFieldEdit('emailFrequency', brand?.emailFrequency || '')}>
+                  <p className="text-gray-900 dark:text-white font-medium">{brand?.emailFrequency || 'Set email frequency'}</p>
+                  <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue mt-2" />
+                </div>
+              )}
+            </div>
+
+            {/* Content Priority */}
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Content Priority</label>
+              <div className="flex flex-wrap gap-2">
+                {brand?.contentPriority?.map((priority, idx) => (
+                  <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-purple-50 text-purple-700 border-purple-200">
+                    {priority}
+                    <button
+                      onClick={() => handleArrayItemRemove('contentPriority', idx)}
+                      className="ml-2 hover:text-red-500"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const priority = prompt("Enter content priority (e.g., educational, promotional):");
+                    if (priority) handleArrayItemAdd('contentPriority', priority);
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Email Strategy Details */}
+          {brand?.emailStrategy && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
+                <p className="text-2xl font-bold text-blue-600">{brand.emailStrategy.contentMix?.educational || 0}%</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">Educational</p>
+              </div>
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                <p className="text-2xl font-bold text-green-600">{brand.emailStrategy.contentMix?.promotional || 0}%</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">Promotional</p>
+              </div>
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-center">
+                <p className="text-2xl font-bold text-purple-600">{brand.emailStrategy.contentMix?.community || 0}%</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">Community</p>
+              </div>
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-center">
+                <p className="text-2xl font-bold text-yellow-600">{brand.emailStrategy.contentMix?.product || 0}%</p>
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">Product</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Unique Features & Competitive Advantages */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="dark:text-white flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-yellow-500" />
+            Unique Features & Advantages
+          </CardTitle>
+          <CardDescription className="dark:text-gray-400">What sets your brand apart</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Unique Features */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 block">Unique Features</label>
+            <div className="space-y-2">
+              {brand?.uniqueFeatures?.map((feature, idx) => (
+                <div key={idx} className="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg flex items-start gap-3 group border border-yellow-200 dark:border-yellow-800/30">
+                  <Lightbulb className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-900 dark:text-white flex-1">{feature}</p>
+                  <button
+                    onClick={() => handleArrayItemRemove('uniqueFeatures', idx)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  >
+                    <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                  </button>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  const feature = prompt("Enter unique feature:");
+                  if (feature) handleArrayItemAdd('uniqueFeatures', feature);
+                }}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Unique Feature
+              </Button>
+            </div>
+          </div>
+
+          {/* Competitive Advantages */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 block">Competitive Advantages</label>
+            <div className="space-y-2">
+              {brand?.competitiveAdvantages?.map((advantage, idx) => (
+                <div key={idx} className="p-3 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 rounded-lg flex items-start gap-3 group border border-green-200 dark:border-green-800/30">
+                  <Trophy className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-900 dark:text-white flex-1">{advantage}</p>
+                  <button
+                    onClick={() => handleArrayItemRemove('competitiveAdvantages', idx)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  >
+                    <X className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                  </button>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  const advantage = prompt("Enter competitive advantage:");
+                  if (advantage) handleArrayItemAdd('competitiveAdvantages', advantage);
+                }}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Competitive Advantage
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Add Testimonial Dialog */}
       <Dialog open={showTestimonialDialog} onOpenChange={setShowTestimonialDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-900">
           <DialogHeader>
-            <DialogTitle>Add Customer Testimonial</DialogTitle>
-            <DialogDescription>Share what your customers are saying about your brand</DialogDescription>
+            <DialogTitle className="text-gray-900 dark:text-white">Add Customer Testimonial</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">Share what your customers are saying about your brand</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-gray mb-2 block">Review</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Review</label>
               <Textarea
                 placeholder="Enter the customer's review or testimonial..."
                 value={newTestimonial.review}
@@ -724,7 +1125,7 @@ export default function BrandMarketingPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-slate-gray mb-2 block">From</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">From</label>
                 <Input
                   placeholder="e.g., John D., New York"
                   value={newTestimonial.from}
@@ -733,7 +1134,7 @@ export default function BrandMarketingPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-gray mb-2 block">Rating</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Rating</label>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -754,13 +1155,13 @@ export default function BrandMarketingPage() {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-sm text-gray-600 mb-1">Preview:</p>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Preview:</p>
               <div className="border-l-4 border-sky-blue pl-4">
-                <p className="text-sm italic text-gray-700">
+                <p className="text-sm italic text-gray-700 dark:text-gray-300">
                   "{newTestimonial.review || 'Your testimonial will appear here...'}"
                 </p>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   - {newTestimonial.from || 'Customer Name'}
                   {newTestimonial.rating && (
                     <span className="ml-2">
@@ -776,7 +1177,7 @@ export default function BrandMarketingPage() {
             <Button variant="outline" onClick={() => setShowTestimonialDialog(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleTestimonialAdd}
               disabled={!newTestimonial.review || !newTestimonial.from}
               className="bg-sky-blue hover:bg-royal-blue text-white"

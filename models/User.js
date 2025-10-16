@@ -51,9 +51,21 @@ const UserSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: [true, "Please add a password"],
-        minlength: 6,
+        required: function() {
+            // Password is only required if not using OAuth
+            return !this.oauth_provider;
+        },
+        minlength: 8,
         select: false,
+    },
+    // OAuth fields
+    oauth_provider: {
+        type: String,
+        enum: ['google', 'facebook', 'github', null],
+        default: null,
+    },
+    oauth_id: {
+        type: String,
     },
     stores: [{
         _id: false,
@@ -179,6 +191,8 @@ const UserSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    email_verification_token: String,
+    email_verification_expires: Date,
     
     // Preferences
     notification_preferences: {
@@ -293,6 +307,20 @@ UserSchema.methods.getResetPasswordToken = function () {
     this.resetPasswordExpire = Date.now() + 10 * 60 * 1000
 
     return resetToken
+}
+
+// Generate email verification token
+UserSchema.methods.getEmailVerificationToken = function () {
+    // Generate token
+    const verificationToken = crypto.randomBytes(32).toString("hex")
+
+    // Hash token and set to email_verification_token field
+    this.email_verification_token = crypto.createHash("sha256").update(verificationToken).digest("hex")
+
+    // Set expire (24 hours)
+    this.email_verification_expires = Date.now() + 24 * 60 * 60 * 1000
+
+    return verificationToken
 }
 
 // Enhanced method using the new permission system with performance monitoring

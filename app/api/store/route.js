@@ -419,23 +419,19 @@ export async function GET(request) {
         if (ownedStores.length > 0) {
           console.log('AUTO-FIX: Checking and creating missing ContractSeats for owned stores...');
 
-          // Get or create owner role
-          let ownerRole = await Role.findOne({ name: 'owner' });
+          // Get owner role (should exist from seed script)
+          let ownerRole = await Role.findByName('owner');
           if (!ownerRole) {
-            ownerRole = new Role({
-              name: 'owner',
-              display_name: 'Owner',
-              permissions: {
-                stores: { create: true, read: true, update: true, delete: true },
-                campaigns: { create: true, read: true, update: true, delete: true },
-                analytics: { read: true, export: true },
-                team: { invite: true, remove: true, manage: true },
-                billing: { manage: true },
-                settings: { manage: true }
-              }
-            });
-            await ownerRole.save();
-            console.log('AUTO-FIX: Created owner role');
+            console.error('AUTO-FIX ERROR: Owner role not found. Run: node scripts/seed-roles.js');
+            // Try to create system roles if they don't exist
+            try {
+              await Role.createSystemRoles();
+              ownerRole = await Role.findByName('owner');
+              console.log('AUTO-FIX: Created system roles including owner');
+            } catch (roleError) {
+              console.error('AUTO-FIX ERROR: Failed to create system roles:', roleError);
+              throw new Error('Owner role not found and could not be created. Please run: node scripts/seed-roles.js');
+            }
           }
 
           // Check each owned store

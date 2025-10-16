@@ -7,40 +7,77 @@ export const GET = withStoreAccess(async (request, context) => {
   try {
     const { store, user, role } = request;
 
+    // Get pagination parameters from query
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get('page')) || 1;
+    const limit = parseInt(url.searchParams.get('limit')) || 20;
+    const skip = (page - 1) * limit;
+    const search = url.searchParams.get('search') || '';
+
     // Check if user can edit brands (to show Collections, Products, CTAs tabs)
     // Owner, admin, manager roles can view/edit collections
     const canEditBrands = role?.level >= 60 || user.is_super_user; // Manager level (60) and above
 
     console.log('User role:', role?.name, 'Can edit brands:', canEditBrands);
+    console.log('Pagination params:', { page, limit, skip, search });
 
     // Connect to MongoDB for collections data
     await connectToDatabase();
     const db = mongoose.connection.db;
 
-    // Check if this is a Shopify store
-    let formattedCollections = [];
+    // Build search filter
+    const searchFilter = search ? {
+      $or: [
+        { title: { $regex: search, $options: 'i' } },
+        { handle: { $regex: search, $options: 'i' } }
+      ]
+    } : {};
 
-    if (store.isShopify && store.shopifyCollections && store.shopifyCollections.length > 0) {
-      // Use Shopify collections from the Store document
-      console.log(`Using Shopify collections for store ${store.public_id}: ${store.shopifyCollections.length} collections`);
+    // Fetch from collections collection
+    const collectionsCol = db.collection('collections');
+    console.log('Fetching collections for store_public_id:', store.public_id);
 
-      formattedCollections = store.shopifyCollections.map(collection => ({
-        id: collection.id,
-        shopify_collection_id: collection.id,
-        title: collection.title,
-        handle: collection.handle,
-        body_html: collection.body_html,
+    const collectionsQuery = {
+      store_public_ids: store.public_id,
+      ...searchFilter
+    };
+
+    const totalCollectionsCount = await collectionsCol.countDocuments(collectionsQuery);
+
+    const collectionsData = await collectionsCol.find(collectionsQuery)
+      .sort({ updated_at: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    console.log(`Found ${collectionsData.length} collections for store ${store.public_id}`);
+
+    // Format collections data
+    const totalCollections = totalCollectionsCount;
+    const formattedCollections = collectionsData.map(collection => {
+      // Ensure _id is always converted to string
+      const idString = collection._id ? String(collection._id) : null;
+
+      return {
+        id: idString,
+        collection_id: collection.collection_id ? String(collection.collection_id) : null,
+        shopify_collection_id: collection.shopify_collection_id ? String(collection.shopify_collection_id) : (collection.collection_id ? String(collection.collection_id) : null),
+        title: collection.title || 'Untitled Collection',
+        handle: collection.handle || '',
+        body_html: collection.description || '',
+        description: collection.description || '',
         products_count: collection.products_count || 0,
-        status: collection.published_scope === 'web' ? 'active' : 'draft',
-        sync_status: 'synced',
-        url_link: store.url ? `${store.url}/collections/${collection.handle}` : null,
-        domain: store.url || store.shopify_domain || store.domain,
+        product_handles: collection.product_handles || [],
+        status: collection.published_at ? 'active' : 'draft',
+        sync_status: collection.sync_status || 'synced',
+        url_link: collection.domain ? `https://${collection.domain}/collections/${collection.handle}` : null,
+        domain: collection.domain || store.url || store.domain,
         published_at: collection.published_at,
         updated_at: collection.updated_at,
-        last_synced_at: store.shopifyCollectionsUpdatedAt || collection.updated_at,
+        last_synced_at: collection.last_synced_at,
         marketing: {
           tagline: '',
-          description: collection.body_html || '',
+          description: collection.description || '',
           key_benefits: [],
           target_audience: '',
           campaign_focus: null,
@@ -51,72 +88,34 @@ export const GET = withStoreAccess(async (request, context) => {
             last_updated: null
           }
         },
-        shopify_image: collection.image || {
+        shopify_image: collection.image ? (
+          typeof collection.image === 'string' ? {
+            src: collection.image,
+            alt: collection.title
+          } : {
+            src: collection.image.src || collection.image.url || null,
+            alt: collection.image.alt || collection.title
+          }
+        ) : {
           src: null,
           alt: null
         },
-        collection_type: collection.collection_type || 'custom',
-        sort_order: collection.sort_order || '',
-        // Additional Shopify-specific fields
+        collection_type: 'custom',
+        sort_order: '',
         isShopifyCollection: true,
-        rules: collection.rules || [],
-        disjunctive: collection.disjunctive || false
-      }));
-    } else {
-      // Use regular collections from MongoDB collections collection
-      const collectionsCollection = db.collection('collections');
-      console.log('Fetching collections for store_public_id:', store.public_id);
-
-      // Also try to find collections with store_id field in case they use that
-      const collections = await collectionsCollection.find({
-        $or: [
-          { store_public_id: store.public_id },
-          { store_id: store._id }
-        ]
-      }).toArray();
-
-      console.log(`Found ${collections.length} collections for store ${store.public_id}`);
-
-      // Format collections for frontend
-      formattedCollections = collections.map(collection => ({
-        id: collection._id.toString(),
-        shopify_collection_id: collection.shopify_collection_id,
-        title: collection.title,
-        handle: collection.handle,
-        body_html: collection.body_html,
-        products_count: collection.products_count || 0,
-        status: collection.status || 'active',
-        sync_status: collection.sync_status || 'synced',
-        url_link: collection.url_link,
-        domain: collection.domain,
-        published_at: collection.published_at,
-        updated_at: collection.shopify_updated_at,
-        last_synced_at: collection.last_synced_at,
-        marketing: collection.marketing || {
-          tagline: '',
-          description: '',
-          key_benefits: [],
-          target_audience: '',
-          campaign_focus: null,
-          campaign_performance: {
-            total_emails_sent: 0,
-            avg_open_rate: 0,
-            avg_click_rate: 0,
-            last_updated: null
-          }
-        },
-        shopify_image: collection.shopify_image || {
-          src: null,
-          alt: null
-        },
-        collection_type: collection.collection_type || 'custom',
-        sort_order: collection.sort_order || '',
-        isShopifyCollection: false
-      }));
-    }
+        raw_data: collection.raw_data
+      };
+    });
 
     return NextResponse.json({
       collections: formattedCollections,
+      pagination: {
+        page,
+        limit,
+        total: totalCollections,
+        totalPages: Math.ceil(totalCollections / limit),
+        hasMore: skip + formattedCollections.length < totalCollections
+      },
       permissions: {
         canEditBrands,
         canCreateCollections: canEditBrands,

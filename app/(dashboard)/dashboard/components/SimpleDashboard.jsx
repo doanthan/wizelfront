@@ -38,13 +38,15 @@ import {
     ResponsiveContainer,
     Cell
 } from "recharts"
+import AccountStatsTable from "./AccountStatsTable"
 
 const COLORS = ['#60A5FA', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899']
 
 export default function SimpleDashboard({
     selectedAccounts,
     dateRangeSelection,
-    stores
+    stores,
+    showAccountTable = true
 }) {
     const { updateAIState } = useAI();
     const { theme } = useTheme();
@@ -357,6 +359,14 @@ export default function SimpleDashboard({
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Account Performance Table */}
+                {showAccountTable && (
+                    <AccountStatsTable
+                        stores={stores}
+                        dateRangeSelection={dateRangeSelection}
+                    />
+                )}
 
                 {/* Performance Over Time Line Chart */}
                 <div>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useStores } from "@/app/contexts/store-context";
-import { AccountSelector } from "@/app/components/ui/account-selector";
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
 import { useTheme } from "@/app/contexts/theme-context";
 import { Button } from "@/app/components/ui/button";
@@ -12,6 +11,7 @@ import { Sun, Moon } from "lucide-react";
 import SimpleDashboard from "./components/SimpleDashboard";
 import RecentCampaigns from "./components/RecentCampaigns";
 import UpcomingCampaigns from "./components/UpcomingCampaigns";
+import GetStarted from "./components/GetStarted";
 
 export default function DashboardPage() {
   const { stores, isLoadingStores } = useStores();
@@ -86,9 +86,9 @@ export default function DashboardPage() {
     }
   }, []);
   
-  // Account selection state
-  const [selectedAccounts, setSelectedAccounts] = useState([{ value: 'all', label: 'View All' }]);
-  
+  // Account selection state - Start with empty to show all accounts
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
+
   // Load selected accounts from localStorage after mount
   useEffect(() => {
     const savedAccounts = localStorage.getItem('analyticsSelectedAccounts');
@@ -103,17 +103,9 @@ export default function DashboardPage() {
           );
           console.log('Parsed accounts:', parsed.length, 'Unique accounts:', uniqueAccounts.length);
 
-          // Validate that these accounts still exist by checking if they're 'all' or will be in availableAccounts
-          // For now, only set them if they include the 'all' option or we'll validate later
-          const hasAllOption = uniqueAccounts.some(a => a.value === 'all');
-          if (hasAllOption) {
-            setSelectedAccounts(uniqueAccounts);
-          } else {
-            // Clear invalid cached accounts
-            console.log('Clearing invalid cached accounts');
-            localStorage.removeItem('analyticsSelectedAccounts');
-            setSelectedAccounts([{ value: 'all', label: 'View All' }]);
-          }
+          // Filter out 'all' option
+          const validAccounts = uniqueAccounts.filter(a => a.value !== 'all');
+          setSelectedAccounts(validAccounts);
         }
       } catch (e) {
         console.error('Error parsing saved accounts:', e);
@@ -140,12 +132,6 @@ export default function DashboardPage() {
   // Compute available accounts reactively from stores
   const availableAccounts = useMemo(() => {
     if (!stores || stores.length === 0) {
-      // If no stores, clear any invalid cached selections
-      if (selectedAccounts.length > 1 || (selectedAccounts.length === 1 && selectedAccounts[0].value !== 'all')) {
-        console.log('No stores available, resetting to View All');
-        setSelectedAccounts([{ value: 'all', label: 'View All' }]);
-        localStorage.removeItem('analyticsSelectedAccounts');
-      }
       return [];
     }
 
@@ -207,21 +193,11 @@ export default function DashboardPage() {
     }
 
     if (availableAccounts.length === 0 && stores.length === 0) {
-      // If no stores, ensure we're on "View All"
-      setSelectedAccounts(prev => {
-        if (prev.length !== 1 || prev[0].value !== 'all') {
-          console.log('No stores available, resetting selection to View All');
-          localStorage.removeItem('analyticsSelectedAccounts');
-          return [{ value: 'all', label: 'View All' }];
-        }
-        return prev;
-      });
       return;
     }
 
     // Validate current selections against available accounts
     const validAccountValues = new Set(availableAccounts.map(a => a.value));
-    validAccountValues.add('all'); // 'all' is always valid
 
     setSelectedAccounts(prev => {
       const invalidSelections = prev.filter(sa => !validAccountValues.has(sa.value));
@@ -229,15 +205,8 @@ export default function DashboardPage() {
         console.log('Found invalid account selections:', invalidSelections);
         // Filter out invalid selections
         const validSelections = prev.filter(sa => validAccountValues.has(sa.value));
-        if (validSelections.length === 0) {
-          // If no valid selections remain, reset to 'View All'
-          const defaultSelection = [{ value: 'all', label: 'View All' }];
-          localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(defaultSelection));
-          return defaultSelection;
-        } else {
-          localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(validSelections));
-          return validSelections;
-        }
+        localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(validSelections));
+        return validSelections;
       }
       return prev;
     });
@@ -282,6 +251,11 @@ export default function DashboardPage() {
     }
   };
   
+  // Show Get Started page if no stores
+  if (!isLoadingStores && (!stores || stores.length === 0)) {
+    return <GetStarted />;
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-3">
       {/* Header */}
@@ -290,27 +264,8 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold tracking-tight text-slate-gray dark:text-white">Dashboard</h2>
           <p className="text-sm text-slate-gray dark:text-gray-400">Cross-account analytics and performance insights</p>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Account Selector */}
-          <div className="w-40">
-            <AccountSelector
-              accounts={availableAccounts}
-              value={selectedAccounts}
-              onChange={(newValue) => {
-                console.log('Dashboard account selection changed:', newValue);
-                // Remove duplicates before saving
-                const uniqueValue = newValue.filter((account, index, self) =>
-                  index === self.findIndex(a => a.value === account.value)
-                );
-                // Update state
-                setSelectedAccounts(uniqueValue);
-                // Save to localStorage with analytics-specific key
-                localStorage.setItem('analyticsSelectedAccounts', JSON.stringify(uniqueValue));
-              }}
-            />
-          </div>
 
+        <div className="flex items-center gap-2">
           {/* Date Range Selector */}
           <DateRangeSelector
             onDateRangeChange={handleDateRangeChange}
@@ -338,7 +293,7 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* Main Dashboard Content */}
       <div className="space-y-4">
         <SimpleDashboard

@@ -21,7 +21,7 @@ function BrandLayoutInner({ children }) {
   return (
     <>
       <BrandNavigationWrapper />
-      <div className="container mx-auto px-6 py-6 dark:text-white">
+      <div className="container mx-auto pl-0 pr-8 py-6 dark:text-white max-w-[1600px]">
         {children}
       </div>
     </>
@@ -29,24 +29,26 @@ function BrandLayoutInner({ children }) {
 }
 
 function BrandNavigationWrapper() {
-  const { 
-    brand, 
-    storePublicId, 
-    brandSlug, 
-    hasChanges, 
-    handleSave, 
-    isSaving 
+  const {
+    brand,
+    isLoading,
+    storePublicId,
+    brandSlug,
+    hasChanges,
+    handleSave,
+    isSaving
   } = useBrand();
-  
+
   return (
-    <BrandNavigation 
+    <BrandNavigation
       storePublicId={storePublicId}
-      brandSlug={brandSlug} 
-      brandName={brand?.brandName || "Loading..."}
+      brandSlug={brandSlug}
+      brandName={brand?.brandName || (isLoading ? " " : "Brand")}
       brandTagline={brand?.brandTagline || ""}
       hasChanges={hasChanges}
       onSave={handleSave}
       isSaving={isSaving}
+      isLoading={isLoading}
     />
   );
 }

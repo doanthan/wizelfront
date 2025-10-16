@@ -283,35 +283,57 @@ const BlockRenderer = ({
     const marginBottom = block.marginBottom ?? 0;
     const marginLeft = block.marginLeft ?? 0;
 
+    // Get image width percentage (default 100%)
+    const imageWidth = block.imageWidth || 100;
+
+    // Background color for image area
+    const imageBackgroundColor = block.imageBackgroundColor || 'transparent';
+
+    // Border settings
+    const borderWidth = block.borderWidth || 0;
+    const borderStyle = block.borderStyle || 'solid';
+    const borderColor = block.borderColor || '#000000';
+    const borderRadius = block.borderRadius || 0;
+
+    const imageElement = (
+      <img
+        src={block.imageUrl || "/img.png"}
+        alt={block.content || ""}
+        style={{
+          width: `${imageWidth}%`,
+          maxWidth: "100%",
+          height: "auto",
+          display: "block",
+          margin: block.alignment === 'center' ? '0 auto' : (block.alignment === 'right' ? '0 0 0 auto' : '0'),
+          padding: 0,
+          // Border
+          border: borderWidth > 0 ? `${borderWidth}px ${borderStyle} ${borderColor}` : '0',
+          borderRadius: borderRadius > 0 ? `${borderRadius}px` : '0',
+          // Email client compatibility
+          outline: "none",
+          textDecoration: "none",
+          msInterpolationMode: "bicubic",
+          verticalAlign: "top"
+        }}
+      />
+    );
+
     return (
       <div style={{
         padding: `${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px`,
-        textAlign: block.alignment,
+        textAlign: block.alignment || 'center',
         maxWidth: "100%",
         margin: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px`,
-        lineHeight: 0
+        lineHeight: 0,
+        backgroundColor: imageBackgroundColor
       }}>
-        <img
-          src={block.imageUrl || "/img.png"}
-          alt={block.content || ""}
-          style={{
-            maxWidth: "350px",
-            maxHeight: "90px",
-            width: "auto",
-            height: "auto",
-            display: "block",
-            margin: 0,
-            padding: 0,
-            // Prevent image overflow
-            objectFit: "contain",
-            // Email client compatibility
-            border: "0",
-            outline: "none",
-            textDecoration: "none",
-            msInterpolationMode: "bicubic",
-            verticalAlign: "top"
-          }}
-        />
+        {block.linkUrl ? (
+          <a href={block.linkUrl} style={{ display: 'block', lineHeight: 0 }}>
+            {imageElement}
+          </a>
+        ) : (
+          imageElement
+        )}
       </div>
     );
   };

@@ -10,11 +10,11 @@ import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { 
-  MessageCircle, 
-  X, 
-  Send, 
-  Bot, 
+import {
+  MessageCircle,
+  X,
+  Send,
+  Bot,
   HelpCircle,
   Bug,
   Lightbulb,
@@ -23,12 +23,186 @@ import {
   ChevronDown,
   Sparkles,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Download,
+  CheckCircle2,
+  TrendingUp,
+  AlertTriangle,
+  Lightbulb as LightbulbIcon,
+  Search,
+  TrendingDown,
+  Target,
+  Users,
+  DollarSign,
+  Mail,
+  Zap,
+  Clock,
+  XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/app/hooks/use-toast";
 import { useAI } from "@/app/contexts/ai-context";
 import { useChat } from "@/app/contexts/chat-context";
+
+// Simple markdown formatter component
+function FormattedMessage({ content }) {
+  // Icon mapping for special markers
+  const iconMap = {
+    // Core analysis icons
+    '[CHECK]': <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />,
+    '[TREND]': <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />,
+    '[WARNING]': <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
+    '[TIP]': <LightbulbIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />,
+    '[SEARCH]': <Search className="h-4 w-4 text-sky-600 dark:text-sky-400" />,
+
+    // Additional context icons
+    '[DOWN]': <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />,
+    '[GOAL]': <Target className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />,
+    '[AUDIENCE]': <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />,
+    '[REVENUE]': <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />,
+    '[EMAIL]': <Mail className="h-4 w-4 text-sky-600 dark:text-sky-400" />,
+    '[QUICK]': <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />,
+    '[TIME]': <Clock className="h-4 w-4 text-slate-600 dark:text-slate-400" />,
+    '[ERROR]': <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+  };
+
+  // Format the message with markdown-like syntax
+  const formatText = (text) => {
+    // Split by lines first to preserve line breaks
+    const lines = text.split('\n');
+
+    return lines.map((line, lineIndex) => {
+      // Skip empty lines but render them as breaks
+      if (!line.trim()) {
+        return <br key={`br-${lineIndex}`} />;
+      }
+
+      // Process the line for inline formatting
+      const parts = [];
+      let currentText = line;
+      let key = 0;
+
+      // Process bold text (**text** or __text__)
+      const boldRegex = /(\*\*|__)(.*?)\1/g;
+      let lastIndex = 0;
+      let match;
+
+      while ((match = boldRegex.exec(currentText)) !== null) {
+        // Add text before the bold
+        if (match.index > lastIndex) {
+          parts.push(
+            <span key={`${lineIndex}-${key++}`}>
+              {currentText.substring(lastIndex, match.index)}
+            </span>
+          );
+        }
+
+        // Add bold text
+        parts.push(
+          <strong key={`${lineIndex}-${key++}`} className="font-bold text-gray-900 dark:text-white">
+            {match[2]}
+          </strong>
+        );
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      // Add remaining text
+      if (lastIndex < currentText.length) {
+        parts.push(
+          <span key={`${lineIndex}-${key++}`}>
+            {currentText.substring(lastIndex)}
+          </span>
+        );
+      }
+
+      // Detect list items (including icon markers and emojis)
+      const isListItem = line.trim().match(/^[-•*]\s/) ||
+                         line.trim().match(/^\d+\.\s/) ||
+                         line.trim().match(/^\[(CHECK|TREND|WARNING|TIP|SEARCH|DOWN|GOAL|AUDIENCE|REVENUE|EMAIL|QUICK|TIME|ERROR)\]\s/) ||
+                         line.trim().match(/^[✅📈⚠️💡🔍]\s/);
+      const isNumberedList = line.trim().match(/^\d+\.\s/);
+      const iconMatch = line.trim().match(/^(\[(CHECK|TREND|WARNING|TIP|SEARCH|DOWN|GOAL|AUDIENCE|REVENUE|EMAIL|QUICK|TIME|ERROR)\])\s/);
+      const emojiMatch = line.trim().match(/^([✅📈⚠️💡🔍])\s/);
+
+      if (isListItem) {
+        // Extract the content after the bullet
+        let bulletSymbol = '•';
+        let bulletElement = <span className="text-sky-blue font-semibold">•</span>;
+
+        if (isNumberedList) {
+          bulletSymbol = line.trim().match(/^(\d+\.)/)[1];
+          bulletElement = <span className="text-sky-blue font-semibold">{bulletSymbol}</span>;
+          // Remove the number from parts
+          const numberLength = bulletSymbol.length + 1; // +1 for space
+          if (parts.length > 0 && typeof parts[0].props?.children === 'string') {
+            const firstPart = parts[0].props.children;
+            parts[0] = <span key={`${lineIndex}-0-modified`}>{firstPart.substring(numberLength)}</span>;
+          }
+        } else if (iconMatch) {
+          // Use Lucide icon
+          bulletElement = iconMap[iconMatch[1]];
+          // Remove icon marker from parts
+          const markerLength = iconMatch[1].length + 1; // marker + space
+          if (parts.length > 0 && typeof parts[0].props?.children === 'string') {
+            const firstPart = parts[0].props.children;
+            parts[0] = <span key={`${lineIndex}-0-modified`}>{firstPart.substring(markerLength)}</span>;
+          }
+        } else if (emojiMatch) {
+          bulletSymbol = emojiMatch[1];
+          bulletElement = <span className="text-base">{bulletSymbol}</span>;
+          // Remove emoji from parts
+          const emojiLength = 2; // emoji + space
+          if (parts.length > 0 && typeof parts[0].props?.children === 'string') {
+            const firstPart = parts[0].props.children;
+            parts[0] = <span key={`${lineIndex}-0-modified`}>{firstPart.substring(emojiLength)}</span>;
+          }
+        } else {
+          // Remove dash/bullet from parts
+          if (parts.length > 0 && typeof parts[0].props?.children === 'string') {
+            const firstPart = parts[0].props.children;
+            parts[0] = <span key={`${lineIndex}-0-modified`}>{firstPart.substring(2)}</span>; // "- "
+          }
+        }
+
+        return (
+          <div key={`line-${lineIndex}`} className="flex gap-2 my-1.5 items-start">
+            <span className="flex-shrink-0 mt-0.5">
+              {bulletElement}
+            </span>
+            <span className="flex-1">{parts}</span>
+          </div>
+        );
+      }
+
+      // Detect headers
+      if (line.trim().startsWith('##')) {
+        return (
+          <h3 key={`line-${lineIndex}`} className="font-bold text-base mt-4 mb-2 text-gray-900 dark:text-white">
+            {line.replace(/^##\s*/, '')}
+          </h3>
+        );
+      }
+
+      if (line.trim().startsWith('#')) {
+        return (
+          <h2 key={`line-${lineIndex}`} className="font-bold text-lg mt-4 mb-2 text-gray-900 dark:text-white">
+            {line.replace(/^#\s*/, '')}
+          </h2>
+        );
+      }
+
+      // Regular paragraph
+      return (
+        <div key={`line-${lineIndex}`} className="my-1.5 leading-relaxed">
+          {parts.length > 0 ? parts : line}
+        </div>
+      );
+    });
+  };
+
+  return <div className="text-sm">{formatText(content)}</div>;
+}
 
 export default function ChatWidget() {
   const { isChatOpen, setIsChatOpen, activeTab: contextActiveTab, setActiveTab: setContextActiveTab } = useChat();
@@ -87,7 +261,7 @@ export default function ChatWidget() {
       setMessages([{
         id: 1,
         type: "ai",
-        content: "Hi! I'm Wizel, your marketing insights assistant. I can help you analyse the stats on your screen or answer questions about your data. What would you like to know?",
+        content: "I can analyze the data on your screen and answer questions about your campaigns, flows, and performance metrics. What would you like to know?",
         timestamp: new Date()
       }]);
     }
@@ -255,13 +429,69 @@ export default function ChatWidget() {
     };
   }, []);
 
+  // Export chat conversation to file
+  const exportChat = () => {
+    if (messages.length <= 1) {
+      toast({
+        title: "No messages to export",
+        description: "Start a conversation first, then you can export it.",
+        variant: "default"
+      });
+      return;
+    }
+
+    try {
+      // Format the conversation
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const filename = `wizel-chat-${timestamp}.txt`;
+
+      // Create formatted text content
+      let content = `Wizel AI Chat Export\n`;
+      content += `Exported: ${new Date().toLocaleString()}\n`;
+      content += `Total Messages: ${messages.length}\n`;
+      content += `\n${'='.repeat(80)}\n\n`;
+
+      messages.forEach((msg) => {
+        const role = msg.type === 'user' ? 'You' : 'Wizel AI';
+        const time = new Date(msg.timestamp).toLocaleTimeString();
+
+        content += `[${time}] ${role}:\n`;
+        content += `${msg.content}\n`;
+        content += `\n${'-'.repeat(80)}\n\n`;
+      });
+
+      // Create blob and download
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Chat exported!",
+        description: `Saved as ${filename}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting your chat.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <>
-      {/* Floating Action Button - Best practice positioning */}
+      {/* Floating Action Button - Flush bottom-right positioning */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-[9999] w-14 h-14 bg-gradient-to-br from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center rounded-full group hover:scale-105"
+          className="fixed bottom-0 right-0 z-[9999] w-16 h-16 bg-gradient-to-br from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center rounded-tl-2xl group hover:scale-105"
           aria-label="Open Wizel AI Assistant"
           title="Chat with Wizel"
         >
@@ -271,7 +501,7 @@ export default function ChatWidget() {
               alt="Wizel Logo"
               className="w-10 h-10 transition-transform duration-200 group-hover:rotate-12"
             />
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <div className="absolute top-2 left-2 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
           </div>
         </button>
       )}
@@ -284,26 +514,26 @@ export default function ChatWidget() {
             <div className="fixed inset-0 bg-black/50 z-[9998] transition-opacity duration-300" />
           )}
           
-          <div 
+          <div
             className={cn(
               "fixed z-[9999] transition-all duration-300",
-              isXLModal 
-                ? "inset-4" 
-                : isMinimized 
-                  ? "bottom-6 right-6 w-80" 
-                  : "bottom-6 right-6 w-[440px] max-w-[calc(100vw-48px)]"
+              isXLModal
+                ? "inset-4"
+                : isMinimized
+                  ? "bottom-0 right-0 w-80"
+                  : "bottom-0 right-0 w-[440px] max-w-[calc(100vw)]"
             )}
           >
           <Card className={cn(
-            "shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-200 flex flex-col bg-white dark:bg-gray-900",
-            isXLModal 
-              ? "h-full rounded-xl" 
-              : isMinimized 
-                ? "h-14 rounded-xl" 
-                : "h-[600px] max-h-[calc(100vh-48px)] rounded-xl"
+            "shadow-2xl border-l border-t border-gray-200 dark:border-gray-700 transition-all duration-200 flex flex-col bg-white dark:bg-gray-900",
+            isXLModal
+              ? "h-full rounded-xl"
+              : isMinimized
+                ? "h-14 rounded-tl-xl"
+                : "h-[600px] max-h-[100vh] rounded-tl-xl"
           )}>
             {/* Header */}
-            <div className="bg-gradient-to-r from-sky-blue to-vivid-violet p-3 text-white rounded-t-xl">
+            <div className="bg-gradient-to-r from-sky-blue to-vivid-violet p-3 text-white rounded-tl-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -318,6 +548,17 @@ export default function ChatWidget() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
+                  {activeTab === "ai" && messages.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-white hover:bg-white/20 transition-colors duration-200"
+                      onClick={exportChat}
+                      title="Export chat"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -418,14 +659,18 @@ export default function ChatWidget() {
                             )}
                             <div
                               className={cn(
-                                "rounded-lg px-4 py-2",
+                                "rounded-lg px-4 py-3",
                                 isXLModal ? "max-w-[75%]" : "max-w-[85%]",
                                 message.type === "user"
                                   ? "bg-gradient-to-r from-sky-blue to-vivid-violet text-white"
-                                  : "bg-gray-100 dark:bg-gray-800 text-slate-gray dark:text-white"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                               )}
                             >
-                              <p className="text-sm">{message.content}</p>
+                              {message.type === "user" ? (
+                                <p className="text-sm leading-relaxed">{message.content}</p>
+                              ) : (
+                                <FormattedMessage content={message.content} />
+                              )}
                             </div>
                           </div>
                         ))}

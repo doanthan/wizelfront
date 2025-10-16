@@ -26,7 +26,9 @@ import {
   Image,
   ShoppingBag,
   RefreshCw,
-  Store
+  Store,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -53,23 +55,53 @@ export default function CollectionsPage() {
   const [collections, setCollections] = useState([]);
   const [permissions, setPermissions] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // Always initialize as empty string
   const [viewType, setViewType] = useState("table"); // "table" or "card"
   const [isShopifyStore, setIsShopifyStore] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasMore: false
+  });
+
+  // Initial load
   useEffect(() => {
     if (storePublicId) {
       console.log('Fetching collections for store:', storePublicId);
-      fetchCollections(); // fetchStore is now handled inside fetchCollections
+      setCurrentPage(1);
+      fetchCollections(1, "");
     }
   }, [storePublicId]);
 
+  // Debounce search (skip on initial mount)
+  useEffect(() => {
+    if (!storePublicId) return; // Don't run if store not loaded yet
+
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      fetchCollections(1, searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, storePublicId]);
+
   // Store data is now fetched along with collections in fetchCollections
 
-  const fetchCollections = async () => {
+  const fetchCollections = async (page = currentPage, search = searchQuery) => {
     try {
-      console.log('Making API call to:', `/api/store/${storePublicId}/collections`);
-      const response = await fetch(`/api/store/${storePublicId}/collections`, {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: '20',
+        ...(search && { search })
+      });
+
+      console.log('Making API call to:', `/api/store/${storePublicId}/collections?${queryParams}`);
+      const response = await fetch(`/api/store/${storePublicId}/collections?${queryParams}`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
@@ -106,6 +138,13 @@ export default function CollectionsPage() {
       const data = await response.json();
       console.log('Collections API Response:', data); // Debug logging
       setCollections(data.collections || []);
+      setPagination(data.pagination || {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+        hasMore: false
+      });
       setPermissions(data.permissions || {});
       setStore(data.store);
 
@@ -183,10 +222,24 @@ export default function CollectionsPage() {
     }
   };
 
-  const filteredCollections = collections.filter(collection => 
-    collection.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    collection.handle?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Pagination handlers
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    setIsLoading(true);
+    fetchCollections(newPage, searchQuery);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pagination.hasMore) {
+      handlePageChange(currentPage + 1);
+    }
+  };
 
   // Skeleton loader component
   const SkeletonCard = () => (
@@ -333,8 +386,10 @@ export default function CollectionsPage() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Search collections..."
+                      value=""
                       disabled
                       className="pl-10"
+                      readOnly
                     />
                   </div>
                   <div className="flex gap-2">
@@ -365,8 +420,8 @@ export default function CollectionsPage() {
 
             {/* Collections Skeleton */}
             {viewType === "card" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
                   <SkeletonCard key={i} />
                 ))}
               </div>
@@ -427,8 +482,8 @@ export default function CollectionsPage() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Search collections..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      value={searchQuery || ""}
+                      onChange={(e) => setSearchQuery(e.target.value || "")}
                       className="pl-10"
                     />
                   </div>
@@ -463,8 +518,8 @@ export default function CollectionsPage() {
             {/* Collections View */}
             {viewType === "card" ? (
               // Card View
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCollections.map((collection) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {collections.map((collection) => (
                   <Card 
                     key={collection.id}
                     className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -596,7 +651,7 @@ export default function CollectionsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCollections.map((collection) => (
+                    {collections.map((collection) => (
                       <TableRow 
                         key={collection.id}
                         className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 border-b dark:border-gray-700"
@@ -691,6 +746,87 @@ export default function CollectionsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Pagination Controls */}
+            {pagination.total > 0 && (
+              <Card>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      Showing{' '}
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {((currentPage - 1) * pagination.limit) + 1}
+                      </span>
+                      {' '}-{' '}
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {Math.min(currentPage * pagination.limit, pagination.total)}
+                      </span>
+                      {' '}of{' '}
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {pagination.total}
+                      </span>
+                      {' '}collections
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        className="gap-1"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                      </Button>
+
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                          .filter(page => {
+                            // Show first page, last page, current page, and pages around current
+                            return (
+                              page === 1 ||
+                              page === pagination.totalPages ||
+                              (page >= currentPage - 1 && page <= currentPage + 1)
+                            );
+                          })
+                          .map((page, index, array) => {
+                            // Add ellipsis
+                            const showEllipsisBefore = index > 0 && page - array[index - 1] > 1;
+
+                            return (
+                              <div key={page} className="flex items-center gap-1">
+                                {showEllipsisBefore && (
+                                  <span className="px-2 text-gray-500 dark:text-gray-400">...</span>
+                                )}
+                                <Button
+                                  variant={currentPage === page ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handlePageChange(page)}
+                                  className={currentPage === page ? "bg-sky-blue text-white" : ""}
+                                >
+                                  {page}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={!pagination.hasMore}
+                        className="gap-1"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}

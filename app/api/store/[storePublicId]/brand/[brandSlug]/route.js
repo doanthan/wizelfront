@@ -59,7 +59,7 @@ export const PUT = withStoreAccess(async (request, context) => {
 
     // Update brand fields
     const allowedFields = [
-      'brandName', 'brandTagline', 'websiteUrl', 
+      'brandName', 'brandTagline', 'websiteUrl',
       'missionStatement', 'originStory', 'uniqueValueProposition',
       'brandJourney', 'customerPromise',
       'brandVoice', 'brandPersonality', 'coreValues',
@@ -71,7 +71,15 @@ export const PUT = withStoreAccess(async (request, context) => {
       'socialLinks', 'competitors', 'socialProof',
       'trustBadges', 'customerPersonas', 'customerFears',
       'emotionalTriggers', 'customerLanguage',
-      'brandArchetype', 'brandMetrics', 'emailStrategy'
+      'brandArchetype', 'brandMetrics', 'emailStrategy',
+      // Marketing-specific fields
+      'emailFrequency', 'contentPriority', 'secondaryObjectives',
+      'uniqueFeatures', 'competitiveAdvantages', 'contentStrategy',
+      'customerJourneyInsights', 'customerLifecycleStage',
+      'buyingMotivations', 'purchaseBarriers', 'decisionFactors',
+      'trustBuilders', 'headerLinks', 'socialIconStyle',
+      'currentPromotion', 'upcomingProductLaunch', 'seasonalFocus',
+      'discountStrategy', 'loyaltyProgramDetails', 'primaryCampaignObjective'
     ];
 
     allowedFields.forEach(field => {

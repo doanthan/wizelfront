@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Zap,
   Clock,
@@ -29,10 +31,21 @@ import { Card, CardContent } from "@/app/components/ui/card";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handler for "Get Started" button
+  const handleGetStarted = () => {
+    if (status === "authenticated") {
+      router.push("/dashboard");
+    } else {
+      router.push("/register");
+    }
+  };
 
   if (!mounted) {
     return null; // Prevent hydration mismatch
@@ -53,7 +66,7 @@ export default function Home() {
               <div className="w-10 h-10 bg-gradient-to-br from-sky-blue to-vivid-violet rounded-xl flex items-center justify-center shadow-lg">
                 <Bot className="w-6 h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-slate-gray dark:text-white">Wizel AI</span>
+              <span className="text-2xl font-bold text-slate-gray dark:text-white">Wizel</span>
             </div>
 
             <div className="flex items-center gap-4">
@@ -74,14 +87,13 @@ export default function Home() {
                   Dashboard
                 </Button>
               </Link>
-              <Link href="/dashboard">
-                <Button
-                  className="bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-                >
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <Button
+                onClick={handleGetStarted}
+                className="bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+              >
+                Get Started
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           </nav>
         </header>
@@ -186,14 +198,13 @@ export default function Home() {
                       Join hundreds of companies already using Wizel
                     </p>
 
-                    <Link href="/dashboard" className="block">
-                      <Button
-                        className="w-full bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-                      >
-                        Start automating today
-                        <ArrowRight className="ml-2 h-5 w-5" />
-                      </Button>
-                    </Link>
+                    <Button
+                      onClick={handleGetStarted}
+                      className="w-full bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                    >
+                      Start automating today
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
 
                     <div className="flex items-center justify-center gap-6 text-xs text-neutral-gray dark:text-gray-400">
                       <div className="flex items-center gap-1">
@@ -447,15 +458,14 @@ export default function Home() {
                   Start your free trial today.
                 </h3>
 
-                <Link href="/dashboard">
-                  <Button
-                    size="lg"
-                    className="bg-slate-gray hover:bg-slate-gray/90 text-white px-10 py-6 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
-                  >
-                    Get started
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
+                <Button
+                  onClick={handleGetStarted}
+                  size="lg"
+                  className="bg-slate-gray hover:bg-slate-gray/90 text-white px-10 py-6 text-lg font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105"
+                >
+                  Get started
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
               </div>
             </div>
           </div>

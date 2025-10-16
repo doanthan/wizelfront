@@ -11,14 +11,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Slider } from "@/app/components/ui/slider";
 import { ColorPicker } from "@/app/components/ui/color-picker";
-import { 
-  Edit2, X, Check, Plus, Palette, Type, Image as ImageIcon, 
+import {
+  Edit2, X, Check, Plus, Palette, Type, Image as ImageIcon,
   ExternalLink, Globe, Shield, Earth, Handshake, Monitor, Smartphone,
   Beef, CheckCircle, Heart, MapPin, Leaf, ShieldCheck, Truck,
-  Star, Clock, CreditCard, Gift, Percent, RefreshCw, Lock, 
+  Star, Clock, CreditCard, Gift, Percent, RefreshCw, Lock,
   Headphones, BadgeCheck, Sparkles, Rocket, ThumbsUp, ShoppingCart,
-  DollarSign, Tag, Package, Zap, Award
+  DollarSign, Tag, Package, Zap, Award, ChevronRight
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function BrandVisualsPage() {
   const {
@@ -27,6 +28,8 @@ export default function BrandVisualsPage() {
     isLoading,
     setHasChanges
   } = useBrand();
+
+  const [activeSection, setActiveSection] = useState("color-palette");
 
   // Visual settings state
   const [visualSettings, setVisualSettings] = useState({
@@ -93,6 +96,39 @@ export default function BrandVisualsPage() {
     icon: 'Star'
   });
   const [badgeColorScheme, setBadgeColorScheme] = useState('primary'); // 'primary', 'secondary1', 'secondary2', etc.
+
+  // Navigation items for sidebar
+  const navigationItems = [
+    { id: "color-palette", label: "Color Palette", icon: Palette },
+    { id: "brand-logo", label: "Brand Logo", icon: ImageIcon },
+    { id: "typography", label: "Typography", icon: Type },
+    { id: "button-design", label: "Button Design", icon: Monitor },
+    { id: "trust-badges", label: "Trust & Benefits", icon: BadgeCheck },
+    { id: "preview", label: "Live Preview", icon: Smartphone },
+  ];
+
+  // Observe sections for active highlighting
+  React.useEffect(() => {
+    if (isLoading) return; // Don't set up observer while loading
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: "-100px 0px -50% 0px" }
+    );
+
+    navigationItems.forEach(({ id }) => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [isLoading]); // Added isLoading as dependency
 
   if (isLoading) {
     return (
@@ -179,10 +215,10 @@ export default function BrandVisualsPage() {
 
   const generateButtonCSS = () => {
     const { buttons } = visualSettings;
-    const shadowCSS = buttons.shadow.enabled 
+    const shadowCSS = buttons.shadow.enabled
       ? `box-shadow: ${buttons.shadow.offsetX}px ${buttons.shadow.offsetY}px ${buttons.shadow.blur}px ${buttons.shadow.spread}px ${buttons.shadow.color};`
       : '';
-    
+
     return `
 background-color: ${buttons.backgroundColor};
 color: ${buttons.textColor};
@@ -194,15 +230,65 @@ cursor: pointer;
 transition: all 0.3s ease;`.trim();
   };
 
+  // Scroll to section
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const yOffset = -100; // Offset for fixed header
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      setActiveSection(sectionId);
+    }
+  };
+
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
-        {/* Left Panel - Design Controls */}
-        <div className="space-y-6">
+      <div className="flex gap-4">
+        {/* Left Sidebar - Navigation */}
+        <aside className="w-64 flex-shrink-0">
+          <Card className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg text-gray-900 dark:text-white">Visual Settings</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                Jump to section
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <nav className="space-y-1">
+                {navigationItems.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => scrollToSection(id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all",
+                      "hover:bg-gray-50 dark:hover:bg-gray-800",
+                      activeSection === id
+                        ? "bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 border-r-2 border-sky-600"
+                        : "text-gray-700 dark:text-gray-300"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "h-4 w-4",
+                      activeSection === id ? "text-sky-600 dark:text-sky-400" : "text-gray-400 dark:text-gray-500"
+                    )} />
+                    <span className="flex-1 text-left">{label}</span>
+                    <ChevronRight className={cn(
+                      "h-4 w-4 transition-transform",
+                      activeSection === id ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+                    )} />
+                  </button>
+                ))}
+              </nav>
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* Right Panel - Content Sections */}
+        <div className="flex-1 space-y-8 min-w-0">
           {/* Color Palette */}
-          <Card>
+          <Card id="color-palette" className="scroll-mt-24">
             <CardHeader>
-              <CardTitle className="dark:text-white">Color Palette</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Color Palette</CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">Brand colors for visual consistency</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -261,9 +347,9 @@ transition: all 0.3s ease;`.trim();
           </Card>
 
           {/* Brand Logo */}
-          <Card>
+          <Card id="brand-logo" className="scroll-mt-24">
             <CardHeader>
-              <CardTitle className="dark:text-white">Brand Logo</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Brand Logo</CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">Upload and manage your brand logo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -300,9 +386,9 @@ transition: all 0.3s ease;`.trim();
           </Card>
 
           {/* Typography */}
-          <Card>
+          <Card id="typography" className="scroll-mt-24">
             <CardHeader>
-              <CardTitle className="dark:text-white">Typography</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Typography</CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">Font settings and text styling</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -367,9 +453,9 @@ transition: all 0.3s ease;`.trim();
           </Card>
 
           {/* Button Design */}
-          <Card>
+          <Card id="button-design" className="scroll-mt-24">
             <CardHeader>
-              <CardTitle className="dark:text-white">Button Design</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Button Design</CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">Customize button appearance</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -535,10 +621,10 @@ transition: all 0.3s ease;`.trim();
             </CardContent>
           </Card>
 
-          {/* Generated CSS - Now in Left Panel */}
-          <Card>
+          {/* Generated CSS */}
+          <Card className="scroll-mt-24">
             <CardHeader>
-              <CardTitle className="dark:text-white">Generated CSS</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Generated CSS</CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">Copy this CSS for your email templates</CardDescription>
             </CardHeader>
             <CardContent>
@@ -549,11 +635,11 @@ transition: all 0.3s ease;`.trim();
           </Card>
 
           {/* Trust Badges & Selected Benefits */}
-          <Card>
+          <Card id="trust-badges" className="scroll-mt-24">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="dark:text-white">Trust Badges & Benefits</CardTitle>
+                  <CardTitle className="text-gray-900 dark:text-white">Trust Badges & Benefits</CardTitle>
                   <CardDescription className="text-gray-600 dark:text-gray-400">Build customer confidence with trust signals</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -737,41 +823,15 @@ transition: all 0.3s ease;`.trim();
             </CardContent>
           </Card>
 
-          {/* Social Media - Compact */}
-          <Card className="h-fit">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base dark:text-white">Social Media</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                {brand?.socialLinks?.slice(0, 4).map((social, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div className="w-6 h-6 bg-sky-100 dark:bg-sky-900/30 rounded flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-sky-600">
-                        {social.platform.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-gray dark:text-gray-300 truncate">{social.platform}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Panel - Live Preview - Sticky */}
-        <div className="space-y-6">
-          <div className="sticky top-40">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="dark:text-white">Live Email Preview</CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">See your design in action</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+          {/* Live Preview */}
+          <Card id="preview" className="scroll-mt-24">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-gray-900 dark:text-white">Live Email Preview</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">See your design in action</CardDescription>
+                </div>
+                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                     <button
                       onClick={() => setPreviewMode('desktop')}
                       className={`px-3 py-1.5 rounded-md flex items-center gap-2 transition-all ${
@@ -920,7 +980,6 @@ transition: all 0.3s ease;`.trim();
             </Card>
           </div>
         </div>
-      </div>
 
       {/* Dialogs */}
       <Dialog open={showColorDialog !== null} onOpenChange={() => setShowColorDialog(null)}>

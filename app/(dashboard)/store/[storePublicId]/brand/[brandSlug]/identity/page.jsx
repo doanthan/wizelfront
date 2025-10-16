@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useBrand } from "@/app/hooks/use-brand";
+import { BrandSidebar } from "@/app/components/brand/brand-sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -32,6 +33,42 @@ export default function BrandIdentityPage() {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [socialPlatform, setSocialPlatform] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
+  const [activeSection, setActiveSection] = useState("brand-overview");
+
+  // Scroll to section function
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const yOffset = -100; // Offset for fixed header
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      setActiveSection(sectionId);
+    }
+  };
+
+  // Observe sections for active highlighting
+  React.useEffect(() => {
+    if (isLoading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: "-150px 0px -50% 0px" }
+    );
+
+    const sectionIds = ["brand-overview", "visual-identity", "voice-tone", "target-audience", "core-values", "unique-features", "social-media"];
+    sectionIds.forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [isLoading]);
 
   if (isLoading) {
     return (
@@ -74,9 +111,15 @@ export default function BrandIdentityPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Brand Basics */}
-      <Card>
+    <div className="flex gap-4">
+      <BrandSidebar
+        onSectionClick={scrollToSection}
+        activeSection={activeSection}
+      />
+
+      <div className="flex-1 space-y-8 min-w-0">
+        {/* Brand Overview Section */}
+        <Card id="brand-overview" className="scroll-mt-24">
         <CardHeader>
           <CardTitle className="dark:text-white">Brand Basics</CardTitle>
           <CardDescription className="dark:text-gray-400">Core information about your brand</CardDescription>
@@ -84,15 +127,17 @@ export default function BrandIdentityPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-slate-gray dark:text-gray-200 mb-2 block">Brand Name</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Brand Name</label>
               {editingField === 'brandName' ? (
                 <div className="flex gap-2">
                   <Input
+                    key="brandName-edit"
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                    autoFocus
                   />
-                  <Button size="sm" onClick={() => handleFieldSave('brandName')} className="bg-green-500 hover:bg-green-600">
+                  <Button size="sm" onClick={() => handleFieldSave('brandName')} className="bg-green-500 hover:bg-green-600 text-white">
                     <Check className="h-4 w-4" />
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -100,33 +145,35 @@ export default function BrandIdentityPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" 
+                <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group hover:border-sky-blue dark:hover:border-sky-blue cursor-pointer transition-all"
                      onClick={() => handleFieldEdit('brandName', brand?.brandName || '')}>
-                  <span className="flex-1 text-slate-gray dark:text-white font-medium">{brand?.brandName}</span>
-                  <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue" />
+                  <span className="flex-1 text-gray-900 dark:text-white font-medium">{brand?.brandName}</span>
+                  <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue transition-colors" />
                 </div>
               )}
             </div>
 
             <div>
-              <label className="text-sm font-medium text-slate-gray dark:text-gray-200 mb-2 block">URL Slug</label>
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <span className="text-slate-gray dark:text-white font-medium">{brand?.slug}</span>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">URL Slug</label>
+              <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <span className="text-gray-900 dark:text-white font-medium">{brand?.slug}</span>
               </div>
             </div>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-gray dark:text-gray-200 mb-2 block">Brand Tagline</label>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Brand Tagline</label>
             {editingField === 'brandTagline' ? (
               <div className="space-y-2">
                 <Textarea
+                  key="brandTagline-edit"
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
-                  className="min-h-[80px]"
+                  className="min-h-[80px] bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                  autoFocus
                 />
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleFieldSave('brandTagline')} className="bg-green-500 hover:bg-green-600">
+                  <Button size="sm" onClick={() => handleFieldSave('brandTagline')} className="bg-green-500 hover:bg-green-600 text-white">
                     <Check className="h-4 w-4 mr-1" /> Save
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -135,10 +182,10 @@ export default function BrandIdentityPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" 
+              <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group hover:border-sky-blue dark:hover:border-sky-blue cursor-pointer transition-all"
                    onClick={() => handleFieldEdit('brandTagline', brand?.brandTagline || '')}>
-                <span className="flex-1 text-slate-gray dark:text-white font-medium">{brand?.brandTagline}</span>
-                <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue" />
+                <span className="flex-1 text-gray-900 dark:text-white">{brand?.brandTagline}</span>
+                <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue transition-colors flex-shrink-0 mt-0.5" />
               </div>
             )}
           </div>
@@ -154,16 +201,18 @@ export default function BrandIdentityPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-slate-gray dark:text-gray-200 mb-2 block">Website URL</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Website URL</label>
               {editingField === 'websiteUrl' ? (
                 <div className="flex gap-2">
                   <Input
+                    key="websiteUrl-edit"
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                     placeholder="https://example.com"
+                    autoFocus
                   />
-                  <Button size="sm" onClick={() => handleFieldSave('websiteUrl')} className="bg-green-500 hover:bg-green-600">
+                  <Button size="sm" onClick={() => handleFieldSave('websiteUrl')} className="bg-green-500 hover:bg-green-600 text-white">
                     <Check className="h-4 w-4" />
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -171,17 +220,17 @@ export default function BrandIdentityPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" 
+                <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group hover:border-sky-blue dark:hover:border-sky-blue cursor-pointer transition-all"
                      onClick={() => handleFieldEdit('websiteUrl', brand?.websiteUrl || '')}>
-                  <Globe className="h-4 w-4 text-sky-blue" />
-                  <span className="flex-1 text-slate-gray dark:text-white font-medium">{brand?.websiteUrl || 'Add website URL'}</span>
-                  <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue" />
+                  <Globe className="h-4 w-4 text-sky-blue flex-shrink-0" />
+                  <span className="flex-1 text-gray-900 dark:text-white">{brand?.websiteUrl || 'Add website URL'}</span>
+                  <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue transition-colors flex-shrink-0" />
                 </div>
               )}
             </div>
 
             <div>
-              <label className="text-sm font-medium text-slate-gray dark:text-gray-200 mb-2 block">Geographic Focus</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Geographic Focus</label>
               <div className="flex flex-wrap gap-2">
                 {brand?.geographicFocus?.map((region, idx) => (
                   <Badge key={idx} variant="outline" className="flex items-center gap-1">
@@ -207,7 +256,7 @@ export default function BrandIdentityPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-gray dark:text-gray-200 mb-2 block">Industry Categories</label>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Industry Categories</label>
             <div className="flex flex-wrap gap-2">
               {brand?.industryCategories?.map((category, idx) => (
                 <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
@@ -233,16 +282,18 @@ export default function BrandIdentityPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-gray mb-2 block">Unique Selling Points</label>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Unique Selling Points</label>
             {editingField === 'uniqueSellingPoints' ? (
               <div className="space-y-2">
                 <Textarea
+                  key="uniqueSellingPoints-edit"
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
-                  className="min-h-[80px]"
+                  className="min-h-[80px] bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                  autoFocus
                 />
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleFieldSave('uniqueSellingPoints')} className="bg-green-500 hover:bg-green-600">
+                  <Button size="sm" onClick={() => handleFieldSave('uniqueSellingPoints')} className="bg-green-500 hover:bg-green-600 text-white">
                     <Check className="h-4 w-4 mr-1" /> Save
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -251,16 +302,16 @@ export default function BrandIdentityPage() {
                 </div>
               </div>
             ) : (
-              <div className="p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 cursor-pointer" 
+              <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group hover:border-sky-blue dark:hover:border-sky-blue cursor-pointer transition-all"
                    onClick={() => handleFieldEdit('uniqueSellingPoints', brand?.uniqueSellingPoints || '')}>
-                <p className="text-slate-gray font-medium">{brand?.uniqueSellingPoints || 'Add unique selling points'}</p>
-                <Edit2 className="h-4 w-4 text-gray-400 group-hover:text-sky-blue mt-2" />
+                <p className="flex-1 text-gray-900 dark:text-white">{brand?.uniqueSellingPoints || 'Add unique selling points'}</p>
+                <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue transition-colors flex-shrink-0 mt-0.5" />
               </div>
             )}
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-gray dark:text-gray-200 mb-2 block">Social Media Links</label>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Social Media Links</label>
             <div className="flex flex-wrap gap-2">
               {brand?.socialMediaLinks?.map((social, idx) => {
                 const platform = socialPlatforms.find(p => p.value === social.platform);
@@ -298,15 +349,28 @@ export default function BrandIdentityPage() {
         </CardContent>
       </Card>
 
-      {/* Brand Voice & Personality */}
-      <Card>
+      {/* Visual Identity Section */}
+      <Card id="visual-identity" className="scroll-mt-24">
         <CardHeader>
-          <CardTitle>Brand Voice & Personality</CardTitle>
-          <CardDescription>How your brand communicates</CardDescription>
+          <CardTitle className="text-gray-900 dark:text-white">Visual Identity</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">Colors, logos, and design assets</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Visual identity settings can be managed in the <span className="text-sky-600 font-medium">Visual Identity</span> tab.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Voice & Tone Section */}
+      <Card id="voice-tone" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle className="text-gray-900 dark:text-white">Brand Voice & Personality</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">How your brand communicates</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-slate-gray mb-3 block">Brand Voice</label>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 block">Brand Voice</label>
             <div className="flex flex-wrap gap-2">
               {brand?.brandVoice?.map((voice, idx) => (
                 <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
@@ -332,7 +396,7 @@ export default function BrandIdentityPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-gray mb-3 block">Brand Personality</label>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 block">Brand Personality</label>
             <div className="flex flex-wrap gap-2">
               {brand?.brandPersonality?.map((personality, idx) => (
                 <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
@@ -358,7 +422,7 @@ export default function BrandIdentityPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-slate-gray mb-3 block">Core Values</label>
+            <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-3 block">Core Values</label>
             <div className="flex flex-wrap gap-2">
               {brand?.coreValues?.map((value, idx) => (
                 <Badge key={idx} variant="secondary" className="px-3 py-1.5 bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
@@ -385,16 +449,29 @@ export default function BrandIdentityPage() {
         </CardContent>
       </Card>
 
-      {/* Brand Story */}
-      <Card>
+      {/* Target Audience Section */}
+      <Card id="target-audience" className="scroll-mt-24">
         <CardHeader>
-          <CardTitle>Brand Story</CardTitle>
-          <CardDescription>The narrative that defines your brand</CardDescription>
+          <CardTitle className="text-gray-900 dark:text-white">Target Audience</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">Customer demographics and personas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Target audience settings can be managed in the <span className="text-sky-600 font-medium">Audience</span> tab.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Core Values Section */}
+      <Card id="core-values" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle className="text-gray-900 dark:text-white">Brand Story & Core Values</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">The narrative that defines your brand</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {['missionStatement', 'originStory', 'uniqueValueProposition', 'brandJourney', 'customerPromise'].map((field) => (
             <div key={field}>
-              <label className="text-sm font-medium text-slate-gray mb-2 block">
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">
                 {field === 'missionStatement' && 'Mission Statement'}
                 {field === 'originStory' && 'Origin Story'}
                 {field === 'uniqueValueProposition' && 'Unique Value Proposition'}
@@ -404,12 +481,14 @@ export default function BrandIdentityPage() {
               {editingField === field ? (
                 <div className="space-y-2">
                   <Textarea
+                    key={`${field}-edit`}
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
-                    className="min-h-[100px]"
+                    className="min-h-[100px] bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                    autoFocus
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => handleFieldSave(field)} className="bg-green-500 hover:bg-green-600">
+                    <Button size="sm" onClick={() => handleFieldSave(field)} className="bg-green-500 hover:bg-green-600 text-white">
                       <Check className="h-4 w-4 mr-1" /> Save
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>
@@ -418,10 +497,10 @@ export default function BrandIdentityPage() {
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 cursor-pointer" 
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg group hover:border-sky-blue dark:hover:border-sky-blue cursor-pointer transition-all"
                      onClick={() => handleFieldEdit(field, brand?.[field] || '')}>
-                  <p className="text-slate-gray">{brand?.[field] || `Add ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`}</p>
-                  <Edit2 className="h-4 w-4 text-gray-400 group-hover:text-sky-blue mt-2" />
+                  <p className="flex-1 text-gray-900 dark:text-white">{brand?.[field] || `Add ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`}</p>
+                  <Edit2 className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-sky-blue transition-colors flex-shrink-0 mt-0.5" />
                 </div>
               )}
             </div>
@@ -429,6 +508,51 @@ export default function BrandIdentityPage() {
         </CardContent>
       </Card>
 
+      {/* Unique Features Section */}
+      <Card id="unique-features" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle className="text-gray-900 dark:text-white">Unique Features</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">Key differentiators and selling points</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {brand?.uniqueSellingPoints && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <p className="text-sm text-gray-900 dark:text-gray-100">{brand.uniqueSellingPoints}</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Social Media Section */}
+      <Card id="social-media" className="scroll-mt-24">
+        <CardHeader>
+          <CardTitle className="text-gray-900 dark:text-white">Social Media Presence</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">Social media links and profiles</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            {brand?.socialMediaLinks?.map((social, idx) => {
+              const platform = socialPlatforms.find(p => p.value === social.platform);
+              const IconComponent = platform?.icon || ExternalLink;
+              return (
+                <a
+                  key={idx}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <IconComponent className={`h-5 w-5 ${platform?.color || 'text-gray-600'}`} />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{platform?.label || social.platform}</span>
+                  <ExternalLink className="h-3 w-3 text-gray-400" />
+                </a>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Enhanced Add Item Dialog */}
       <Dialog open={showAddDialog !== null} onOpenChange={() => setShowAddDialog(null)}>
@@ -455,7 +579,7 @@ export default function BrandIdentityPage() {
           <div className="space-y-4">
             {showAddDialog === 'geographicFocus' ? (
               <div>
-                <label className="text-sm font-medium text-slate-gray mb-2 block">Select Region</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Select Region</label>
                 <Select value={newItemValue} onValueChange={setNewItemValue}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select geographic region" />
@@ -473,7 +597,7 @@ export default function BrandIdentityPage() {
               </div>
             ) : showAddDialog === 'industryCategories' ? (
               <div>
-                <label className="text-sm font-medium text-slate-gray mb-2 block">Select Industry</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Select Industry</label>
                 <Select value={newItemValue} onValueChange={setNewItemValue}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select industry category" />
@@ -492,7 +616,7 @@ export default function BrandIdentityPage() {
               </div>
             ) : showAddDialog === 'brandVoice' ? (
               <div>
-                <label className="text-sm font-medium text-slate-gray mb-2 block">Choose Voice Style</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Choose Voice Style</label>
                 <Select value={newItemValue} onValueChange={setNewItemValue}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a voice style or add custom" />
@@ -510,6 +634,7 @@ export default function BrandIdentityPage() {
                 </Select>
                 <div className="mt-3">
                   <Input
+                    key="brandVoice-custom-input"
                     placeholder="Or enter custom voice style..."
                     value={newItemValue}
                     onChange={(e) => setNewItemValue(e.target.value)}
@@ -523,7 +648,7 @@ export default function BrandIdentityPage() {
               </div>
             ) : showAddDialog === 'brandPersonality' ? (
               <div>
-                <label className="text-sm font-medium text-slate-gray mb-2 block">Choose Personality Trait</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Choose Personality Trait</label>
                 <Select value={newItemValue} onValueChange={setNewItemValue}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a personality trait or add custom" />
@@ -541,6 +666,7 @@ export default function BrandIdentityPage() {
                 </Select>
                 <div className="mt-3">
                   <Input
+                    key="brandPersonality-custom-input"
                     placeholder="Or enter custom personality trait..."
                     value={newItemValue}
                     onChange={(e) => setNewItemValue(e.target.value)}
@@ -554,7 +680,7 @@ export default function BrandIdentityPage() {
               </div>
             ) : showAddDialog === 'coreValues' ? (
               <div>
-                <label className="text-sm font-medium text-slate-gray mb-2 block">Choose Core Value</label>
+                <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Choose Core Value</label>
                 <Select value={newItemValue} onValueChange={setNewItemValue}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a core value or add custom" />
@@ -572,6 +698,7 @@ export default function BrandIdentityPage() {
                 </Select>
                 <div className="mt-3">
                   <Input
+                    key="coreValues-custom-input"
                     placeholder="Or enter custom core value..."
                     value={newItemValue}
                     onChange={(e) => setNewItemValue(e.target.value)}
@@ -585,6 +712,7 @@ export default function BrandIdentityPage() {
               </div>
             ) : (
               <Input
+                key={`${showAddDialog}-input`}
                 placeholder={`Enter ${showAddDialog}...`}
                 value={newItemValue}
                 onChange={(e) => setNewItemValue(e.target.value)}
@@ -622,7 +750,7 @@ export default function BrandIdentityPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-gray mb-2 block">Platform</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">Platform</label>
               <Select value={socialPlatform} onValueChange={setSocialPlatform}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select social platform" />
@@ -643,8 +771,9 @@ export default function BrandIdentityPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-gray mb-2 block">URL</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">URL</label>
               <Input
+                key="social-url-input"
                 placeholder="https://instagram.com/yourbrand"
                 value={socialUrl}
                 onChange={(e) => setSocialUrl(e.target.value)}
@@ -685,6 +814,7 @@ export default function BrandIdentityPage() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

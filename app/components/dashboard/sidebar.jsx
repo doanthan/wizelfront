@@ -34,6 +34,9 @@ import {
   Lightbulb,
   CheckCircle,
   ShoppingBag,
+  Palette,
+  MousePointer2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/app/contexts/theme-context";
@@ -90,6 +93,29 @@ const sidebarItemsConfig = [
     href: "/idea-generator",
     feature: FEATURES.CAMPAIGNS,
     action: ACTIONS.CREATE,
+  },
+  {
+    title: "Design Studio",
+    icon: Palette,
+    href: "/design-studio",
+    feature: FEATURES.CAMPAIGNS,
+    action: ACTIONS.CREATE,
+    children: [
+      {
+        title: "CTA Designer",
+        icon: MousePointer2,
+        href: "/design-studio/cta-designer",
+        feature: FEATURES.CAMPAIGNS,
+        action: ACTIONS.CREATE,
+      },
+      {
+        title: "GIF Designer",
+        icon: ImageIcon,
+        href: "/design-studio/gif-designer",
+        feature: FEATURES.CAMPAIGNS,
+        action: ACTIONS.CREATE,
+      },
+    ],
   },
   {
     title: "Multi-Account Reporting",
