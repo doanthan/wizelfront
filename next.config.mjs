@@ -1,5 +1,18 @@
 // next.config.mjs
 const nextConfig = {
+  // Disable static export of built-in error pages
+  skipTrailingSlashRedirect: true,
+  poweredByHeader: false,
+  // Configure webpack to handle build issues
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Suppress specific warnings during server build
+      config.infrastructureLogging = {
+        level: 'error',
+      };
+    }
+    return config;
+  },
   async headers() {
     return [
       {

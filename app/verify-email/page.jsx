@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -8,7 +8,10 @@ import MorphingLoader from "@/app/components/ui/loading";
 import { CheckCircle, XCircle, Mail } from "lucide-react";
 import Image from "next/image";
 
-export default function VerifyEmailPage() {
+// Force dynamic rendering to prevent prerender errors
+export const dynamic = 'force-dynamic';
+
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -177,5 +180,41 @@ export default function VerifyEmailPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image
+                src="/wizel-logo-horizontal.svg"
+                alt="Wizel.ai Logo"
+                width={150}
+                height={40}
+                priority
+                className="h-10 w-auto"
+              />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+              Email Verification
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-8">
+            <div className="flex justify-center mb-4">
+              <MorphingLoader size="medium" showThemeText={false} />
+            </div>
+            <p className="text-gray-900 dark:text-gray-100 text-lg font-medium">
+              Loading...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

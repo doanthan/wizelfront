@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "eslint",
     "create-user": "node scripts/create-user.js"
@@ -46,7 +46,7 @@
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.0",
     "nanoid": "^5.1.5",
-    "next": "15.5.2",
+    "next": "^15.5.5",
     "next-auth": "^4.24.11",
     "node-cache": "^5.1.2",
     "node-fetch": "^3.3.2",

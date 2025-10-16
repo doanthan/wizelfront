@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import {
   Image as ImageIcon,
