@@ -1,0 +1,1811 @@
+{
+  "_id": {
+    "$oid": "68ef12b6cb9bd5438a7a57d5"
+  },
+  "store_id": {
+    "$oid": "68ef12b6cb9bd5438a7a57d2"
+  },
+  "store_public_id": "dLYXCCm",
+  "name": "Jurlique",
+  "brandName": "Jurlique",
+  "slug": "jurlique",
+  "industryCategories": [
+    "Natural Skincare",
+    "Organic Beauty",
+    "Premium Facial Care",
+    "Botanical Cosmetics",
+    "Anti-Aging Treatments"
+  ],
+  "brandTagline": "Holistic Skin Care From Seed To Skin",
+  "brandVoice": [
+    "professional",
+    "authentic",
+    "authoritative",
+    "luxurious"
+  ],
+  "brandPersonality": [
+    "eco-conscious",
+    "premium",
+    "authentic",
+    "traditional",
+    "innovative"
+  ],
+  "coreValues": [
+    "sustainability",
+    "quality",
+    "craftsmanship",
+    "nature",
+    "purity",
+    "transparency",
+    "holistic wellness"
+  ],
+  "missionStatement": "To deliver the undiluted force of nature direct to your skin through concentrated botanicals grown with certified organic and biodynamic farming methods, caring for our farm as an integrated, living organism.",
+  "primaryColor": [
+    {
+      "hex": "#fcf3e1",
+      "name": "Warm Cream"
+    }
+  ],
+  "secondaryColors": [
+    {
+      "hex": "#000000",
+      "name": "Deep Black"
+    },
+    {
+      "hex": "#929cd1",
+      "name": "Soft Lavender"
+    },
+    {
+      "hex": "#656565",
+      "name": "Charcoal Gray"
+    },
+    {
+      "hex": "#ffffff",
+      "name": "Pure White"
+    },
+    {
+      "hex": "#fbf3e1",
+      "name": "Light Cream"
+    }
+  ],
+  "alternateColors": {
+    "pastel": [],
+    "metallic": [],
+    "earthTone": []
+  },
+  "brandFontColor": "#000000",
+  "emailFallbackFont": "Arial, Helvetica, sans-serif",
+  "logo": {
+    "primary_logo_url": "https://jurlique.com/cdn/shop/files/JurliqueLogo2021_Black_USWeb__01_550x.png",
+    "logo_alt_text": "Jurlique - Holistic Skin Care From Seed To Skin",
+    "logo_type": "image",
+    "brand_name": "Jurlique"
+  },
+  "logoAlignment": "center",
+  "headerStyle": "centered-minimal",
+  "headerBackgroundColor": "#ffffff",
+  "socialIconStyle": "flat",
+  "targetAudienceAge": [
+    "35-44",
+    "45-54",
+    "55-64"
+  ],
+  "targetAudienceGender": [
+    "female"
+  ],
+  "customerPainPoints": [
+    "Frustrated with skincare products containing synthetic chemicals and unclear ingredient sourcing",
+    "Concerned about premature aging and loss of skin firmness without resorting to invasive procedures",
+    "Overwhelmed by greenwashing in the beauty industry and seeking genuinely sustainable brands",
+    "Experiencing sensitive skin reactions to conventional skincare products",
+    "Disappointed by products that promise natural ingredients but lack visible results",
+    "Struggling to find luxury skincare that aligns with environmental values",
+    "Tired of complicated multi-step routines that don't deliver on anti-aging promises"
+  ],
+  "customerAspirations": [
+    "Achieve visibly radiant, youthful-looking skin through natural, proven ingredients",
+    "Support sustainable beauty practices and brands with transparent sourcing",
+    "Invest in premium self-care rituals that feel luxurious and effective",
+    "Maintain healthy, glowing skin well into their 50s and beyond",
+    "Feel confident about the purity and efficacy of products they apply to their skin",
+    "Be part of a community that values holistic wellness and natural beauty",
+    "Simplify their skincare routine with multi-functional, high-performance products"
+  ],
+  "geographicFocus": [
+    "Global",
+    "North America",
+    "Australia",
+    "Asia",
+    "Europe"
+  ],
+  "mainProductCategories": [
+    "Face Oils",
+    "Moisturizers",
+    "Serums and Treatments",
+    "Cleansers",
+    "Essences and Toners",
+    "Eye Care",
+    "Masks and Exfoliators",
+    "Hand Care",
+    "Body Care",
+    "Aromatherapy"
+  ],
+  "bestsellingProducts": [
+    "Moisture Replenishing Day Cream",
+    "Radiant Skin Foaming Cleanser",
+    "Rare Rose Face Oil",
+    "Rosewater Balancing Mist",
+    "Activating Water Essence+",
+    "Rose Hand Cream"
+  ],
+  "emailFrequency": "3-4 per week",
+  "contentPriority": [
+    "educational-botanical",
+    "product-focused",
+    "sustainability-story",
+    "customer-results"
+  ],
+  "secondaryObjectives": [
+    "brand-awareness",
+    "new-product-launch",
+    "customer-education",
+    "sustainability-messaging"
+  ],
+  "trustBadgeStyle": "minimal-elegant",
+  "uniqueFeatures": [
+    "Only brand with owned and operated biodynamic farm controlling entire seed-to-skin process",
+    "Botanicals grown in Adelaide Hills and extracted at peak potency",
+    "40 years of natural skincare expertise and formulation knowledge",
+    "Certified organic and biodynamic farming methods",
+    "Farm tours and community engagement through SALA Festival",
+    "Exclusive Jurlique Rose cultivated specifically for skincare benefits",
+    "Clean + Conscious Awards recognition for innovation"
+  ],
+  "competitiveAdvantages": [],
+  "contentStrategy": {
+    "contentThemes": [
+      {
+        "theme": "Seed-to-Skin Journey",
+        "description": "Educational content showcasing the complete botanical journey from biodynamic farm to finished product",
+        "topics": [
+          "Biodynamic farming practices and seasonal cycles",
+          "Botanical harvesting at peak potency",
+          "Extraction and formulation processes",
+          "Farm team stories and expertise",
+          "Sustainability practices and certifications"
+        ],
+        "formats": [
+          "video",
+          "blog",
+          "instagram-stories",
+          "email-series"
+        ],
+        "frequency": "Weekly farm updates, monthly deep-dive features"
+      },
+      {
+        "theme": "Anti-Aging Science and Results",
+        "description": "Results-driven content demonstrating visible improvements in skin firmness, fine lines, and radiance",
+        "topics": [
+          "Before and after customer transformations",
+          "Key botanical actives and their benefits",
+          "Age-defying routine building",
+          "Clinical testing and efficacy studies",
+          "Expert skincare advice for mature skin"
+        ],
+        "formats": [
+          "email",
+          "blog",
+          "video-testimonials",
+          "infographic"
+        ],
+        "frequency": "Bi-weekly results stories, monthly ingredient spotlights"
+      },
+      {
+        "theme": "Holistic Wellness Rituals",
+        "description": "Lifestyle content connecting skincare to broader self-care and mindfulness practices",
+        "topics": [
+          "Morning and evening skincare rituals",
+          "Aromatherapy for stress relief and sleep",
+          "Seasonal self-care practices",
+          "Mind-body-skin connection",
+          "Creating spa experiences at home"
+        ],
+        "formats": [
+          "blog",
+          "instagram",
+          "email",
+          "video"
+        ],
+        "frequency": "2-3 times per week across channels"
+      },
+      {
+        "theme": "Natural Beauty Education",
+        "description": "Expert guidance on understanding ingredients, skin types, and natural skincare benefits",
+        "topics": [
+          "Ingredient glossary and benefits",
+          "Skin concern solutions",
+          "Product layering and application techniques",
+          "Seasonal skincare adjustments",
+          "Debunking natural beauty myths"
+        ],
+        "formats": [
+          "blog",
+          "email",
+          "social-carousel",
+          "video-tutorial"
+        ],
+        "frequency": "Weekly educational posts, monthly comprehensive guides"
+      },
+      {
+        "theme": "Sustainability and Values",
+        "description": "Transparent communication about environmental practices, certifications, and brand values",
+        "topics": [
+          "Organic and biodynamic certifications",
+          "Packaging sustainability initiatives",
+          "Carbon footprint and environmental impact",
+          "Community engagement and giving back",
+          "Indigenous land acknowledgment"
+        ],
+        "formats": [
+          "blog",
+          "email",
+          "annual-report",
+          "social"
+        ],
+        "frequency": "Monthly sustainability updates, quarterly impact reports"
+      },
+      {
+        "theme": "Customer Community and Stories",
+        "description": "User-generated content and customer testimonials building social proof and community",
+        "topics": [
+          "Long-term customer loyalty stories",
+          "Skin transformation journeys",
+          "Product reviews and recommendations",
+          "Community challenges and engagement",
+          "Customer skincare routines"
+        ],
+        "formats": [
+          "instagram-ugc",
+          "email-testimonials",
+          "blog-features",
+          "video-interviews"
+        ],
+        "frequency": "Daily social sharing, weekly email features"
+      },
+      {
+        "theme": "Seasonal Collections and Gifting",
+        "description": "Campaign content around new launches, limited editions, and gift-giving occasions",
+        "topics": [
+          "New product launches and innovations",
+          "Limited edition collections",
+          "Holiday gift guides",
+          "Seasonal skincare needs",
+          "Curated gift sets and bundles"
+        ],
+        "formats": [
+          "email-campaign",
+          "social",
+          "blog",
+          "video"
+        ],
+        "frequency": "Aligned with product launches and seasonal peaks"
+      }
+    ],
+    "contentPillars": [
+      {
+        "pillar": "HERO",
+        "purpose": "Drive major brand moments, product launches, and seasonal campaigns",
+        "contentTypes": [
+          "New collection launch campaigns",
+          "Limited edition announcements",
+          "Holiday gift campaigns",
+          "Brand anniversary celebrations",
+          "Major sustainability milestones"
+        ],
+        "kpis": [
+          "awareness",
+          "engagement",
+          "conversion"
+        ],
+        "percentage": 15
+      },
+      {
+        "pillar": "HUB",
+        "purpose": "Build ongoing engagement and community through regular content series",
+        "contentTypes": [
+          "Weekly farm updates and behind-the-scenes",
+          "Customer transformation series",
+          "Ingredient spotlight series",
+          "Seasonal skincare guides",
+          "Expert Q&A sessions"
+        ],
+        "kpis": [
+          "engagement",
+          "retention",
+          "community-growth"
+        ],
+        "percentage": 35
+      },
+      {
+        "pillar": "HELP",
+        "purpose": "Provide educational value and solve customer skincare challenges",
+        "contentTypes": [
+          "How-to tutorials and application guides",
+          "Skin concern solution articles",
+          "Product selection quizzes",
+          "FAQ content",
+          "Ingredient education"
+        ],
+        "kpis": [
+          "engagement",
+          "conversion",
+          "customer-satisfaction"
+        ],
+        "percentage": 30
+      },
+      {
+        "pillar": "HYGIENE",
+        "purpose": "Maintain SEO presence and capture search-driven traffic",
+        "contentTypes": [
+          "Evergreen skincare guides",
+          "Ingredient benefit articles",
+          "Product category pages",
+          "Natural beauty trend articles",
+          "Skin type guides"
+        ],
+        "kpis": [
+          "organic-traffic",
+          "conversion",
+          "awareness"
+        ],
+        "percentage": 20
+      }
+    ],
+    "editorialCalendar": {
+      "weeklyThemes": {
+        "monday": "Motivation Monday - Skincare ritual inspiration and self-care encouragement",
+        "tuesday": "Tutorial Tuesday - Educational how-to content and application techniques",
+        "wednesday": "Wellness Wednesday - Holistic health, aromatherapy, and mind-body connection",
+        "thursday": "Transformation Thursday - Customer results, before-and-afters, testimonials",
+        "friday": "Farm Friday - Behind-the-scenes farm content, botanical spotlights, sustainability",
+        "saturday": "Self-Care Saturday - Weekend ritual ideas, spa-at-home experiences",
+        "sunday": "Sunday Reset - Weekly skincare prep, product recommendations, routine planning"
+      },
+      "monthlyFocus": [
+        "January: New Year New Skin - Fresh starts, routine resets, goal-setting",
+        "February: Love Your Skin - Self-love, Valentine's gifting, rose collection focus",
+        "March: Spring Renewal - Seasonal transition, brightening, farm spring awakening",
+        "April: Earth Month - Sustainability focus, biodynamic farming, environmental impact",
+        "May: Mother's Day - Gifting, self-care for moms, multi-generational beauty",
+        "June: Summer Glow - Hydration, sun protection prep, lightweight formulas",
+        "July: Mid-Year Refresh - Routine check-ins, summer skincare adjustments",
+        "August: Back-to-Routine - Establishing consistent habits, travel skincare",
+        "September: Fall Transition - Richer textures, repair from summer, harvest season",
+        "October: Anti-Aging Focus - Nutri-Define collection, age-defying education",
+        "November: Gratitude and Gifting - Holiday preview, thankfulness, early access",
+        "December: Holiday Magic - Gift guides, advent calendar, year-end celebration"
+      ],
+      "seasonalOpportunities": [
+        {
+          "season": "Spring",
+          "themes": [
+            "Renewal and brightening",
+            "Farm awakening and planting",
+            "Lighter textures and fresh scents"
+          ],
+          "campaigns": [
+            "Spring Skin Reset campaign",
+            "Farm tour promotion",
+            "Brightening collection focus"
+          ]
+        },
+        {
+          "season": "Summer",
+          "themes": [
+            "Hydration and protection",
+            "Travel-friendly skincare",
+            "Botanical harvest season"
+          ],
+          "campaigns": [
+            "Summer Glow essentials",
+            "Travel size promotion",
+            "Harvest celebration content"
+          ]
+        },
+        {
+          "season": "Fall",
+          "themes": [
+            "Repair and restoration",
+            "Richer formulations",
+            "Cozy self-care rituals"
+          ],
+          "campaigns": [
+            "Fall Skin Recovery program",
+            "Anti-aging focus month",
+            "Aromatherapy for stress relief"
+          ]
+        },
+        {
+          "season": "Winter",
+          "themes": [
+            "Deep nourishment",
+            "Holiday gifting",
+            "Indoor self-care"
+          ],
+          "campaigns": [
+            "Holiday Gift Guide",
+            "Advent Calendar launch",
+            "Winter skin SOS solutions"
+          ]
+        }
+      ],
+      "keyDates": [
+        {
+          "date": "January 1",
+          "event": "New Year",
+          "contentStrategy": "Fresh start messaging, routine building, goal-setting content"
+        },
+        {
+          "date": "February 14",
+          "event": "Valentine's Day",
+          "contentStrategy": "Self-love focus, rose collection highlight, gifting for loved ones"
+        },
+        {
+          "date": "March 8",
+          "event": "International Women's Day",
+          "contentStrategy": "Celebrate women, female founders, empowerment messaging"
+        },
+        {
+          "date": "April 22",
+          "event": "Earth Day",
+          "contentStrategy": "Sustainability deep-dive, biodynamic farming education, environmental impact"
+        },
+        {
+          "date": "May 12",
+          "event": "Mother's Day",
+          "contentStrategy": "Gift guides, self-care for mothers, multi-generational beauty"
+        },
+        {
+          "date": "June 21",
+          "event": "First Day of Summer",
+          "contentStrategy": "Summer skincare transition, hydration focus, travel essentials"
+        },
+        {
+          "date": "September 23",
+          "event": "First Day of Fall",
+          "contentStrategy": "Seasonal skin adjustment, richer formulas, harvest celebration"
+        },
+        {
+          "date": "October 1",
+          "event": "Q4 Kickoff",
+          "contentStrategy": "Holiday preview, gift set launches, early access for subscribers"
+        },
+        {
+          "date": "November 1",
+          "event": "Holiday Season Start",
+          "contentStrategy": "Gift guides, advent calendar promotion, holiday bundles"
+        },
+        {
+          "date": "November 29",
+          "event": "Black Friday",
+          "contentStrategy": "Exclusive offers, bundle deals, limited-time promotions"
+        },
+        {
+          "date": "December 1",
+          "event": "Advent Calendar Season",
+          "contentStrategy": "Daily reveals, countdown content, holiday magic messaging"
+        }
+      ],
+      "optimalPostingTimes": {
+        "email": "Tuesday and Thursday 10am local time for highest open rates",
+        "social": "Instagram 11am-1pm and 7-9pm, Facebook 1-3pm, TikTok 6-10pm",
+        "blog": "Wednesday mornings for maximum weekly engagement and SEO indexing"
+      }
+    },
+    "contentTone": {
+      "educational": "Authoritative yet accessible, using clear explanations of botanical science without overwhelming jargon. Empowering customers with knowledge to make informed decisions. Warm expert guidance rather than clinical detachment.",
+      "promotional": "Sophisticated enthusiasm that highlights benefits and value without aggressive sales tactics. Focus on transformation and results rather than discounts. Create desire through storytelling and sensory language about the experience.",
+      "community": "Warm, inclusive, and celebratory of customer journeys. Authentic appreciation for loyalty and shared values. Conversational and personal while maintaining premium brand positioning. Encouraging and supportive.",
+      "support": "Empathetic, patient, and solution-focused. Genuinely helpful without being condescending. Acknowledging concerns while providing clear guidance. Professional warmth that builds trust and confidence.",
+      "brandStory": "Authentic, passionate, and rooted in heritage. Proud of farming origins without being boastful. Reverent toward nature and botanical wisdom. Inspiring through genuine commitment to quality and sustainability rather than marketing speak.",
+      "doWords": [
+        "botanical",
+        "nourish",
+        "radiant",
+        "holistic",
+        "concentrated",
+        "farm-grown",
+        "biodynamic",
+        "ritual",
+        "transformation",
+        "heritage",
+        "potency",
+        "seed-to-skin",
+        "visible results",
+        "natural force"
+      ],
+      "dontWords": [
+        "cheap",
+        "miracle",
+        "instant",
+        "chemical-free",
+        "toxin",
+        "anti-wrinkle",
+        "age-defying alone without context",
+        "revolutionary without proof",
+        "clinical without warmth"
+      ]
+    },
+    "storyAngles": [
+      {
+        "angle": "Founder Vision and Farm Origins",
+        "narrative": "The pioneering story of creating a biodynamic farm in Adelaide Hills to grow the purest botanicals for skincare, born from a vision to harness nature's undiluted power",
+        "emotionalHook": "Authenticity, heritage, and unwavering commitment to a vision that seemed impossible but became reality",
+        "callToAction": "Experience the difference that 40 years of botanical expertise makes",
+        "contentFormats": [
+          "video-documentary",
+          "blog-series",
+          "email-story",
+          "social-carousel"
+        ]
+      },
+      {
+        "angle": "Customer Transformation Journeys",
+        "narrative": "Real stories of customers who have used Jurlique for 5, 10, even 15 years and the visible improvements in their skin health and confidence",
+        "emotionalHook": "Hope, validation, and proof that natural skincare delivers lasting results worth the investment",
+        "callToAction": "Start your own transformation journey with our discovery sets",
+        "contentFormats": [
+          "video-testimonial",
+          "email-feature",
+          "instagram-story",
+          "blog-interview"
+        ]
+      },
+      {
+        "angle": "Botanical Journey from Seed to Skin",
+        "narrative": "Following a single botanical from planting through harvest, extraction, formulation, and finally to customer's skin, showing the care at every step",
+        "emotionalHook": "Wonder, transparency, and appreciation for the craftsmanship behind each product",
+        "callToAction": "Discover which farm-grown botanicals are perfect for your skin",
+        "contentFormats": [
+          "video-series",
+          "instagram-reels",
+          "blog-visual-story",
+          "email-education"
+        ]
+      },
+      {
+        "angle": "Seasonal Farm Cycles and Nature's Wisdom",
+        "narrative": "How the farm changes through seasons and how those natural cycles inform product development and skincare needs",
+        "emotionalHook": "Connection to nature, mindfulness, and alignment with natural rhythms",
+        "callToAction": "Adjust your skincare ritual with the seasons",
+        "contentFormats": [
+          "blog-series",
+          "social-content",
+          "email-seasonal-guide",
+          "video-farm-tours"
+        ]
+      },
+      {
+        "angle": "Sustainability as Action Not Marketing",
+        "narrative": "Concrete examples of environmental practices, certifications earned, and measurable impact rather than vague green claims",
+        "emotionalHook": "Trust, alignment with values, and pride in supporting genuinely sustainable brand",
+        "callToAction": "Join us in caring for skin and planet",
+        "contentFormats": [
+          "blog-report",
+          "email-transparency",
+          "social-infographic",
+          "video-documentary"
+        ]
+      },
+      {
+        "angle": "Science Meets Nature Innovation",
+        "narrative": "How Jurlique combines traditional botanical wisdom with modern extraction and formulation science to maximize efficacy",
+        "emotionalHook": "Confidence in both natural purity and proven results, best of both worlds",
+        "callToAction": "Experience clean science-backed skincare",
+        "contentFormats": [
+          "blog-education",
+          "email-ingredient-spotlight",
+          "social-carousel",
+          "video-lab-tour"
+        ]
+      },
+      {
+        "angle": "Multi-Generational Beauty Legacy",
+        "narrative": "Mothers and daughters, even grandmothers, who share Jurlique as part of their family beauty traditions and self-care bonding",
+        "emotionalHook": "Legacy, connection, and passing down values of natural beauty and self-care",
+        "callToAction": "Create your own family beauty traditions",
+        "contentFormats": [
+          "video-testimonial",
+          "blog-feature",
+          "social-ugc",
+          "email-story"
+        ]
+      }
+    ]
+  },
+  "customerJourneyInsights": {
+    "decisionFactors": [
+      {
+        "factor": "Ingredient Transparency and Sourcing",
+        "importance": "high",
+        "description": "Customers extensively research the origin and purity of botanicals, with the seed-to-skin story being a major differentiator that builds confidence in product quality"
+      },
+      {
+        "factor": "Visible Anti-Aging Results",
+        "importance": "high",
+        "description": "Before-and-after evidence and long-term customer testimonials about firmness, fine lines, and radiance are critical for justifying premium pricing"
+      },
+      {
+        "factor": "Brand Heritage and Expertise",
+        "importance": "high",
+        "description": "The 40-year history and biodynamic farming credentials establish authority and trust, particularly important for customers switching from conventional brands"
+      },
+      {
+        "factor": "Product Reviews and Ratings",
+        "importance": "high",
+        "description": "Detailed customer reviews with specific results mentioned influence purchase decisions, especially reviews from customers with similar skin types and concerns"
+      },
+      {
+        "factor": "Price-to-Value Perception",
+        "importance": "medium",
+        "description": "Customers evaluate concentration of active botanicals and product longevity to justify premium pricing, with bundle offers reducing perceived risk"
+      },
+      {
+        "factor": "Sustainability Credentials",
+        "importance": "medium",
+        "description": "Certified organic and biodynamic farming practices appeal to environmentally conscious buyers and differentiate from competitors making vague natural claims"
+      },
+      {
+        "factor": "Sensory Experience",
+        "importance": "medium",
+        "description": "Luxurious textures, natural botanical scents, and elegant packaging contribute to the premium self-care ritual that justifies the investment"
+      }
+    ],
+    "trustBuilders": [
+      {
+        "builder": "Free Standard Shipping on Orders $75+",
+        "impact": "high",
+        "implementation": "Prominently displayed in header banner and throughout site, reduces friction for customers building complete routines"
+      },
+      {
+        "builder": "Certified Organic and Biodynamic Farming",
+        "impact": "high",
+        "implementation": "Featured in brand story, product descriptions, and farm imagery throughout site, with specific mentions of Adelaide Hills farm location"
+      },
+      {
+        "builder": "40 Years of Skincare Expertise",
+        "impact": "high",
+        "implementation": "Highlighted in brand messaging and Intense Rose collection launch, establishing long-term credibility and proven formulation knowledge"
+      },
+      {
+        "builder": "Customer Reviews with Star Ratings",
+        "impact": "high",
+        "implementation": "Displayed on product pages with specific review counts, featuring detailed testimonials from long-term users mentioning years of use"
+      },
+      {
+        "builder": "Afterpay Payment Option",
+        "impact": "medium",
+        "implementation": "Glow now, pay later messaging reduces financial barrier for premium products, making luxury more accessible"
+      },
+      {
+        "builder": "Media Features and Awards",
+        "impact": "medium",
+        "implementation": "As Featured In section showcases third-party validation, with Clean + Conscious Awards 2025 recognition for Calendula products"
+      },
+      {
+        "builder": "Transparent Ingredient Information",
+        "impact": "medium",
+        "implementation": "Dedicated ingredients page and detailed product descriptions explain botanical benefits and sourcing, addressing ingredient-conscious consumers"
+      }
+    ],
+    "purchaseTriggers": [
+      "Seasonal skin changes requiring new products or routines",
+      "Special promotions like Buy 2 Get 20% Off, Buy 3 Get 30% Off",
+      "Free deluxe sample offers with purchase thresholds",
+      "New product launches like Limited Edition Intense Rose",
+      "Gift-giving occasions with curated gift sets",
+      "Running out of current products and needing replenishment",
+      "Influencer or friend recommendations on social media"
+    ],
+    "objectionHandlers": [
+      "Bundle and Save offers reduce per-product cost and encourage routine building",
+      "Discovery Sets allow low-risk trial of multiple products before full-size commitment",
+      "Detailed product descriptions explain usage and expected results to set proper expectations",
+      "Customer testimonials from long-term users demonstrate sustained value over time",
+      "Free shipping threshold encourages larger orders that improve value perception",
+      "Afterpay option breaks premium pricing into manageable payments",
+      "Starter rituals like Calendula Soothing Starter Ritual provide curated entry points"
+    ],
+    "riskReducers": [
+      "Extensive customer reviews with verified purchase indicators",
+      "Detailed ingredient lists and sourcing transparency",
+      "Multiple product size options allowing smaller initial purchases",
+      "Discovery sets and starter kits for trying products before full commitment",
+      "Clear product descriptions with specific skin concern targeting",
+      "Free samples with purchase to try complementary products",
+      "Established brand with 40-year track record"
+    ],
+    "socialValidation": [
+      "Customer testimonials with full names and specific results",
+      "High review counts on bestselling products showing widespread adoption",
+      "Media features and industry awards recognition",
+      "Instagram user-generated content showcasing real customer experiences",
+      "Long-term customer loyalty testimonials mentioning 5-10 years of use",
+      "Celebrity and influencer partnerships for product launches",
+      "Community engagement through farm visits and SALA Festival participation"
+    ],
+    "urgencyCreators": [
+      "Limited Edition Intense Rose collection messaging",
+      "Seasonal promotions with specific end dates",
+      "Low stock warnings on popular products",
+      "Time-sensitive free gift offers with purchase minimums",
+      "Holiday Gift Sets with limited availability",
+      "Advent Calendar as best-selling favorite that returns annually",
+      "Aromatherapy sale with automatic discount application"
+    ]
+  },
+  "customerLifecycleStage": [
+    "consideration",
+    "purchase",
+    "retention",
+    "advocacy"
+  ],
+  "buyingMotivations": [
+    "emotional",
+    "rational",
+    "values-driven"
+  ],
+  "purchaseBarriers": [
+    "premium-price-point",
+    "unfamiliarity-with-brand",
+    "uncertainty-about-product-selection",
+    "concern-about-skin-compatibility",
+    "availability-in-local-stores"
+  ],
+  "customerFears": [
+    "Investing in expensive products that won't deliver visible results",
+    "Experiencing allergic reactions or skin irritation from new products",
+    "Being misled by greenwashing and false natural claims",
+    "Wasting money on products that don't match their specific skin concerns",
+    "Not seeing anti-aging benefits despite premium pricing",
+    "Products not being as natural or organic as advertised",
+    "Difficulty returning products if they don't work out"
+  ],
+  "decisionFactors": [],
+  "trustBuilders": [],
+  "socialProof": {
+    "reviewCount": 1246,
+    "averageRating": 4.6,
+    "testimonials": [
+      "I've been using this cream for about 5 years. Feels luxurious, smells great and it leaves your skin feeling deliciously hydrated without being greasy.",
+      "I've been using this product for more than 10 years. My skin loves the oil and it has improved the firmness and fine lines. Would and always do recommend this product.",
+      "Love this cream. It's the right combination of thickness and provides an excellent barrier for my skin. My skin feels so nourished and hydrated."
+    ],
+    "celebrityEndorsements": [],
+    "mediaFeatures": [
+      "Clean + Conscious Awards 2025 winner for Calendula products",
+      "Featured in wellness and beauty publications",
+      "SALA Festival 2025 participant"
+    ]
+  },
+  "emotionalTriggers": [
+    "fear-of-aging",
+    "desire-for-authenticity",
+    "environmental-responsibility",
+    "self-care-and-nurturing",
+    "quality-and-craftsmanship",
+    "connection-to-nature"
+  ],
+  "customerLanguage": {
+    "keywords": [
+      "natural",
+      "organic",
+      "luxurious",
+      "hydrated",
+      "nourished",
+      "firmness",
+      "fine lines",
+      "radiant",
+      "botanical",
+      "pure"
+    ],
+    "phrases": [
+      "feels luxurious",
+      "smells great",
+      "deliciously hydrated",
+      "skin loves it",
+      "improved firmness",
+      "would recommend",
+      "right combination",
+      "excellent barrier",
+      "so nourished"
+    ],
+    "tone": "sophisticated-yet-warm",
+    "avoidWords": [
+      "cheap",
+      "chemical",
+      "synthetic",
+      "harsh",
+      "artificial",
+      "instant-fix"
+    ]
+  },
+  "buttonEffect": "solid-with-hover",
+  "buttonBackgroundColor": "#000000",
+  "buttonTextColor": "#ffffff",
+  "buttonBorderRadius": 5,
+  "buttonPadding": 14,
+  "buttonShadowIntensity": 0,
+  "buttonSize": "medium",
+  "buttonStyle": "solid",
+  "categoryStyle": "minimal-text",
+  "benefitsBannerBg": "#f8f9fa",
+  "showBenefitsHtml": false,
+  "emailStrategy": {
+    "contentMix": {
+      "educational": 30,
+      "promotional": 35,
+      "community": 15,
+      "product": 20
+    },
+    "visualContentType": {
+      "infographics": 5,
+      "productShots": 45,
+      "lifestylePhotos": 35,
+      "modelPhotos": 5,
+      "diagrams": 0,
+      "beforeAfter": 5,
+      "userGenerated": 5
+    },
+    "visualToTextRatio": "visual-heavy",
+    "layoutPreference": "single-column",
+    "mobileStrategy": "mobile-first",
+    "heroProductCount": 3,
+    "storyDepth": "moderate-to-deep",
+    "contentBlocks": {
+      "preferredTypes": [
+        "hero-lifestyle-image",
+        "product-trio",
+        "botanical-education",
+        "customer-testimonial",
+        "farm-story"
+      ],
+      "maxBlocksPerEmail": 6
+    }
+  },
+  "brandArchetype": {
+    "primary": "caregiver",
+    "secondary": [
+      "sage",
+      "creator"
+    ],
+    "confidence": 92,
+    "lastDetected": "2025-10-15T00:00:00Z",
+    "detectionMethod": "auto"
+  },
+  "brandMetrics": {
+    "averageOrderValue": 125,
+    "medianOrderValue": 110,
+    "priceRange": {
+      "min": 30,
+      "max": 100,
+      "currency": "USD"
+    },
+    "purchaseFrequency": {
+      "average": 52,
+      "mode": "seasonal"
+    },
+    "productCount": 120,
+    "categoryDiversity": 0.8,
+    "imageToTextRatio": 2.1,
+    "repeatCustomerRate": 58,
+    "reviewSentiment": {
+      "keywords": [
+        "luxurious",
+        "hydrated",
+        "firmness",
+        "natural",
+        "recommend"
+      ],
+      "themes": [
+        "long-term-loyalty",
+        "visible-results",
+        "sensory-experience",
+        "quality-worth-price"
+      ],
+      "averageLength": 65
+    }
+  },
+  "extractedContent": {},
+  "access_control": {
+    "inherited_from_parent": false,
+    "requires_approval": false,
+    "lock_level": "unlocked",
+    "restricted_to_seats": []
+  },
+  "css": {
+    "colors": {
+      "primary": "#fcf3e1",
+      "secondary": "#929cd1",
+      "background": {
+        "light": "#fcf3e1",
+        "dark": "#000000",
+        "muted": "#f7f7f7"
+      },
+      "text": {
+        "primary": "#656565",
+        "secondary": "#666666",
+        "muted": "#999999",
+        "inverse": "#ffffff"
+      },
+      "border": {
+        "primary": "#e5e5e5",
+        "secondary": "#cccccc"
+      },
+      "palette": [
+        {
+          "name": "Color 1",
+          "value": "#fcf3e1",
+          "usage": "primary"
+        }
+      ],
+      "extracted": {
+        "primary": [
+          "#fcf3e1"
+        ],
+        "text": [
+          "#656565",
+          "#000000",
+          "#212529",
+          "#ffffff"
+        ],
+        "background": [
+          "#fcf3e1",
+          "#929cd1",
+          "#000000",
+          "#fbf3e1",
+          "#746363"
+        ]
+      }
+    },
+    "typography": {
+      "fontFamilies": {
+        "primary": "Arial, Helvetica, sans-serif",
+        "heading": "Arial, Helvetica, sans-serif",
+        "body": "Arial, Helvetica, sans-serif"
+      },
+      "fontSize": {
+        "xs": 12,
+        "sm": 14,
+        "base": 16,
+        "md": 18,
+        "lg": 20,
+        "xl": 24,
+        "2xl": 28,
+        "3xl": 32,
+        "4xl": 36,
+        "5xl": 42,
+        "6xl": 48
+      },
+      "fontWeight": {
+        "light": 300,
+        "normal": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700,
+        "black": 900
+      },
+      "lineHeight": {
+        "tight": 1.2,
+        "normal": 1.5,
+        "relaxed": 1.6,
+        "loose": 1.8
+      },
+      "letterSpacing": {
+        "tight": "-0.5px",
+        "normal": "0px",
+        "wide": "0.5px",
+        "wider": "1px"
+      },
+      "headings": {
+        "h1": {},
+        "h2": {
+          "font-family": "\"Lexend Peta Regular\", sans-serif",
+          "font-size": "20px",
+          "font-weight": "400",
+          "line-height": "25px",
+          "letter-spacing": "-2px",
+          "color": "rgb(0, 0, 0)",
+          "text-align": "center"
+        },
+        "h3": {
+          "font-family": "Cabin, sans-serif",
+          "font-size": "16px",
+          "font-weight": "500",
+          "line-height": "24px",
+          "color": "rgb(0, 0, 0)",
+          "text-align": "center"
+        },
+        "p": {
+          "font-family": "Inter-Regular, sans-serif",
+          "font-size": "16px",
+          "font-weight": "400",
+          "line-height": "24px",
+          "color": "rgb(0, 0, 0)",
+          "text-align": "left"
+        },
+        "body": {
+          "font-family": "Outfit, sans-serif",
+          "font-size": "16px",
+          "font-weight": "300",
+          "line-height": "25.6px",
+          "color": "rgb(0, 0, 0)",
+          "text-align": "left"
+        }
+      }
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32,
+      "2xl": 48,
+      "3xl": 64,
+      "4xl": 96
+    },
+    "borderRadius": {
+      "none": 0,
+      "sm": 2,
+      "base": 4,
+      "md": 6,
+      "lg": 8,
+      "xl": 12,
+      "2xl": 16,
+      "full": 9999,
+      "pill": "50px"
+    },
+    "shadows": {
+      "none": "none",
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.05)",
+      "base": "0 1px 3px rgba(0, 0, 0, 0.1)",
+      "md": "0 4px 6px rgba(0, 0, 0, 0.1)",
+      "lg": "0 10px 15px rgba(0, 0, 0, 0.1)",
+      "xl": "0 20px 25px rgba(0, 0, 0, 0.15)"
+    },
+    "components": {
+      "buttons": [
+        {
+          "type": "secondary",
+          "selector": "button",
+          "styles": {
+            "background-color": "rgb(255, 255, 255)",
+            "color": "rgb(0, 0, 0)",
+            "border-radius": "5px",
+            "padding": "5.6px 11.2px",
+            "font-size": "14px",
+            "font-weight": "500",
+            "font-family": "Inter-Medium, sans-serif",
+            "text-transform": "uppercase",
+            "border": "1px solid rgb(0, 0, 0)"
+          },
+          "hoverStyles": null,
+          "example": "Preferences"
+        }
+      ],
+      "button": {
+        "primary": {
+          "backgroundColor": null,
+          "color": null,
+          "borderRadius": null,
+          "fontSize": null,
+          "fontWeight": null,
+          "paddingX": null,
+          "paddingY": null,
+          "borderWidth": null,
+          "borderColor": null
+        }
+      },
+      "cards": [
+        {
+          "selector": "[class*=\"card\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "border": "0px none rgb(0, 0, 0)",
+            "border-radius": "0px",
+            "padding": "0px",
+            "margin": "0px",
+            "display": "block"
+          },
+          "hasImage": true,
+          "hasButton": false
+        }
+      ],
+      "testimonials": [
+        {
+          "selector": "[class*=\"testimonial\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "border": "0px none rgb(0, 0, 0)",
+            "border-radius": "0px",
+            "padding": "0px",
+            "margin": "0px",
+            "color": "rgb(0, 0, 0)",
+            "font-size": "16px"
+          },
+          "hasRating": true,
+          "hasAvatar": false,
+          "structure": {
+            "hasQuote": true,
+            "hasAuthor": true,
+            "hasTitle": true
+          }
+        },
+        {
+          "selector": "[class*=\"testimonial\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "border": "0px none rgb(0, 0, 0)",
+            "border-radius": "0px",
+            "padding": "0px 15px",
+            "margin": "0px 70px",
+            "color": "rgb(0, 0, 0)",
+            "font-size": "16px"
+          },
+          "hasRating": true,
+          "hasAvatar": false,
+          "structure": {
+            "hasQuote": true,
+            "hasAuthor": true,
+            "hasTitle": true
+          }
+        },
+        {
+          "selector": "[class*=\"testimonial\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "border": "0px none rgb(0, 0, 0)",
+            "border-radius": "0px",
+            "padding": "0px",
+            "margin": "0px 0px 32px",
+            "color": "rgb(0, 0, 0)",
+            "font-size": "20px"
+          },
+          "hasRating": false,
+          "hasAvatar": false,
+          "structure": {
+            "hasQuote": false,
+            "hasAuthor": false,
+            "hasTitle": false
+          }
+        }
+      ],
+      "segments": [
+        {
+          "selector": "section",
+          "styles": {
+            "background-color": "rgb(252, 243, 225)",
+            "padding": "100px 0px",
+            "margin": "0px",
+            "text-align": "left"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": false,
+          "hasHeading": true
+        },
+        {
+          "selector": "section",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "24px 21px",
+            "margin": "0px",
+            "text-align": "left"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": true,
+          "hasHeading": true
+        },
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgb(0, 0, 0)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "left"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": false,
+          "hasHeading": false
+        },
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "left"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": true,
+          "hasHeading": false
+        },
+        {
+          "selector": "[class*=\"section\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px",
+            "margin": "0px",
+            "text-align": "left"
+          },
+          "hasBackgroundImage": false,
+          "hasButtons": true,
+          "hasHeading": false
+        }
+      ],
+      "heroes": [
+        {
+          "selector": "header",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px 15px",
+            "text-align": "left",
+            "color": "rgb(101, 101, 101)"
+          },
+          "hasBackgroundImage": false,
+          "hasCTA": true,
+          "ctaText": ""
+        },
+        {
+          "selector": "[class*=\"hero\"]",
+          "styles": {
+            "background-color": "rgba(0, 0, 0, 0)",
+            "padding": "0px",
+            "text-align": "left",
+            "color": "rgb(0, 0, 0)"
+          },
+          "hasBackgroundImage": false,
+          "hasCTA": true,
+          "ctaText": "Shop now"
+        }
+      ]
+    },
+    "email": {
+      "maxWidth": 600,
+      "backgroundColor": "#f7f7f7",
+      "contentBackgroundColor": "#ffffff",
+      "fontFamily": "Arial, Helvetica, sans-serif",
+      "fontSize": 16,
+      "lineHeight": 1.6,
+      "padding": 20,
+      "optimized": {
+        "button": {
+          "secondary": "background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-size: 14px; font-weight: 500; font-family: Inter-Medium; padding: 5.6px 11.2px; border-radius: 5px; text-transform: uppercase; border: 1px solid rgb(0, 0, 0); display: inline-block; text-align: center; cursor: pointer; line-height: 1.5"
+        },
+        "heading": {
+          "h2": "color: rgb(0, 0, 0); font-family: Lexend Peta Regular; font-size: 20px; font-weight: 400; line-height: 25px; text-align: center; letter-spacing: -2px",
+          "h3": "color: rgb(0, 0, 0); font-family: Cabin; font-size: 16px; font-weight: 500; line-height: 24px; text-align: center"
+        },
+        "paragraph": {
+          "p": "color: rgb(0, 0, 0); font-family: Inter-Regular; font-size: 16px; font-weight: 400; line-height: 24px; text-align: left"
+        },
+        "card": "background-color: rgba(0, 0, 0, 0); border: 0px none rgb(0, 0, 0); border-radius: 0px; padding: 0px; margin: 0px",
+        "link": {},
+        "testimonial": "background-color: rgba(0, 0, 0, 0); border: 0px none rgb(0, 0, 0); border-radius: 0px; padding: 0px; margin: 0px; color: rgb(0, 0, 0)",
+        "segment": "background-color: rgb(252, 243, 225); padding: 100px 0px; margin: 0px; text-align: left",
+        "hero": "background-color: rgba(0, 0, 0, 0); padding: 0px 15px; text-align: left; color: rgb(101, 101, 101)"
+      },
+      "blocks": []
+    },
+    "metadata": {
+      "scrapedFrom": [
+        ""
+      ],
+      "confidence": 0.8,
+      "version": 1,
+      "lastUpdated": {
+        "$date": "2025-10-15T03:23:55.860Z"
+      },
+      "manualOverrides": false
+    }
+  },
+  "platform": {
+    "platform": "shopify",
+    "confidence": "very_high",
+    "indicators": [
+      "shopify-digital-wallet meta tag",
+      "cdn.shopify.com assets",
+      "shopify-section classes"
+    ],
+    "js_confirmed": true
+  },
+  "isActive": true,
+  "isDefault": true,
+  "createdBy": {
+    "$oid": "68ef052bcb9bd5438a7a534c"
+  },
+  "updatedBy": {
+    "$oid": "68ef052bcb9bd5438a7a534c"
+  },
+  "headerLinks": [
+    {
+      "text": "BEST SELLERS",
+      "url": "https://www.jurlique.com/collections/best-sellers"
+    },
+    {
+      "text": "SHOP",
+      "url": "https://www.jurlique.com/collections/all"
+    },
+    {
+      "text": "ABOUT US",
+      "url": "https://www.jurlique.com/pages/jurlique-story"
+    },
+    {
+      "text": "BLOGS",
+      "url": "https://www.jurlique.com/blogs/news"
+    }
+  ],
+  "socialLinks": [
+    {
+      "platform": "facebook",
+      "name": "Facebook",
+      "icon": "facebook",
+      "handle": "jurlique.us",
+      "url": "https://www.facebook.com/jurlique.us"
+    },
+    {
+      "platform": "instagram",
+      "name": "Instagram",
+      "icon": "instagram",
+      "handle": "@jurliqueusa",
+      "url": "https://www.instagram.com/jurliqueusa/"
+    },
+    {
+      "platform": "youtube",
+      "name": "YouTube",
+      "icon": "youtube",
+      "handle": "@JurliqueAUS",
+      "url": "https://www.youtube.com/@JurliqueAUS"
+    },
+    {
+      "platform": "tiktok",
+      "name": "TikTok",
+      "icon": "tiktok",
+      "handle": "@jurlique",
+      "url": "https://www.tiktok.com/@jurlique"
+    }
+  ],
+  "trustBadges": [
+    {
+      "text": "Free Shipping Over $75",
+      "icon": "Truck",
+      "description": "Free standard shipping on all orders over $75"
+    },
+    {
+      "text": "Certified Organic",
+      "icon": "Leaf",
+      "description": "Certified organic and biodynamic farming"
+    },
+    {
+      "text": "40 Years Expertise",
+      "icon": "Award",
+      "description": "40 years of natural skincare innovation"
+    },
+    {
+      "text": "Afterpay Available",
+      "icon": "CreditCard",
+      "description": "Glow now, pay later with Afterpay"
+    }
+  ],
+  "competitors": [
+    {
+      "name": "Aesop",
+      "url": "https://www.aesop.com",
+      "strengths": [
+        "Strong apothecary-style brand identity and premium positioning",
+        "Extensive retail presence with distinctive store design",
+        "Cult following among design-conscious consumers",
+        "Sophisticated minimalist packaging"
+      ],
+      "weaknesses": [
+        "Higher price point may limit market reach",
+        "Less emphasis on ingredient sourcing transparency",
+        "Limited anti-aging focused collections",
+        "No owned farm or seed-to-skin story"
+      ],
+      "differentiators": [
+        "Jurlique owns and operates biodynamic farm vs Aesop's ingredient sourcing",
+        "Jurlique emphasizes visible anti-aging results vs Aesop's sensory experience focus",
+        "Jurlique offers more accessible price points with bundle deals",
+        "Jurlique has stronger heritage story with 40 years of botanical expertise"
+      ]
+    },
+    {
+      "name": "Grown Alchemist",
+      "url": "https://www.grownalchemist.com",
+      "strengths": [
+        "Strong organic and natural positioning",
+        "Modern, science-meets-nature branding",
+        "Growing international presence",
+        "Appealing to younger premium consumers"
+      ],
+      "weaknesses": [
+        "Newer brand with less heritage credibility",
+        "No owned farming operations",
+        "Less extensive product range",
+        "Limited brick-and-mortar presence"
+      ],
+      "differentiators": [
+        "Jurlique has 40-year heritage vs Grown Alchemist's newer market entry",
+        "Jurlique controls entire seed-to-skin process on owned farm",
+        "Jurlique offers more comprehensive anti-aging collections",
+        "Jurlique has stronger customer loyalty and repeat purchase rates"
+      ]
+    },
+    {
+      "name": "Trilogy",
+      "url": "https://www.trilogyproducts.com",
+      "strengths": [
+        "Strong natural and certified organic positioning",
+        "Rosehip oil hero product with cult following",
+        "More accessible price point",
+        "Wide retail distribution"
+      ],
+      "weaknesses": [
+        "Less premium brand perception",
+        "Limited product range compared to Jurlique",
+        "Less emphasis on farming and sourcing story",
+        "Simpler packaging and brand experience"
+      ],
+      "differentiators": [
+        "Jurlique offers more luxurious brand experience and packaging",
+        "Jurlique has broader product range across categories",
+        "Jurlique's biodynamic farm story is more compelling than ingredient sourcing",
+        "Jurlique targets older, more affluent demographic"
+      ]
+    },
+    {
+      "name": "Sukin",
+      "url": "https://www.sukinorganics.com",
+      "strengths": [
+        "Affordable natural skincare positioning",
+        "Wide availability in mass retailers",
+        "Strong value proposition",
+        "Carbon neutral certified"
+      ],
+      "weaknesses": [
+        "Mass market positioning limits premium perception",
+        "Less sophisticated formulations",
+        "Minimal anti-aging focus",
+        "Basic packaging and brand experience"
+      ],
+      "differentiators": [
+        "Jurlique operates in premium segment vs Sukin's mass market",
+        "Jurlique offers concentrated botanicals and advanced formulations",
+        "Jurlique provides luxury self-care experience vs functional skincare",
+        "Jurlique targets affluent consumers willing to invest in results"
+      ]
+    }
+  ],
+  "marketOpportunities": [
+    {
+      "opportunity": "Expand into men's natural skincare segment with simplified routines",
+      "impact": "high",
+      "timeframe": "medium-term",
+      "actionRequired": "Develop targeted men's collection leveraging existing botanical expertise, focus on anti-aging and post-shave care"
+    },
+    {
+      "opportunity": "Capitalize on growing clean beauty movement among Gen Z consumers",
+      "impact": "high",
+      "timeframe": "short-term",
+      "actionRequired": "Create accessible entry-point products and discovery sets, increase TikTok presence with educational content about biodynamic farming"
+    },
+    {
+      "opportunity": "Develop wellness tourism experiences around Adelaide Hills farm",
+      "impact": "medium",
+      "timeframe": "long-term",
+      "actionRequired": "Create immersive farm-to-skin experiences, workshops, and retreats that deepen brand connection and justify premium positioning"
+    },
+    {
+      "opportunity": "Launch refillable packaging program to enhance sustainability credentials",
+      "impact": "medium",
+      "timeframe": "medium-term",
+      "actionRequired": "Develop refill stations in retail partners and direct-to-consumer refill pouches, communicate environmental impact savings"
+    },
+    {
+      "opportunity": "Expand aromatherapy and wellness category beyond skincare",
+      "impact": "medium",
+      "timeframe": "short-term",
+      "actionRequired": "Leverage existing essential oil expertise to create home wellness products, sleep aids, and stress-relief solutions using farm-grown botanicals"
+    }
+  ],
+  "marketThreats": [
+    {
+      "threat": "Increasing competition from indie clean beauty brands with strong social media presence",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigationStrategy": "Double down on unique farm-to-skin story and 40-year heritage that new brands cannot replicate, increase influencer partnerships"
+    },
+    {
+      "threat": "Economic downturn reducing consumer spending on premium skincare",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigationStrategy": "Emphasize product longevity and concentrated formulas, expand bundle deals and payment flexibility options, introduce smaller sizes"
+    },
+    {
+      "threat": "Retail partner consolidation reducing physical presence",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigationStrategy": "Strengthen direct-to-consumer channels, invest in owned retail experiences, enhance online shopping experience with virtual consultations"
+    },
+    {
+      "threat": "Climate change impacting botanical crop yields and farming operations",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigationStrategy": "Diversify botanical sourcing while maintaining quality standards, invest in climate-resilient farming practices, communicate adaptation efforts"
+    },
+    {
+      "threat": "Regulatory changes around organic and natural claims in beauty industry",
+      "severity": "low",
+      "likelihood": "medium",
+      "mitigationStrategy": "Maintain rigorous certification standards, stay ahead of regulatory requirements, use third-party validation to differentiate from greenwashing"
+    }
+  ],
+  "customerPersonas": [
+    {
+      "name": "Conscious Wellness Advocate",
+      "description": "A health-conscious professional woman who prioritizes natural, sustainable products and is willing to invest in premium skincare that delivers results. She researches ingredients extensively and values brand transparency.",
+      "demographics": {
+        "age": "38-48",
+        "income": "$85k-$140k",
+        "education": "Bachelor's degree or higher",
+        "occupation": "Marketing Director, Healthcare Professional, Senior Manager, Wellness Coach",
+        "location": "Urban and suburban areas in coastal cities"
+      },
+      "psychographics": {
+        "interests": [
+          "Organic food and clean eating",
+          "Yoga and meditation",
+          "Sustainable living",
+          "Botanical gardens and nature",
+          "Wellness retreats",
+          "Clean beauty blogs and podcasts"
+        ],
+        "values": [
+          "Environmental sustainability",
+          "Transparency and authenticity",
+          "Holistic health",
+          "Quality over quantity",
+          "Ethical consumption"
+        ],
+        "lifestyle": "Balanced professional life with dedicated self-care time, shops at Whole Foods, practices morning skincare rituals, attends wellness workshops",
+        "personality": [
+          "Research-driven",
+          "Health-conscious",
+          "Environmentally aware",
+          "Quality-focused",
+          "Mindful consumer"
+        ]
+      },
+      "shoppingBehavior": {
+        "frequency": "Every 45-60 days",
+        "averageOrderValue": "$120-$180",
+        "preferredChannels": [
+          "Brand website",
+          "Premium department stores",
+          "Specialty beauty retailers"
+        ],
+        "decisionFactors": [
+          "Ingredient purity and sourcing",
+          "Brand sustainability practices",
+          "Clinical efficacy",
+          "Customer reviews and testimonials",
+          "Certifications and awards"
+        ]
+      }
+    },
+    {
+      "name": "Aging Gracefully Enthusiast",
+      "description": "A mature woman focused on maintaining youthful, healthy skin through premium anti-aging products. She has disposable income and views skincare as a worthwhile investment in her appearance and confidence.",
+      "demographics": {
+        "age": "52-64",
+        "income": "$100k-$180k",
+        "education": "College educated",
+        "occupation": "Executive, Business Owner, Consultant, Retired Professional",
+        "location": "Affluent suburban and urban neighborhoods"
+      },
+      "psychographics": {
+        "interests": [
+          "Spa treatments and facials",
+          "Fine dining and wine",
+          "Travel and cultural experiences",
+          "Gardening and floriculture",
+          "Art galleries and theater",
+          "Luxury lifestyle magazines"
+        ],
+        "values": [
+          "Self-care and personal maintenance",
+          "Quality and craftsmanship",
+          "Timeless elegance",
+          "Natural beauty enhancement",
+          "Proven results"
+        ],
+        "lifestyle": "Established career or comfortable retirement, regular spa visits, maintains sophisticated appearance, enjoys premium experiences",
+        "personality": [
+          "Discerning",
+          "Loyal to trusted brands",
+          "Results-oriented",
+          "Appreciates luxury",
+          "Confident"
+        ]
+      },
+      "shoppingBehavior": {
+        "frequency": "Every 30-45 days",
+        "averageOrderValue": "$180-$280",
+        "preferredChannels": [
+          "Department store beauty counters",
+          "Brand website",
+          "Luxury beauty boutiques",
+          "Spa retail"
+        ],
+        "decisionFactors": [
+          "Visible anti-aging results",
+          "Luxurious texture and experience",
+          "Brand heritage and reputation",
+          "Expert recommendations",
+          "Before and after evidence"
+        ]
+      }
+    },
+    {
+      "name": "Sensitive Skin Seeker",
+      "description": "A woman with reactive or sensitive skin who has struggled with conventional products and seeks gentle, natural formulations that won't cause irritation while still delivering results.",
+      "demographics": {
+        "age": "32-42",
+        "income": "$65k-$95k",
+        "education": "Bachelor's degree",
+        "occupation": "Teacher, Nurse, HR Manager, Designer, Accountant",
+        "location": "Suburban and urban areas nationwide"
+      },
+      "psychographics": {
+        "interests": [
+          "Natural remedies and herbalism",
+          "Dermatology research",
+          "Gentle exercise like pilates",
+          "Organic skincare communities",
+          "Aromatherapy",
+          "Mindfulness practices"
+        ],
+        "values": [
+          "Gentleness and care",
+          "Natural ingredients",
+          "Safety and testing",
+          "Transparency",
+          "Effectiveness without irritation"
+        ],
+        "lifestyle": "Cautious about new products, reads ingredient lists carefully, seeks recommendations from dermatologists, prefers established brands",
+        "personality": [
+          "Careful and methodical",
+          "Risk-averse with skincare",
+          "Information-seeking",
+          "Patient with results",
+          "Community-oriented"
+        ]
+      },
+      "shoppingBehavior": {
+        "frequency": "Every 60-75 days",
+        "averageOrderValue": "$90-$140",
+        "preferredChannels": [
+          "Brand website",
+          "Dermatologist recommendations",
+          "Specialty beauty stores",
+          "Online with detailed reviews"
+        ],
+        "decisionFactors": [
+          "Hypoallergenic formulations",
+          "Dermatologist testing",
+          "Minimal ingredient lists",
+          "Sensitive skin testimonials",
+          "Return policy and guarantees"
+        ]
+      }
+    }
+  ],
+  "categories": [
+    {
+      "name": "Best Sellers",
+      "link": "/collections/best-sellers"
+    },
+    {
+      "name": "Face Oils",
+      "link": "/collections/face-oils"
+    },
+    {
+      "name": "Moisturizers",
+      "link": "/collections/moisturisers"
+    },
+    {
+      "name": "Serums",
+      "link": "/collections/serums-and-treatments"
+    },
+    {
+      "name": "Calendula",
+      "link": "/collections/calendula"
+    },
+    {
+      "name": "Rare Rose",
+      "link": "/collections/rare-rose"
+    }
+  ],
+  "selectedBenefits": [
+    {
+      "id": "free-shipping",
+      "name": "Free Shipping",
+      "icon": "Truck",
+      "description": "Free standard delivery on orders over $75"
+    },
+    {
+      "id": "organic-certified",
+      "name": "Certified Organic",
+      "icon": "Leaf",
+      "description": "Certified organic and biodynamic farming methods"
+    },
+    {
+      "id": "afterpay",
+      "name": "Afterpay",
+      "icon": "CreditCard",
+      "description": "Glow now, pay later with flexible payments"
+    },
+    {
+      "id": "expertise",
+      "name": "40 Years Expertise",
+      "icon": "Award",
+      "description": "Four decades of natural skincare innovation"
+    }
+  ],
+  "lastUpdated": {
+    "$date": "2025-10-15T03:19:18.940Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-15T03:19:18.940Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-15T03:19:18.940Z"
+  },
+  "__v": 0,
+  "brandFontUrl": "",
+  "brandJourney": "From humble beginnings on a farm in the Adelaide Hills, Jurlique has grown into a globally recognized premium skincare brand while maintaining their commitment to biodynamic farming and natural formulations. Now celebrating 40 years of expertise, they continue to innovate with collections like Intense Rose while honoring their botanical heritage.",
+  "competitivePricing": "premium",
+  "ctaButtonStyle": "bold-direct",
+  "currentPromotion": "Buy 2 Get 20% Off, Buy 3 Get 30% Off on Aromatherapy. Essential Oil Diffuser 20% Off. Free Radiant Skin Foaming Cleanser deluxe sample with purchases over $100.",
+  "customFontFamily": "Lexend Peta Regular",
+  "customerPromise": "Effective, natural-based skincare that delivers visible results and long-term benefits through farm-grown botanicals and clean-science backed formulations.",
+  "discountStrategy": "tiered-percentage",
+  "domain": null,
+  "emailSignature": "With natural care, The Jurlique Team",
+  "featuredCollection": "Intense Rose Limited Edition",
+  "footerAddress": "Adelaide Hills, South Australia",
+  "footerTagline": "Jurlique acknowledges the Traditional Owners and Custodians of the land on which we work. We pay respects to Elders past, present and emerging, and recognise their connection to the land.",
+  "logoBackgroundColor": "#ffffff",
+  "loyaltyProgramDetails": "Email subscription for early access to promotions and new product launches. Bundle and Save program for routine building.",
+  "marketPosition": "established-premium",
+  "originStory": "Founded in the Adelaide Hills of South Australia, Jurlique was born from a vision to harness the power of nature through biodynamic farming. The brand cultivates botanicals on their own certified organic farm, creating a complete seed-to-skin journey that ensures purity and potency in every product.",
+  "primaryCampaignObjective": "increase-sales",
+  "scrapedLogoUrl": "https://jurlique.com/cdn/shop/files/JurliqueLogo2021_Black_USWeb__01_550x.png",
+  "scraped_at": {
+    "$date": "2025-10-15T03:23:55.860Z"
+  },
+  "seasonalFocus": "Holiday gifting season with skin-loving botanicals and nature-inspired rituals",
+  "socialFacebook": "https://www.facebook.com/jurlique.us",
+  "socialInstagram": "https://www.instagram.com/jurliqueusa/",
+  "socialLinkedIn": "",
+  "socialTikTok": "https://www.tiktok.com/@jurlique",
+  "socialTwitterX": "",
+  "socialYouTube": "https://www.youtube.com/@JurliqueAUS",
+  "uniqueSellingPoints": "Only skincare brand with complete seed-to-skin control through owned biodynamic farm in Adelaide Hills, Australia. Farm-grown botanicals extracted at peak potency for maximum efficacy. 40 years of natural skincare expertise with certified organic and biodynamic farming methods.",
+  "uniqueValueProposition": "The only skincare brand that controls the entire production process from seed to skin, growing botanicals on their own biodynamic farm in Australia and extracting them at peak potency for maximum efficacy.",
+  "upcomingProductLaunch": "Holiday Gift Sets and Best-Selling Advent Calendar returning for the season",
+  "updated_at": {
+    "$date": "2025-10-15T03:23:55.860Z"
+  },
+  "websiteUrl": "https://www.jurlique.com"
+}
