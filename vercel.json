@@ -1,15 +1,7 @@
 {
-  "buildCommand": "next build",
   "functions": {
-    "app/api/**/*.js": {
-      "runtime": "nodejs20.x",
+    "app/api/**": {
       "maxDuration": 120
     }
-  },
-  "routes": [
-    {
-      "src": "/api/auth/(.*)",
-      "dest": "/api/auth/$1"
-    }
-  ]
+  }
 }

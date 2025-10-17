@@ -14,6 +14,7 @@ import { handlers } from "@/auth";
 // Export route segment config - MUST be before handler creation for Next.js 15
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 120; // 2 minutes timeout for auth operations
 
 // Export the handlers directly from auth.ts
 export const { GET, POST } = handlers;
