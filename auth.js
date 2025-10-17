@@ -13,7 +13,6 @@
  */
 
 import NextAuth from "next-auth";
-import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import User from "@/models/User";
@@ -23,7 +22,7 @@ import connectToDatabase from "@/lib/mongoose";
 import bcrypt from "bcryptjs";
 
 // Auth.js v5 configuration
-export const authConfig: NextAuthConfig = {
+export const authConfig = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -64,7 +63,7 @@ export const authConfig: NextAuthConfig = {
           // Validate password
           console.log("Password from user:", user.password ? "exists" : "missing");
           const isValidPassword = await bcrypt.compare(
-            credentials.password as string,
+            credentials.password,
             user.password
           );
           console.log("Password valid:", isValidPassword);
@@ -204,10 +203,10 @@ export const authConfig: NextAuthConfig = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.primary_contract_id = token.primary_contract_id as string;
-        session.user.contracts = token.contracts as any[];
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.primary_contract_id = token.primary_contract_id;
+        session.user.contracts = token.contracts;
       }
       return session;
     },

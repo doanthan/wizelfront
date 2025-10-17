@@ -1,0 +1,12 @@
+# Exclude debug API routes from production builds
+app/api/debug/**
+
+# Exclude test files
+test-*.js
+test-*.html
+test.json
+*.test.js
+*.spec.js
+
+# Exclude development-only files
+.claude/
