@@ -9,9 +9,6 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-// Force dynamic rendering for all pages to avoid build-time SSG errors
-export const dynamic = 'force-dynamic';
-
 export const metadata = {
   title: "Wizel: Marketing Platform",
   description: "AI-powered email marketing automation platform for e-commerce",
