@@ -10,25 +10,24 @@ import {
   Shield,
   Mail,
   Search,
-  Filter,
   CheckCircle,
   XCircle,
   Clock,
   Ban,
   Edit2,
-  Trash2,
-  Settings
+  Trash2
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Badge } from "@/app/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Card, CardContent } from "@/app/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { useToast } from "@/app/components/ui/use-toast";
 import MorphingLoader from "@/app/components/ui/loading";
 import { useStores } from "@/app/contexts/store-context";
 import InviteUserDialog from "@/app/components/users/invite-user-dialog";
 import EditUserDialog from "@/app/components/users/edit-user-dialog";
+import UsersRolesTabs from "@/app/components/users/users-roles-tabs";
 
 export default function UserManagementPage() {
   const router = useRouter();
@@ -41,6 +40,7 @@ export default function UserManagementPage() {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [editingSeat, setEditingSeat] = useState(null);
   const [contractId, setContractId] = useState(null);
+
   const { toast } = useToast();
 
   // Get contract ID from first store
@@ -270,6 +270,9 @@ export default function UserManagementPage() {
               Manage user access and permissions for your stores
             </p>
           </div>
+
+          {/* Tabs */}
+          <UsersRolesTabs />
         </div>
       </div>
 
@@ -465,7 +468,7 @@ export default function UserManagementPage() {
                             className="h-9 gap-2"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
-                            Edit Permissions
+                            Edit
                           </Button>
                           {seat.status === 'active' && seat.default_role_id?.name !== 'owner' ? (
                             <Button
@@ -486,27 +489,27 @@ export default function UserManagementPage() {
                               title="Activate User"
                             >
                               <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveUser(seat._id, seat.default_role_id?.name)}
+                            disabled={seat.default_role_id?.name === 'owner'}
+                            className={`h-9 px-3 ${
+                              seat.default_role_id?.name === 'owner'
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20'
+                            }`}
+                            title={
+                              seat.default_role_id?.name === 'owner'
+                                ? "Cannot remove contract owner"
+                                : "Remove User"
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        ) : null}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveUser(seat._id, seat.default_role_id?.name)}
-                          disabled={seat.default_role_id?.name === 'owner'}
-                          className={`h-9 px-3 ${
-                            seat.default_role_id?.name === 'owner'
-                              ? 'text-gray-400 cursor-not-allowed'
-                              : 'text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20'
-                          }`}
-                          title={
-                            seat.default_role_id?.name === 'owner'
-                              ? "Cannot remove contract owner"
-                              : "Remove User"
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

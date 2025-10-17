@@ -1407,8 +1407,17 @@ brandSettingsSchema.statics.findOrCreateDefault = async function (store_id, user
     let brand = await this.findOne({ store_id, isDefault: true });
 
     if (!brand) {
+        // Get the store to retrieve its public_id
+        const Store = mongoose.model('Store');
+        const store = await Store.findById(store_id);
+
+        if (!store) {
+            throw new Error('Store not found');
+        }
+
         brand = await this.create({
             store_id,
+            store_public_id: store.public_id, // Required for slug generation
             brandName: 'Default Brand',
             name: 'Default Brand',
             isDefault: true,

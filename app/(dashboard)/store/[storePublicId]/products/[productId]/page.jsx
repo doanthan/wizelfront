@@ -255,7 +255,7 @@ export default function ProductDetailPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.back()}
+                onClick={() => router.push(`/store/${storePublicId}/products`)}
                 className="p-2 hover:bg-sky-tint/20"
               >
                 <ArrowLeft className="h-4 w-4" />

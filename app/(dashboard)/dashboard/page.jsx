@@ -23,41 +23,6 @@ export default function DashboardPage() {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Redirect to homepage if not authenticated
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status, router]);
-
-  // Show loading while checking authentication
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <MorphingLoader size="large" showText={true} text="Loading dashboard..." />
-      </div>
-    );
-  }
-
-  // Don't render dashboard if not authenticated
-  if (status === "unauthenticated") {
-    return null;
-  }
-
-  // DEBUG: Track store changes in dashboard
-  useEffect(() => {
-    console.log('🎯 Dashboard: Component mounted, stores:', {
-      stores_length: stores?.length || 'undefined',
-      stores_type: Array.isArray(stores) ? 'array' : typeof stores,
-      isLoadingStores,
-      stores_sample: stores?.slice(0, 2)?.map(s => ({
-        name: s.name,
-        public_id: s.public_id,
-        klaviyo_integration: !!s.klaviyo_integration
-      })) || 'none'
-    });
-  }, [stores, isLoadingStores]);
-  
   // Calculate default dates dynamically
   const getDefaultDateRange = () => {
     const now = new Date();
@@ -83,7 +48,30 @@ export default function DashboardPage() {
   };
 
   const [dateRangeSelection, setDateRangeSelection] = useState(getDefaultDateRange());
-  
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
+  const [allKnownAccounts, setAllKnownAccounts] = useState({});
+
+  // Redirect to homepage if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/");
+    }
+  }, [status, router]);
+
+  // DEBUG: Track store changes in dashboard
+  useEffect(() => {
+    console.log('🎯 Dashboard: Component mounted, stores:', {
+      stores_length: stores?.length || 'undefined',
+      stores_type: Array.isArray(stores) ? 'array' : typeof stores,
+      isLoadingStores,
+      stores_sample: stores?.slice(0, 2)?.map(s => ({
+        name: s.name,
+        public_id: s.public_id,
+        klaviyo_integration: !!s.klaviyo_integration
+      })) || 'none'
+    });
+  }, [stores, isLoadingStores]);
+
   // Ensure component is mounted before rendering theme-dependent content
   useEffect(() => {
     setMounted(true);
@@ -111,9 +99,6 @@ export default function DashboardPage() {
       console.warn('Failed to load analytics date range from localStorage:', e);
     }
   }, []);
-  
-  // Account selection state - Start with empty to show all accounts
-  const [selectedAccounts, setSelectedAccounts] = useState([]);
 
   // Load selected accounts from localStorage after mount
   useEffect(() => {
@@ -139,10 +124,7 @@ export default function DashboardPage() {
       }
     }
   }, []);
-  
-  // Keep track of all accounts ever seen (for smart persistence)
-  const [allKnownAccounts, setAllKnownAccounts] = useState({});
-  
+
   // Load known accounts from localStorage after mount
   useEffect(() => {
     const savedKnown = localStorage.getItem('analyticsKnownAccounts');
@@ -276,7 +258,21 @@ export default function DashboardPage() {
       }
     }
   };
-  
+
+  // Show loading while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <MorphingLoader size="large" showText={true} text="Loading dashboard..." />
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated
+  if (status === "unauthenticated") {
+    return null;
+  }
+
   // Show Get Started page if no stores
   if (!isLoadingStores && (!stores || stores.length === 0)) {
     return <GetStarted />;

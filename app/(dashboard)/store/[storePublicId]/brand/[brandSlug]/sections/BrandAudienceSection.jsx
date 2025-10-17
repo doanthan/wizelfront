@@ -8,7 +8,7 @@ import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Badge } from "@/app/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
-import { Edit2, X, Check, Plus, Users, Target, TrendingUp, Heart, AlertCircle, MessageSquare, ShoppingBag, Shield } from "lucide-react";
+import { Edit2, X, Check, Plus, Users, Target, TrendingUp, Heart, AlertCircle, MessageSquare, ShoppingBag, Shield, UserCircle, Briefcase, MapPin, DollarSign, GraduationCap, Calendar } from "lucide-react";
 
 export default function BrandAudienceSection() {
   const {
@@ -87,6 +87,214 @@ export default function BrandAudienceSection() {
 
   return (
     <div className="space-y-6">
+      {/* Customer Personas */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+            <UserCircle className="h-5 w-5 text-sky-blue" />
+            Customer Personas
+          </CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
+            Detailed profiles of your ideal customers
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {brand?.customerPersonas?.map((persona, idx) => (
+              <div key={idx} className="p-6 bg-gradient-to-br from-sky-50 to-purple-50 dark:from-sky-900/10 dark:to-purple-900/10 border-2 border-sky-200 dark:border-sky-800/30 rounded-lg space-y-4">
+                {/* Persona Header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <UserCircle className="h-5 w-5 text-sky-blue" />
+                      {persona.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{persona.description}</p>
+                  </div>
+                  <button
+                    onClick={() => handleArrayItemRemove('customerPersonas', idx)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Demographics */}
+                {persona.demographics && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Users className="h-4 w-4 text-purple-500" />
+                      Demographics
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {persona.demographics.age && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                          <span className="text-gray-600 dark:text-gray-400">Age:</span>
+                          <span className="text-gray-900 dark:text-white font-medium">{persona.demographics.age}</span>
+                        </div>
+                      )}
+                      {persona.demographics.income && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <DollarSign className="h-3.5 w-3.5 text-gray-500" />
+                          <span className="text-gray-600 dark:text-gray-400">Income:</span>
+                          <span className="text-gray-900 dark:text-white font-medium">{persona.demographics.income}</span>
+                        </div>
+                      )}
+                      {persona.demographics.education && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <GraduationCap className="h-3.5 w-3.5 text-gray-500" />
+                          <span className="text-gray-600 dark:text-gray-400">Education:</span>
+                          <span className="text-gray-900 dark:text-white font-medium">{persona.demographics.education}</span>
+                        </div>
+                      )}
+                      {persona.demographics.location && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-3.5 w-3.5 text-gray-500" />
+                          <span className="text-gray-600 dark:text-gray-400">Location:</span>
+                          <span className="text-gray-900 dark:text-white font-medium">{persona.demographics.location}</span>
+                        </div>
+                      )}
+                    </div>
+                    {persona.demographics.occupation && (
+                      <div className="flex items-start gap-2 text-sm mt-2">
+                        <Briefcase className="h-3.5 w-3.5 text-gray-500 mt-0.5" />
+                        <span className="text-gray-600 dark:text-gray-400">Occupation:</span>
+                        <span className="text-gray-900 dark:text-white font-medium flex-1">{persona.demographics.occupation}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Psychographics */}
+                {persona.psychographics && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Heart className="h-4 w-4 text-pink-500" />
+                      Psychographics
+                    </h4>
+
+                    {/* Interests */}
+                    {persona.psychographics.interests && persona.psychographics.interests.length > 0 && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Interests</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {persona.psychographics.interests.map((interest, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs px-2 py-0.5 bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800">
+                              {interest}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Values */}
+                    {persona.psychographics.values && persona.psychographics.values.length > 0 && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Values</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {persona.psychographics.values.map((value, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs px-2 py-0.5 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
+                              {value}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lifestyle */}
+                    {persona.psychographics.lifestyle && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Lifestyle</span>
+                        <p className="text-sm text-gray-900 dark:text-white">{persona.psychographics.lifestyle}</p>
+                      </div>
+                    )}
+
+                    {/* Personality */}
+                    {persona.psychographics.personality && persona.psychographics.personality.length > 0 && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Personality Traits</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {persona.psychographics.personality.map((trait, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800">
+                              {trait}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Shopping Behavior */}
+                {persona.shoppingBehavior && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <ShoppingBag className="h-4 w-4 text-green-500" />
+                      Shopping Behavior
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {persona.shoppingBehavior.frequency && (
+                        <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Purchase Frequency:</span>
+                          <p className="text-gray-900 dark:text-white font-medium">{persona.shoppingBehavior.frequency}</p>
+                        </div>
+                      )}
+                      {persona.shoppingBehavior.averageOrderValue && (
+                        <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Average Order Value:</span>
+                          <p className="text-gray-900 dark:text-white font-medium">{persona.shoppingBehavior.averageOrderValue}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preferred Channels */}
+                    {persona.shoppingBehavior.preferredChannels && persona.shoppingBehavior.preferredChannels.length > 0 && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Preferred Channels</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {persona.shoppingBehavior.preferredChannels.map((channel, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs px-2 py-0.5 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+                              {channel}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Decision Factors */}
+                    {persona.shoppingBehavior.decisionFactors && persona.shoppingBehavior.decisionFactors.length > 0 && (
+                      <div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5 block">Decision Factors</span>
+                        <ul className="space-y-1">
+                          {persona.shoppingBehavior.decisionFactors.map((factor, i) => (
+                            <li key={i} className="text-sm text-gray-900 dark:text-white flex items-start gap-2">
+                              <span className="text-green-500 mt-1">•</span>
+                              <span>{factor}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Add New Persona Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddDialog('customerPersonas')}
+              className="w-full"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Customer Persona
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Target Demographics */}
       <Card>
         <CardHeader>

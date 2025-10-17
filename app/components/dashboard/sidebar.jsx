@@ -54,6 +54,7 @@ import StoreSelectorEnhanced from "./store-selector-enhanced";
 const sidebarItemsConfig = [
   {
     title: "Dashboard",
+    shortLabel: "Home",
     icon: LayoutDashboard,
     href: "/dashboard",
     feature: FEATURES.DASHBOARD,
@@ -61,6 +62,7 @@ const sidebarItemsConfig = [
   },
   {
     title: "Stores",
+    shortLabel: "Stores",
     icon: Store,
     href: "/stores",
     feature: FEATURES.STORES,
@@ -68,6 +70,7 @@ const sidebarItemsConfig = [
   },
   {
     title: "Calendar",
+    shortLabel: "Calendar",
     icon: Calendar,
     href: "/calendar",
     feature: FEATURES.CALENDAR,
@@ -75,6 +78,7 @@ const sidebarItemsConfig = [
   },
   {
     title: "Email Builder",
+    shortLabel: "Email",
     icon: Mail,
     href: "/email-builder",
     feature: FEATURES.CAMPAIGNS,
@@ -82,6 +86,7 @@ const sidebarItemsConfig = [
   },
   {
     title: "Web Feeds",
+    shortLabel: "Feeds",
     icon: Rss,
     href: "/webfeeds",
     feature: FEATURES.CAMPAIGNS,
@@ -89,6 +94,7 @@ const sidebarItemsConfig = [
   },
   {
     title: "Idea Generator",
+    shortLabel: "Ideas",
     icon: Lightbulb,
     href: "/idea-generator",
     feature: FEATURES.CAMPAIGNS,
@@ -96,6 +102,7 @@ const sidebarItemsConfig = [
   },
   {
     title: "Design Studio",
+    shortLabel: "Design",
     icon: Palette,
     href: "/design-studio",
     feature: FEATURES.CAMPAIGNS,
@@ -119,35 +126,36 @@ const sidebarItemsConfig = [
   },
   {
     title: "Multi-Account Reporting",
+    shortLabel: "Multi",
     icon: Layers,
     href: "/multi-account-reporting",
     feature: FEATURES.MULTI_ACCOUNT,
     action: ACTIONS.VIEW,
     children: [
-      { 
-        title: "Revenue", 
-        icon: TrendingUp, 
+      {
+        title: "Revenue",
+        icon: TrendingUp,
         href: "/multi-account-reporting?tab=revenue",
         feature: FEATURES.ANALYTICS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Campaigns", 
-        icon: Mail, 
+      {
+        title: "Campaigns",
+        icon: Mail,
         href: "/multi-account-reporting?tab=campaigns",
         feature: FEATURES.CAMPAIGNS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Flows", 
-        icon: Zap, 
+      {
+        title: "Flows",
+        icon: Zap,
         href: "/multi-account-reporting?tab=flows",
         feature: FEATURES.FLOWS,
         action: ACTIONS.VIEW,
       },
-      { 
-        title: "Deliverability", 
-        icon: MessageSquare, 
+      {
+        title: "Deliverability",
+        icon: MessageSquare,
         href: "/multi-account-reporting?tab=deliverability",
         feature: FEATURES.ANALYTICS,
         action: ACTIONS.VIEW,
@@ -156,6 +164,7 @@ const sidebarItemsConfig = [
   },
   {
     title: "Account Reports",
+    shortLabel: "Reports",
     icon: BarChart3,
     href: "/dashboard/reports",
     feature: FEATURES.REPORTS,
@@ -214,10 +223,27 @@ const sidebarItemsConfig = [
   },
   {
     title: "Permissions",
+    shortLabel: "Access",
     icon: Shield,
     href: "/permissions",
     feature: FEATURES.PERMISSIONS,
     action: ACTIONS.VIEW,
+  },
+  {
+    title: "Users",
+    shortLabel: "Users",
+    icon: Users,
+    href: "/stores/users",
+    feature: FEATURES.TEAM,
+    action: ACTIONS.VIEW,
+  },
+  {
+    title: "Roles",
+    shortLabel: "Roles",
+    icon: Shield,
+    href: "/stores/roles",
+    feature: FEATURES.TEAM,
+    action: ACTIONS.MANAGE,
   },
 ];
 
@@ -452,10 +478,15 @@ export default function Sidebar() {
                       >
                         <div className={cn(
                           "flex items-center",
-                          isCollapsed ? "justify-center w-full" : "space-x-3"
+                          isCollapsed ? "flex-col justify-center w-full gap-0.5" : "space-x-3"
                         )}>
                           <item.icon className="h-4 w-4 flex-shrink-0" />
                           {!isCollapsed && <span>{item.title}</span>}
+                          {isCollapsed && (
+                            <span className="text-[9px] font-medium leading-tight">
+                              {item.shortLabel || item.title}
+                            </span>
+                          )}
                         </div>
                         {!isCollapsed && (
                           expandedItems[item.title] ? (
@@ -463,6 +494,11 @@ export default function Sidebar() {
                           ) : (
                             <ChevronRight className="h-4 w-4" />
                           )
+                        )}
+                        {isCollapsed && (
+                          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                            {item.title}
+                          </div>
                         )}
                       </button>
                     ) : (
@@ -473,16 +509,21 @@ export default function Sidebar() {
                           isActive(item.href)
                             ? "bg-blue-50 dark:bg-sky-blue/20 text-sky-blue"
                             : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white",
-                          isCollapsed ? "justify-center" : "space-x-3"
+                          isCollapsed ? "flex-col justify-center gap-0.5" : "space-x-3"
                         )}
                         title={isCollapsed ? item.title : ""}
                       >
                         <item.icon className="h-4 w-4 flex-shrink-0" />
                         {!isCollapsed && <span>{item.title}</span>}
                         {isCollapsed && (
-                          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                            {item.title}
-                          </div>
+                          <>
+                            <span className="text-[9px] font-medium leading-tight">
+                              {item.shortLabel || item.title}
+                            </span>
+                            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                              {item.title}
+                            </div>
+                          </>
                         )}
                       </Link>
                     )}

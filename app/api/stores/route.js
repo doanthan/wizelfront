@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getUserAccessibleStores } from '@/middleware/storeAccess';
 import connectToDatabase from '@/lib/mongoose';
 import Store from '@/models/Store';
+import BrandSettings from '@/models/Brand';
 import { storeOperations } from '@/lib/db-utils';
 
 /**
@@ -72,14 +73,19 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await connectToDatabase();
-    
+
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.name || !body.url) {
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Missing required fields',
           details: 'Name and URL are required'
@@ -87,10 +93,24 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    
+
     // Create store using utility function (handles URL formatting)
     const store = await storeOperations.createStore(body);
-    
+
+    // Create default brand for the store
+    try {
+      const User = (await import('@/models/User')).default;
+      const user = await User.findOne({ email: session.user.email });
+
+      if (user) {
+        await BrandSettings.findOrCreateDefault(store._id, user._id);
+        console.log('✅ Default brand created for store:', store.public_id);
+      }
+    } catch (brandError) {
+      console.error('⚠️ Failed to create default brand:', brandError);
+      // Don't fail the store creation if brand creation fails
+    }
+
     return NextResponse.json({
       success: true,
       data: store,

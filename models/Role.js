@@ -7,7 +7,22 @@ const RoleSchema = new mongoose.Schema({
         type: String,
         required: [true, "Role name is required"],
         trim: true,
-        enum: ['owner', 'admin', 'manager', 'creator', 'reviewer', 'viewer']
+        validate: {
+            validator: function(v) {
+                // System roles must match predefined values
+                if (this.is_system_role === true) {
+                    return ['owner', 'admin', 'manager', 'creator', 'reviewer', 'viewer'].includes(v);
+                }
+                // Custom roles can be anything (lowercase alphanumeric with underscores)
+                return /^[a-z0-9_]+$/.test(v);
+            },
+            message: function(props) {
+                if (this.is_system_role === true) {
+                    return `System role name must be one of: owner, admin, manager, creator, reviewer, viewer`;
+                }
+                return `Custom role name must be lowercase alphanumeric with underscores only`;
+            }
+        }
     },
     display_name: {
         type: String,
@@ -512,13 +527,18 @@ RoleSchema.index({ name: 1, store_id: 1 }, {
     partialFilterExpression: { store_id: { $exists: true } }
 });
 
-// Prevent model recompilation in development
+// Force model recompilation to pick up schema changes
 let Role;
 
-if (mongoose.models && mongoose.models.Role) {
-  Role = mongoose.models.Role;
-} else {
+try {
+  // Delete existing model if it exists to force recompilation
+  if (mongoose.models && mongoose.models.Role) {
+    delete mongoose.models.Role;
+  }
   Role = mongoose.model("Role", RoleSchema);
+} catch (error) {
+  // If model already exists, use it
+  Role = mongoose.models.Role || mongoose.model("Role", RoleSchema);
 }
 
 export default Role; 
