@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useStores } from "@/app/contexts/store-context";
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
 import { useTheme } from "@/app/contexts/theme-context";
 import { Button } from "@/app/components/ui/button";
 import { Sun, Moon } from "lucide-react";
+import MorphingLoader from "@/app/components/ui/loading";
 
 // Import dashboard components
 import SimpleDashboard from "./components/SimpleDashboard";
@@ -14,9 +17,32 @@ import UpcomingCampaigns from "./components/UpcomingCampaigns";
 import GetStarted from "./components/GetStarted";
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { stores, isLoadingStores } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+
+  // Redirect to homepage if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/");
+    }
+  }, [status, router]);
+
+  // Show loading while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <MorphingLoader size="large" showText={true} text="Loading dashboard..." />
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   // DEBUG: Track store changes in dashboard
   useEffect(() => {

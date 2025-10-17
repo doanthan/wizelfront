@@ -1,5 +1,22 @@
 {
+  "buildCommand": "next build",
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next"
+  "regions": ["iad1"],
+  "rewrites": [
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/auth/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
 }
