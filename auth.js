@@ -224,6 +224,9 @@ export const authConfig = {
     signOut: "/",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  // Critical for Next.js 15 and Vercel deployment
+  trustHost: true,
+  basePath: "/api/auth",
 };
 
 // Initialize NextAuth with the configuration
