@@ -3,6 +3,10 @@ const nextConfig = {
   // Disable static export of built-in error pages
   skipTrailingSlashRedirect: true,
   poweredByHeader: false,
+  // Skip static generation for error pages (Next.js 15 workaround)
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   // Configure webpack to handle build issues
   webpack: (config, { isServer }) => {
     if (isServer) {
