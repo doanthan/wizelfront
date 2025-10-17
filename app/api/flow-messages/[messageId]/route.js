@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { auth } from "@/lib/auth";
 import { authOptions as nextAuthOptions } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import Store from "@/models/Store";

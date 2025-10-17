@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import AICredits from '@/models/AICredits';
 import Store from '@/models/Store';
 import connectToDatabase from '@/lib/mongoose';
@@ -8,7 +8,7 @@ import connectToDatabase from '@/lib/mongoose';
 export async function POST(request) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },

@@ -16,8 +16,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import { getClickHouseClient } from "@/lib/clickhouse";
 import Store from "@/models/Store";
@@ -38,7 +37,7 @@ export async function GET(request) {
 
     // Phase 1: Authentication (Fast Fail) - ~5ms
     const authStart = startTimer();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

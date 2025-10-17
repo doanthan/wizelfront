@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { encode } from "next-auth/jwt";
 import connectToDatabase from "@/lib/mongoose";
 import User from "@/models/User";
@@ -8,7 +7,7 @@ import Contract from "@/models/Contract";
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

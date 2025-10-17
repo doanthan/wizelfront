@@ -225,14 +225,23 @@ ContractSchema.statics.findByUser = function (userId) {
   });
 };
 
+// Helper function to safely get ContractSeat model
+const getContractSeatModel = () => {
+  if (mongoose.models.ContractSeat) {
+    return mongoose.models.ContractSeat;
+  }
+  // If not loaded yet, require it
+  return require('./ContractSeat').default;
+};
+
 // Static method to find contracts accessible via ContractSeats
 ContractSchema.statics.findByUserSeats = async function (userId) {
-  const ContractSeat = mongoose.model('ContractSeat');
-  const seats = await ContractSeat.find({ 
-    user_id: userId, 
-    status: 'active' 
+  const ContractSeat = getContractSeatModel();
+  const seats = await ContractSeat.find({
+    user_id: userId,
+    status: 'active'
   }).populate('contract_id');
-  
+
   return seats.map(seat => seat.contract_id).filter(contract => contract);
 };
 
@@ -248,7 +257,7 @@ ContractSchema.statics.hasAccess = async function (contractId, userId, requiredR
   }
 
   // Check via ContractSeat
-  const ContractSeat = mongoose.model('ContractSeat');
+  const ContractSeat = getContractSeatModel();
   const seat = await ContractSeat.findOne({
     contract_id: contractId,
     user_id: userId,
@@ -263,14 +272,14 @@ ContractSchema.statics.hasAccess = async function (contractId, userId, requiredR
 
 // Method to get active seats for this contract
 ContractSchema.methods.getActiveSeats = function () {
-  const ContractSeat = mongoose.model('ContractSeat');
+  const ContractSeat = getContractSeatModel();
   return ContractSeat.findByContract(this._id);
 };
 
 // Method to add user to contract
 ContractSchema.methods.addUser = async function (userId, roleId, invitedBy) {
-  const ContractSeat = mongoose.model('ContractSeat');
-  
+  const ContractSeat = getContractSeatModel();
+
   // Check if seat already exists
   const existingSeat = await ContractSeat.findOne({
     contract_id: this._id,
@@ -305,8 +314,8 @@ ContractSchema.methods.addUser = async function (userId, roleId, invitedBy) {
 
 // Method to remove user from contract
 ContractSchema.methods.removeUser = async function (userId) {
-  const ContractSeat = mongoose.model('ContractSeat');
-  
+  const ContractSeat = getContractSeatModel();
+
   const seat = await ContractSeat.findOne({
     contract_id: this._id,
     user_id: userId

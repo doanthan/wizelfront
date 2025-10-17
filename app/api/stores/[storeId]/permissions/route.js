@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { StorePermissions } from '@/lib/store-permissions';
 import { UserModel } from '@/lib/user-model';
 
 // Get user's permissions for a specific store
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -40,7 +40,7 @@ export async function GET(request, { params }) {
 // Grant or update user permissions for a store
 export async function POST(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -101,7 +101,7 @@ export async function POST(request, { params }) {
 // Revoke user's access to a store
 export async function DELETE(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

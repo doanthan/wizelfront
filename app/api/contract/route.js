@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import Contract from '@/models/Contract';
 import ContractSeat from '@/models/ContractSeat';
 import User from '@/models/User';
@@ -10,7 +10,7 @@ import connectToDatabase from '@/lib/mongoose';
 // GET - Get contract details with stores and users
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -105,7 +105,7 @@ export async function GET(request) {
 // POST - Add user to contract
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -190,7 +190,7 @@ export async function POST(request) {
 // PUT - Update contract (upgrade plan, change limits, etc.)
 export async function PUT(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -251,7 +251,7 @@ export async function PUT(request) {
 // DELETE - Remove user from contract
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

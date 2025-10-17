@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import Store from "@/models/Store";
 import User from "@/models/User";
@@ -8,7 +7,7 @@ import { getClickHouseClient } from "@/lib/clickhouse";
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     const debug = {
       timestamp: new Date().toISOString(),

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-
 // Mock function to generate ideas - replace with actual AI integration
 function generateMockIdeas(brandSettings, selectedAngle, selectedSegments, customPrompt) {
   const ideas = [];
@@ -143,7 +142,7 @@ function generateMockIdeas(brandSettings, selectedAngle, selectedSegments, custo
 export async function POST(request) {
   try {
     // Get user from authentication session
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

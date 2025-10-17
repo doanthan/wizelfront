@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import connectToDatabase from '@/lib/mongoose';
 import WebFeed from '@/models/WebFeed';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-
 export async function GET(request, { params }) {
   try {
     const { feedId } = await params;
@@ -31,7 +30,7 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -138,7 +137,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

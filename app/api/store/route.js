@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import Store from '@/models/Store';
 import User from '@/models/User';
 import Contract from '@/models/Contract';
 import ContractSeat from '@/models/ContractSeat';
 import Role from '@/models/Role';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 import connectToDatabase from '@/lib/mongoose';
 // import Stripe from 'stripe';
@@ -20,7 +20,7 @@ export async function POST(request) {
     await connectToDatabase();
     
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -382,7 +382,7 @@ export async function GET(request) {
     await connectToDatabase();
     
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -572,7 +572,7 @@ export async function DELETE(request) {
     await connectToDatabase();
     
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import Store from '@/models/Store';
 import User from '@/models/User';
 import Contract from '@/models/Contract';
 import ContractSeat from '@/models/ContractSeat';
 import Role from '@/models/Role';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/mongoose';
 
 export async function GET(request) {
@@ -13,7 +13,7 @@ export async function GET(request) {
     await connectToDatabase();
 
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

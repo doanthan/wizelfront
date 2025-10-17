@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import User from '@/models/User';
 import Store from '@/models/Store';
 import { ContractModel } from '@/lib/contract-model';
@@ -10,7 +10,7 @@ import connectToDatabase from '@/lib/mongoose';
 export async function GET(request) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     const debugInfo = {
       session: {
@@ -93,7 +93,7 @@ export async function GET(request) {
 // Test endpoint to create a store
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import Store from "@/models/Store";
 import { getClickHouseClient } from "@/lib/clickhouse";
@@ -16,7 +15,7 @@ export async function GET(request) {
   try {
     console.log('Multi-account revenue API called');
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       console.log('No session found');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

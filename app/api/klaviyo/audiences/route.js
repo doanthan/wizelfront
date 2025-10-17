@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import Store from '@/models/Store';
 import connectToDatabase from '@/lib/mongoose';
 import { buildKlaviyoAuthOptions } from '@/lib/klaviyo-auth-helper';
@@ -11,7 +11,7 @@ export async function GET(request) {
     await connectToDatabase();
     
     // 1. Authenticate user
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

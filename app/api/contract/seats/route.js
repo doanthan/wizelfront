@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import ContractSeat from "@/models/ContractSeat";
 import User from "@/models/User";
@@ -10,7 +9,7 @@ import Store from "@/models/Store";
 // GET - List all seats in a contract
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -88,7 +87,7 @@ export async function GET(request) {
 // POST - Invite a new user to the contract
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

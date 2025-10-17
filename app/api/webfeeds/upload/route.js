@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
@@ -60,7 +60,7 @@ const optimizeImageForEmail = async (buffer, mimeType) => {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -167,7 +167,7 @@ export async function POST(request) {
 // Handle image URL fetching (for importing from URL)
 export async function PUT(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

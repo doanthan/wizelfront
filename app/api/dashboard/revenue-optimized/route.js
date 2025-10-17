@@ -18,8 +18,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import Store from "@/models/Store";
 import User from "@/models/User";
 import Contract from "@/models/Contract";
@@ -70,7 +69,7 @@ export async function GET(request) {
 
     const authResult = await IntelligentErrorHandler.executeWithFallback(
       async () => {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
         if (!session?.user?.email) {
           throw new Error("Unauthorized");
         }

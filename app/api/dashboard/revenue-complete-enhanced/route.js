@@ -16,8 +16,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import Store from "@/models/Store";
 import User from "@/models/User";
 import Contract from "@/models/Contract";
@@ -44,7 +43,7 @@ export async function GET(request) {
 
     // Phase 1: Authentication (Lightning Fast) - ~2ms
     const authStart = startTimer();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

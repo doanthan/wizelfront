@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@/lib/auth";
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/mongoose';
 import WebFeed from '@/models/WebFeed';
 import Store from '@/models/Store';
@@ -10,7 +10,7 @@ import { buildKlaviyoAuthOptionsWithLogging } from '@/lib/klaviyo-auth-helper';
 // GET - Check if feeds exist in Klaviyo
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

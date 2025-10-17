@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import ContractSeat from "@/models/ContractSeat";
 import User from "@/models/User";
@@ -10,7 +9,7 @@ import Store from "@/models/Store";
 // GET - Get specific seat details
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -57,7 +56,7 @@ export async function GET(request, { params }) {
 // PATCH - Update seat (role, store access, status)
 export async function PATCH(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -166,7 +165,7 @@ export async function PATCH(request, { params }) {
 // DELETE - Remove/revoke seat
 export async function DELETE(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

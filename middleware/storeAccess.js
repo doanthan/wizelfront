@@ -11,8 +11,7 @@
  * @see /context/PERMISSIONS_GUIDE.md
  */
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import connectToDatabase from "@/lib/mongoose";
 import User from "@/models/User";
 import ContractSeat from "@/models/ContractSeat";
@@ -39,7 +38,7 @@ export async function validateStoreAccess(storePublicId, session = null) {
   try {
     // Get session if not provided
     if (!session) {
-      session = await getServerSession(authOptions);
+      session = await auth();
     }
 
     if (!session?.user?.email) {
@@ -184,7 +183,7 @@ export async function validateStoreAccess(storePublicId, session = null) {
 export async function getUserAccessibleStores(session = null) {
   try {
     if (!session) {
-      session = await getServerSession(authOptions);
+      session = await auth();
     }
 
     if (!session?.user?.email) {
@@ -330,7 +329,7 @@ export function withStoreAccess(handler) {
       const params = await context.params;
       const { storePublicId } = params;
 
-      const session = await getServerSession(authOptions);
+      const session = await auth();
       const { hasAccess, store, user, seat, role, error } = await validateStoreAccess(
         storePublicId,
         session
