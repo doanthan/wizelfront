@@ -13,11 +13,7 @@ export const metadata = {
   title: "Wizel: Marketing Platform",
   description: "AI-powered email marketing automation platform for e-commerce",
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/wizel-logo.svg', type: 'image/svg+xml' }
-    ],
-    apple: '/wizel-logo.svg'
+    icon: '/favicon.ico'
   }
 };
 
