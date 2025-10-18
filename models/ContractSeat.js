@@ -62,6 +62,17 @@ const ContractSeatSchema = new mongoose.Schema({
   invitation_sent_at: {
     type: Date
   },
+  invitation_token: {
+    type: String
+  },
+  invitation_token_expires: {
+    type: Date
+  },
+  invitation_method: {
+    type: String,
+    enum: ['new_user', 'existing_user'],
+    default: 'existing_user'
+  },
   activated_at: {
     type: Date
   },
@@ -95,6 +106,7 @@ ContractSeatSchema.index({ contract_id: 1, status: 1 });
 ContractSeatSchema.index({ 'store_access.store_id': 1 });
 ContractSeatSchema.index({ status: 1 });
 ContractSeatSchema.index({ invited_by: 1 });
+ContractSeatSchema.index({ invitation_token: 1 }, { sparse: true });
 
 // Static method to find seats by contract
 ContractSeatSchema.statics.findByContract = function(contractId) {

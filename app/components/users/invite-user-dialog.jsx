@@ -119,6 +119,21 @@ export default function InviteUserDialog({ isOpen, onClose, contractId, onSucces
       const data = await response.json();
 
       if (response.ok) {
+        // Show different success messages based on invitation method
+        if (data.invitationMethod === 'new_user') {
+          toast({
+            title: "Invitation Sent",
+            description: `An invitation email has been sent to ${email}. They will receive a link to create their account.`,
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "User Added",
+            description: `${email} has been added to the contract and notified via email.`,
+            variant: "default"
+          });
+        }
+
         onSuccess();
         // Reset form
         setEmail("");

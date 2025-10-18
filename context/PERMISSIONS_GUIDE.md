@@ -1339,6 +1339,465 @@ async function manageDepartmentCreditPools(contractId, departmentId, creditAlloc
 }
 ```
 
+## Invitation System - User Onboarding Flow
+
+### Overview
+The invitation system provides a secure, two-path approach to adding users to contracts:
+- **New Users**: Receive invitation email with signup link and token-based authentication
+- **Existing Users**: Automatically granted access and notified via email
+
+### Invitation Architecture
+
+```
+Invitation Flow:
+┌─────────────────────────────────────────────────────────┐
+│  Admin Invites User                                     │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+          ┌───────▼────────┐
+          │ User exists?   │
+          └───┬────────┬───┘
+              │        │
+        YES   │        │   NO
+              │        │
+    ┌─────────▼──┐  ┌─▼─────────────┐
+    │ Is Active? │  │ Create User   │
+    └─┬────────┬─┘  │ (inactive)    │
+      │        │    └─┬─────────────┘
+  YES │        │ NO   │
+      │        │      │
+┌─────▼──┐  ┌──▼──────▼─────────────┐
+│Activate│  │Generate Token          │
+│Seat    │  │Create Pending Seat     │
+│Send    │  │Send Invitation Email   │
+│Notify  │  └──┬────────────────────┘
+└────────┘     │
+               │  User clicks link
+               │
+        ┌──────▼──────────┐
+        │ /accept-invite  │
+        │ Set Password    │
+        │ Activate Seat   │
+        │ Activate User   │
+        └─────────────────┘
+```
+
+### Database Schema Extensions
+
+#### ContractSeat Invitation Fields
+```javascript
+{
+    // Existing fields...
+
+    // Invitation tracking
+    invitation_token: String,              // SHA256 hashed token (sparse index)
+    invitation_token_expires: Date,        // 7-day expiration
+    invitation_method: String,             // 'new_user' | 'existing_user'
+    invitation_email: String,              // Email invitation was sent to
+    invitation_sent_at: Date,              // Timestamp of invitation
+    invited_by: ObjectId,                  // Ref: User who sent invitation
+
+    // Activation
+    activated_at: Date,                    // When seat was activated
+
+    // Status
+    status: String                         // 'pending' | 'active' | 'suspended' | 'revoked'
+}
+```
+
+### API Endpoints
+
+#### POST /api/contract/seats
+**Purpose**: Invite a new user or add existing user to contract
+
+**Required Permission**: `team.invite_users` (manager+ role)
+
+**Request Body**:
+```javascript
+{
+    contractId: ObjectId,     // Contract to add user to
+    email: String,            // User email (lowercase)
+    roleId: ObjectId,         // Role to assign
+    storeAccess: [{           // Optional store-specific access
+        store_id: ObjectId,
+        role_id: ObjectId     // Optional store-specific role
+    }]
+}
+```
+
+**Response**:
+```javascript
+{
+    success: true,
+    seat: ContractSeat,
+    invitationMethod: 'new_user' | 'existing_user',
+    message: String
+}
+```
+
+**Behavior**:
+1. **New User Path** (`invitationMethod: 'new_user'`):
+   - Creates inactive User account
+   - Generates cryptographically secure invitation token (hashed)
+   - Creates ContractSeat with `status: 'pending'`
+   - Sends invitation email with `/accept-invite?token=xxx` link
+   - Token expires in 7 days
+
+2. **Existing Active User Path** (`invitationMethod: 'existing_user'`):
+   - Uses existing User account
+   - Creates ContractSeat with `status: 'active'`
+   - Immediately adds to user's `active_seats` array
+   - Sends notification email
+   - User has immediate access
+
+3. **Existing Inactive User Path** (treated as new user):
+   - Uses existing User account
+   - Generates invitation token
+   - Creates pending ContractSeat
+   - Sends invitation email
+
+**Email Templates**:
+- **New User**: `invitations@wizel.ai` - Subject: "[Name] invited you to join [Contract] on Wizel.ai"
+- **Existing User**: `notifications@wizel.ai` - Subject: "You've been added to [Contract] on Wizel.ai"
+
+#### GET /api/invitations/accept?token=xxx
+**Purpose**: Validate invitation token and return invitation details
+
+**Authentication**: Public (token-based)
+
+**Response**:
+```javascript
+{
+    valid: true,
+    invitation: {
+        email: String,
+        contractName: String,
+        roleName: String,
+        invitedBy: String,
+        storeNames: [String],
+        hasStoreRestrictions: Boolean
+    }
+}
+```
+
+**Error Responses**:
+- `404`: Token not found or already used
+- `400`: Token expired (> 7 days old)
+
+#### POST /api/invitations/accept
+**Purpose**: Accept invitation and create account
+
+**Authentication**: Public (token-based)
+
+**Request Body**:
+```javascript
+{
+    token: String,        // Invitation token from email
+    password: String,     // New password (min 8 chars)
+    name: String          // User's full name
+}
+```
+
+**Response**:
+```javascript
+{
+    success: true,
+    message: "Account created successfully! You can now log in.",
+    user: {
+        email: String,
+        name: String
+    }
+}
+```
+
+**Process**:
+1. Validates token against hashed version in database
+2. Checks token expiration (< 7 days old)
+3. Updates User account:
+   - Sets bcrypt hashed password
+   - Sets status to 'active'
+   - Updates name if provided
+4. Activates ContractSeat:
+   - Changes status from 'pending' to 'active'
+   - Sets `activated_at` timestamp
+   - Clears invitation token (one-time use)
+5. Adds seat to User's `active_seats` array
+6. Returns success, redirects to login
+
+### Security Features
+
+#### Token Security
+```javascript
+// Token generation (lib/invitation-token.js)
+{
+    token: crypto.randomBytes(32).toString('hex'),           // 64-char hex (sent in email)
+    hashedToken: crypto.createHash('sha256').update(token),  // Stored in database
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+}
+```
+
+**Security Measures**:
+1. **Hashed Storage**: Only SHA256 hash stored in database
+2. **Single Use**: Token cleared after acceptance
+3. **Expiration**: 7-day validity window
+4. **Sparse Index**: Efficient lookups without full table scan
+5. **HTTPS Only**: Tokens only sent over encrypted connections
+6. **Rate Limiting**: Prevent brute force attacks
+
+#### Permission Checks
+```javascript
+// Who can invite users
+const canInvite = userSeat.default_role_id.permissions.team.invite_users;
+
+// Role level requirements
+{
+    owner: true,      // Level 100
+    admin: true,      // Level 80
+    manager: true,    // Level 60
+    creator: false,   // Level 40
+    reviewer: false,  // Level 30
+    viewer: false     // Level 10
+}
+```
+
+### UI Components
+
+#### InviteUserDialog
+**Location**: `/app/components/users/invite-user-dialog.jsx`
+
+**Features**:
+- Email validation with real-time feedback
+- Role selection with permission preview
+- Optional store-specific access control
+- Seat usage tracking and warnings
+- Context-aware success messages:
+  - "Invitation Sent" for new users
+  - "User Added" for existing users
+
+**Seat Limit Validation**:
+```javascript
+if (seatUsage.remaining === 0) {
+    // Show "No Seats Available" banner
+    // Disable "Send Invitation" button
+    // Prompt to upgrade plan
+}
+```
+
+#### Accept Invitation Page
+**Location**: `/app/(dashboard)/accept-invite/page.jsx`
+
+**Features**:
+- Token validation on page load
+- Pre-populated invitation details display:
+  - Email (read-only)
+  - Contract name
+  - Assigned role
+  - Store access (if restricted)
+  - Inviter name
+- Password setup form:
+  - Password visibility toggle
+  - Confirmation field
+  - 8-character minimum requirement
+- Success animation with auto-redirect
+- Branded gradient design matching Wizel.ai style
+
+### Email Templates
+
+#### New User Invitation
+**From**: `invitations@wizel.ai`
+**Subject**: `{invitedBy} invited you to join {contractName} on Wizel.ai`
+
+**Content**:
+- Personalized greeting
+- Invitation details card:
+  - Role assignment
+  - Store access (if applicable)
+  - Inviter name
+- Prominent "Accept Invitation & Create Account" CTA button
+- Clickable invitation link
+- 7-day expiration notice
+- Wizel.ai branding with gradient header
+
+#### Existing User Notification
+**From**: `notifications@wizel.ai`
+**Subject**: `You've been added to {contractName} on Wizel.ai`
+
+**Content**:
+- Personalized greeting
+- Access details card:
+  - Role assignment
+  - Store access
+  - Inviter name
+- "Go to Dashboard" CTA button
+- Direct login link
+- Contact information for questions
+
+### Testing Scenarios
+
+#### Scenario 1: New User Invitation Flow
+```bash
+# 1. Admin invites newuser@example.com
+POST /api/contract/seats
+{
+    contractId: "contract123",
+    email: "newuser@example.com",
+    roleId: "creator_role_id"
+}
+
+# Response: invitationMethod = 'new_user'
+
+# 2. User receives email with token link
+# 3. User clicks link → /accept-invite?token=abc123...
+
+GET /api/invitations/accept?token=abc123...
+# Returns invitation details
+
+# 4. User submits signup form
+POST /api/invitations/accept
+{
+    token: "abc123...",
+    password: "SecurePass123",
+    name: "John Smith"
+}
+
+# 5. User account created, seat activated
+# 6. Redirect to /login
+```
+
+#### Scenario 2: Existing Active User Addition
+```bash
+# 1. Admin invites existinguser@example.com
+POST /api/contract/seats
+{
+    contractId: "contract123",
+    email: "existinguser@example.com",
+    roleId: "manager_role_id"
+}
+
+# Response: invitationMethod = 'existing_user'
+
+# 2. User receives notification email
+# 3. Seat immediately active
+# 4. User can access contract on next login
+```
+
+#### Scenario 3: Token Expiration
+```bash
+# 1. User receives invitation
+# 2. Waits > 7 days
+# 3. Attempts to accept invitation
+
+GET /api/invitations/accept?token=expired123
+# Returns: 400 - "Token expired"
+
+# 4. Admin must resend invitation (creates new token)
+```
+
+### Error Handling
+
+#### Common Error Cases
+| Error | Status | Cause | Resolution |
+|-------|--------|-------|------------|
+| "Token expired" | 400 | > 7 days since invitation | Resend invitation |
+| "Invalid token" | 404 | Token not found/already used | Check email link |
+| "User already has seat" | 400 | Duplicate invitation | Remove old seat first |
+| "No seats available" | 403 | Contract seat limit reached | Upgrade plan |
+| "Permission denied" | 403 | Inviter lacks team.invite_users | Need manager+ role |
+
+### Monitoring & Analytics
+
+#### Track Invitation Metrics
+```javascript
+// Invitation acceptance rate
+const acceptanceRate =
+    (activeSeats / totalInvitations) * 100;
+
+// Average time to accept
+const avgAcceptanceTime =
+    avg(activated_at - invitation_sent_at);
+
+// Expired invitations
+const expiredInvites = ContractSeat.count({
+    status: 'pending',
+    invitation_token_expires: { $lt: new Date() }
+});
+```
+
+#### Audit Logging
+```javascript
+{
+    event: 'invitation_sent',
+    user_id: invitedBy,
+    target_email: email,
+    contract_id: contractId,
+    role_id: roleId,
+    invitation_method: 'new_user' | 'existing_user',
+    timestamp: new Date()
+}
+
+{
+    event: 'invitation_accepted',
+    user_id: newUserId,
+    contract_id: contractId,
+    seat_id: seatId,
+    time_to_accept_hours: hours,
+    timestamp: new Date()
+}
+```
+
+### Best Practices
+
+#### For Administrators
+1. **Set appropriate roles**: Don't over-permission new users
+2. **Use store restrictions**: Limit access to relevant stores only
+3. **Monitor seat usage**: Track remaining seats before inviting
+4. **Resend expired invitations**: Check pending seats regularly
+
+#### For Developers
+1. **Always validate tokens**: Check hash match + expiration
+2. **Clear tokens after use**: Prevent replay attacks
+3. **Log invitation events**: Track acceptance rates and issues
+4. **Email delivery monitoring**: Ensure emails reach users
+5. **Test both paths**: New user and existing user flows
+
+### Migration Notes
+
+#### Updating Existing Seats
+```javascript
+// Add invitation tracking to existing seats
+await ContractSeat.updateMany(
+    { invitation_token: { $exists: false } },
+    {
+        $set: {
+            invitation_method: 'existing_user',
+            activated_at: new Date()
+        }
+    }
+);
+```
+
+#### Indexes Required
+```javascript
+// Ensure these indexes exist
+ContractSeat.index({ invitation_token: 1 }, { sparse: true });
+ContractSeat.index({ contract_id: 1, status: 1 });
+ContractSeat.index({ invitation_token_expires: 1 }, {
+    expireAfterSeconds: 0,  // Auto-cleanup
+    partialFilterExpression: {
+        status: 'pending',
+        invitation_token: { $exists: true }
+    }
+});
+```
+
+### Related API Routes
+
+- `GET /api/contract/seats?contractId=xxx` - List all seats
+- `PATCH /api/contract/seats/[seatId]` - Update user role/access
+- `DELETE /api/contract/seats/[seatId]` - Remove user from contract
+- `GET /api/roles?contractId=xxx` - Get available roles
+- `POST /api/invitations/resend` - Resend invitation (future enhancement)
+
 ## Future Enhancements
 
 1. **Dynamic Role Creation** - UI for creating custom roles from standard templates
@@ -1346,6 +1805,9 @@ async function manageDepartmentCreditPools(contractId, departmentId, creditAlloc
 3. **Role Recommendations** - AI suggests best role based on usage patterns
 4. **Temporary Permissions** - Grant time-limited elevated access
 5. **Cross-Organization Federation** - Share permissions across organizations
-6. ****NEW**: Contractor Management Dashboard** - Monitor contractor activity across all contracts
-7. ****NEW**: Department-Level Analytics** - Track usage and costs per enterprise department
-8. ****NEW**: Automated Seat Optimization** - AI-powered seat allocation recommendations
+6. **NEW: Contractor Management Dashboard** - Monitor contractor activity across all contracts
+7. **NEW: Department-Level Analytics** - Track usage and costs per enterprise department
+8. **NEW: Automated Seat Optimization** - AI-powered seat allocation recommendations
+9. **NEW: Invitation Resend API** - Regenerate tokens for expired invitations
+10. **NEW: Bulk User Import** - CSV upload for multiple user invitations
+11. **NEW: Custom Invitation Templates** - Branded email templates per contract

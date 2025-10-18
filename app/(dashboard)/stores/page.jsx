@@ -40,12 +40,28 @@ import StoreDialog from "@/app/components/stores/store-dialog";
 import TagManager from "@/app/components/stores/tag-manager";
 import PermissionsDialog from "@/app/components/stores/permissions-dialog";
 
+// Helper function to format store URL for display
+const formatStoreUrl = (url) => {
+  if (!url) return null;
+
+  // Remove protocol (http:// or https://)
+  let formatted = url.replace(/^https?:\/\//, '');
+
+  // Remove www.
+  formatted = formatted.replace(/^www\./, '');
+
+  // Remove trailing slash
+  formatted = formatted.replace(/\/$/, '');
+
+  return formatted;
+};
+
 export default function StoresPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { 
-    stores, 
-    tags, 
+  const {
+    stores,
+    tags,
     getUserAccessibleStores,
     currentUser,
     deleteStore,
@@ -216,7 +232,7 @@ export default function StoresPage() {
                     {store.name}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
-                    {store.url || `www.${store.name.toLowerCase().replace(/\s/g, '')}.com`}
+                    {formatStoreUrl(store.url) || `${store.name.toLowerCase().replace(/\s/g, '')}.com`}
                   </p>
                 </div>
               </div>
@@ -315,7 +331,7 @@ export default function StoresPage() {
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">{store.name}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {store.url || `www.${store.name.toLowerCase().replace(/\s/g, '')}.com`}
+                          {formatStoreUrl(store.url) || `${store.name.toLowerCase().replace(/\s/g, '')}.com`}
                         </p>
                       </div>
                     </div>

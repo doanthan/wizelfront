@@ -5,6 +5,9 @@ import ContractSeat from "@/models/ContractSeat";
 import User from "@/models/User";
 import Role from "@/models/Role";
 import Store from "@/models/Store";
+import Contract from "@/models/Contract";
+import { createInvitationToken } from "@/lib/invitation-token";
+import { sendNewUserInvitation, sendExistingUserNotification } from "@/lib/email";
 
 // GET - List all seats in a contract
 export async function GET(request) {
@@ -129,24 +132,111 @@ export async function POST(request) {
       );
     }
 
-    // Check if role exists
-    const role = await Role.findById(roleId);
-    if (!role) {
-      return NextResponse.json({ error: "Role not found" }, { status: 404 });
+    // Get contract and role details for emails
+    const [contract, role] = await Promise.all([
+      Contract.findById(contractId),
+      Role.findById(roleId)
+    ]);
+
+    if (!contract || !role) {
+      return NextResponse.json({ error: "Contract or role not found" }, { status: 404 });
     }
 
-    // Find or create user
-    let targetUser = await User.findOne({ email: email.toLowerCase() });
+    // Get store names if storeAccess is provided
+    let storeNames = [];
+    if (storeAccess && storeAccess.length > 0) {
+      const storeIds = storeAccess.map(access => access.store_id);
+      const stores = await Store.find({ _id: { $in: storeIds } }).select('name');
+      storeNames = stores.map(store => store.name);
+    }
 
-    if (!targetUser) {
-      // Create new user with pending status
+    // Find existing user
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+
+    // Determine invitation path: new user vs existing user
+    let targetUser;
+    let invitationMethod;
+    let seatStatus;
+    let invitationToken = null;
+
+    if (!existingUser) {
+      // PATH 1: New User - Create inactive user account
+      console.log('📧 New user invitation for:', email);
+      invitationMethod = 'new_user';
+      seatStatus = 'pending';
+
+      // Create new user with inactive status
       targetUser = new User({
         email: email.toLowerCase(),
         name: email.split('@')[0],
         password: Math.random().toString(36).slice(-12), // Temporary password
-        status: 'inactive' // User needs to set password and verify email
+        status: 'inactive' // User needs to accept invitation and set password
       });
       await targetUser.save();
+
+      // Generate invitation token
+      const tokenData = createInvitationToken();
+      invitationToken = tokenData.hashedToken; // Store hashed token
+
+      // Send new user invitation email with signup link
+      const emailResult = await sendNewUserInvitation({
+        to: email,
+        contractName: contract.contract_name,
+        roleName: role.name,
+        storeNames,
+        invitedBy: currentUser.name || currentUser.email,
+        token: tokenData.token // Send plain token in email
+      });
+
+      if (!emailResult.success) {
+        console.error('Failed to send new user invitation email:', emailResult.error);
+      }
+
+    } else if (existingUser.status === 'active') {
+      // PATH 2A: Existing Active User - Grant immediate access
+      console.log('✅ Existing active user, granting immediate access:', email);
+      invitationMethod = 'existing_user';
+      seatStatus = 'active';
+      targetUser = existingUser;
+
+      // Send notification email
+      const emailResult = await sendExistingUserNotification({
+        to: email,
+        name: existingUser.name,
+        contractName: contract.contract_name,
+        roleName: role.name,
+        storeNames,
+        invitedBy: currentUser.name || currentUser.email
+      });
+
+      if (!emailResult.success) {
+        console.error('Failed to send existing user notification email:', emailResult.error);
+      }
+
+    } else {
+      // PATH 2B: Existing Inactive User - Send invitation to complete setup
+      console.log('📧 Existing inactive user, sending invitation:', email);
+      invitationMethod = 'new_user'; // Treat as new user flow
+      seatStatus = 'pending';
+      targetUser = existingUser;
+
+      // Generate invitation token
+      const tokenData = createInvitationToken();
+      invitationToken = tokenData.hashedToken;
+
+      // Send new user invitation email
+      const emailResult = await sendNewUserInvitation({
+        to: email,
+        contractName: contract.contract_name,
+        roleName: role.name,
+        storeNames,
+        invitedBy: currentUser.name || currentUser.email,
+        token: tokenData.token
+      });
+
+      if (!emailResult.success) {
+        console.error('Failed to send invitation email:', emailResult.error);
+      }
     }
 
     // Check if seat already exists
@@ -165,35 +255,71 @@ export async function POST(request) {
     // Create or reactivate seat
     let seat;
     if (existingSeat) {
-      existingSeat.status = 'pending';
+      existingSeat.status = seatStatus;
       existingSeat.default_role_id = roleId;
       existingSeat.invited_by = currentUser._id;
       existingSeat.invitation_email = email;
       existingSeat.invitation_sent_at = new Date();
+      existingSeat.invitation_method = invitationMethod;
       existingSeat.store_access = storeAccess || [];
+
+      if (invitationToken) {
+        existingSeat.invitation_token = invitationToken;
+        const tokenExpiration = new Date();
+        tokenExpiration.setDate(tokenExpiration.getDate() + 7); // 7 days
+        existingSeat.invitation_token_expires = tokenExpiration;
+      }
+
+      if (seatStatus === 'active') {
+        existingSeat.activated_at = new Date();
+      }
+
       seat = await existingSeat.save();
     } else {
-      seat = await ContractSeat.create({
+      const seatData = {
         contract_id: contractId,
         user_id: targetUser._id,
         default_role_id: roleId,
         invited_by: currentUser._id,
         invitation_email: email,
         invitation_sent_at: new Date(),
-        status: 'pending',
+        invitation_method: invitationMethod,
+        status: seatStatus,
         store_access: storeAccess || []
-      });
+      };
+
+      if (invitationToken) {
+        seatData.invitation_token = invitationToken;
+        const tokenExpiration = new Date();
+        tokenExpiration.setDate(tokenExpiration.getDate() + 7);
+        seatData.invitation_token_expires = tokenExpiration;
+      }
+
+      if (seatStatus === 'active') {
+        seatData.activated_at = new Date();
+      }
+
+      seat = await ContractSeat.create(seatData);
+    }
+
+    // If seat is active, add to user's active_seats
+    if (seatStatus === 'active') {
+      targetUser.addSeat(contractId, contract.contract_name, seat._id);
+      await targetUser.save();
     }
 
     // Populate for response
     await seat.populate('user_id default_role_id invited_by');
 
-    // TODO: Send invitation email
+    const message = invitationMethod === 'new_user'
+      ? `Invitation sent to ${email}. They will receive an email to create their account.`
+      : `${email} has been added to the contract and notified via email.`;
 
     return NextResponse.json({
       success: true,
       seat: seat,
-      message: "User invitation sent successfully"
+      invitationMethod,
+      message
     });
 
   } catch (error) {
