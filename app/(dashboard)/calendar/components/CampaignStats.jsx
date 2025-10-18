@@ -85,8 +85,8 @@ export const CampaignStats = ({ campaigns, isFiltered = false, view = 'month', d
         return false;
       }
 
-      // A campaign is "sent" if it has performance data (recipients > 0)
-      return c.performance && c.performance.recipients > 0;
+      // A campaign is "sent" if it has statistics data (recipients > 0)
+      return c.statistics && c.statistics.recipients > 0;
     });
 
     const scheduledCampaigns = campaigns.filter(c => {
@@ -129,35 +129,35 @@ export const CampaignStats = ({ campaigns, isFiltered = false, view = 'month', d
       })),
       sentCampaignData: sentCampaigns.slice(0, 2).map(c => ({
         name: c.name,
-        hasPerf: !!c.performance,
-        recipients: c.performance?.recipients || c.recipients || 0,
-        revenue: c.performance?.revenue || c.revenue || 0,
-        opensUnique: c.performance?.opensUnique || c.opensUnique || 0
+        hasStats: !!c.statistics,
+        recipients: c.statistics?.recipients || c.recipients || 0,
+        revenue: c.statistics?.conversion_value || c.revenue || 0,
+        opensUnique: c.statistics?.opens_unique || c.opensUnique || 0
       }))
     });
 
     const totalSent = sentCampaigns.length;
     const totalScheduled = scheduledCampaigns.length;
 
-    // Calculate totals from sent campaigns using performance object
+    // Calculate totals from sent campaigns using statistics object
     const totalRecipients = sentCampaigns.reduce((sum, c) => {
-      return sum + (c.performance?.recipients || 0);
+      return sum + (c.statistics?.recipients || 0);
     }, 0);
 
     const totalRevenue = sentCampaigns.reduce((sum, c) => {
-      return sum + (c.performance?.revenue || 0);
+      return sum + (c.statistics?.conversion_value || 0);
     }, 0);
 
     const totalOpens = sentCampaigns.reduce((sum, c) => {
-      return sum + (c.performance?.opensUnique || 0);
+      return sum + (c.statistics?.opens_unique || 0);
     }, 0);
 
     const totalClicks = sentCampaigns.reduce((sum, c) => {
-      return sum + (c.performance?.clicksUnique || 0);
+      return sum + (c.statistics?.clicks_unique || 0);
     }, 0);
 
     const totalConversions = sentCampaigns.reduce((sum, c) => {
-      return sum + (c.performance?.conversions || 0);
+      return sum + (c.statistics?.conversions || 0);
     }, 0);
 
     // Calculate weighted averages for rates

@@ -266,11 +266,18 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                 <div className="pb-40"> {/* Add padding bottom to allow scrolling past overlay */}
                                     {(() => {
                                         const messageId = data.message_id || data.messageId || data.groupings?.campaign_message_id;
-                                        const storeId = campaignStore?.klaviyo_integration?.public_id || campaignStore?.public_id;
-                                        
+                                        // Use store's public_id (not klaviyo_integration.public_id) per documentation
+                                        const storeId = campaignStore?.public_id;
+
                                         console.log('🔍 Preview panel debug:', {
                                             messageId,
                                             storeId,
+                                            storeHasKlaviyoAuth: !!(campaignStore?.klaviyo_integration?.apiKey || campaignStore?.klaviyo_integration?.oauth_token),
+                                            klaviyoIntegration: campaignStore?.klaviyo_integration ? {
+                                                hasApiKey: !!campaignStore.klaviyo_integration.apiKey,
+                                                hasOAuth: !!campaignStore.klaviyo_integration.oauth_token,
+                                                publicId: campaignStore.klaviyo_integration.public_id
+                                            } : null,
                                             campaignStore: campaignStore ? {
                                                 name: campaignStore.name,
                                                 public_id: campaignStore.public_id,
