@@ -213,7 +213,7 @@ async function getDashboardMetrics(
         sum(sms_orders) as sms_orders,
         sum(new_customer_revenue) as new_customer_revenue,
         sum(repeat_customer_revenue) as repeat_customer_revenue
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id IN (${keysString})
         AND date >= '${startDate}'
         AND date <= '${yesterday}'
@@ -249,7 +249,7 @@ async function getDashboardMetrics(
         sum(sms_revenue) as sms_revenue,
         sum(email_orders) as email_orders,
         sum(sms_orders) as sms_orders
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id IN (${keysString})
         AND date >= '${comparisonStartDate}'
         AND date <= '${comparisonEndDate}'
@@ -263,13 +263,13 @@ async function getDashboardMetrics(
         sum(CASE WHEN send_channel = 'sms' THEN recipients ELSE 0 END) as sms_recipients
       FROM (
         SELECT recipients, send_channel 
-        FROM campaign_statistics
+        FROM campaign_statistics_latest
         WHERE klaviyo_public_id IN (${keysString})
           AND date >= '${startDate}'
           AND date <= '${endDate}'
         UNION ALL
         SELECT recipients, send_channel 
-        FROM flow_statistics
+        FROM flow_statistics_latest
         WHERE klaviyo_public_id IN (${keysString})
           AND date >= '${startDate}'
           AND date <= '${endDate}'
@@ -421,7 +421,7 @@ async function getCampaignMetrics(client, klaviyoPublicKeys, startDate, endDate)
         avg(open_rate) as open_rate,
         avg(click_rate) as click_rate,
         avg(conversion_rate) as conversion_rate
-      FROM campaign_statistics
+      FROM campaign_statistics_latest
       WHERE klaviyo_public_id IN (${keysString})
         AND date >= '${startDate}'
         AND date <= '${endDate}'
@@ -470,7 +470,7 @@ async function getFlowMetrics(client, klaviyoPublicKeys, startDate, endDate) {
         avg(open_rate) as open_rate,
         avg(click_rate) as click_rate,
         avg(conversion_rate) as conversion_rate
-      FROM flow_statistics
+      FROM flow_statistics_latest
       WHERE klaviyo_public_id IN (${keysString})
         AND date >= '${startDate}'
         AND date <= '${endDate}'
@@ -525,7 +525,7 @@ async function getAccountPerformance(client, klaviyoPublicKeys, startDate, endDa
           sum(attributed_revenue) as attributed_revenue,
           sum(email_revenue) as email_revenue,
           sum(sms_revenue) as sms_revenue
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${keysString})
           AND date >= '${startDate}'
           AND date <= '${yesterday}'

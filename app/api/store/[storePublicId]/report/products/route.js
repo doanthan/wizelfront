@@ -60,17 +60,17 @@ export const GET = withStoreAccess(async (request, context) => {
       product_metrics AS (
           SELECT
               product_id,
-              argMax(product_name, updated_at) as product_name,
-              argMax(sku, updated_at) as sku,
-              argMax(product_brand, updated_at) as product_brand,
-              argMax(product_categories, updated_at) as product_categories,
-              argMax(total_revenue, updated_at) as total_revenue,
-              argMax(total_orders, updated_at) as total_orders,
-              argMax(unique_customers, updated_at) as unique_customers,
-              argMax(total_quantity, updated_at) as total_quantity,
-              argMax(avg_price, updated_at) as avg_price,
-              argMax(first_sold_date, updated_at) as first_sold_date,
-              argMax(last_sold_date, updated_at) as last_sold_date
+              argMax(product_name, last_updated) as product_name,
+              argMax(sku, last_updated) as sku,
+              argMax(product_brand, last_updated) as product_brand,
+              argMax(product_categories, last_updated) as product_categories,
+              argMax(total_revenue, last_updated) as total_revenue,
+              argMax(total_orders, last_updated) as total_orders,
+              argMax(unique_customers, last_updated) as unique_customers,
+              argMax(total_quantity, last_updated) as total_quantity,
+              argMax(avg_price, last_updated) as avg_price,
+              argMax(first_sold_date, last_updated) as first_sold_date,
+              argMax(last_sold_date, last_updated) as last_sold_date
           FROM products_master
           WHERE klaviyo_public_id = {klaviyoId:String}
           GROUP BY product_id
@@ -118,7 +118,7 @@ export const GET = withStoreAccess(async (request, context) => {
       ltv_metrics AS (
           SELECT
               first_product_id,
-              argMax(first_product_sku, updated_at) as first_product_sku,
+              argMax(first_product_sku, last_updated) as first_product_sku,
               sum(customers_acquired) as total_customers_acquired,
               avg(avg_ltv_90d) as avg_customer_ltv_90d,
               avg(ltv_multiplier_90d) as avg_ltv_multiplier_90d,
@@ -186,6 +186,24 @@ export const GET = withStoreAccess(async (request, context) => {
                  0) as any_product_repurchase_rate
           FROM customer_order_counts
           GROUP BY product_id
+      ),
+
+      -- Calculate refund metrics for the selected date range
+      product_refunds AS (
+          SELECT
+              li.product_id,
+              sum(o.refund_amount * (li.line_total / NULLIF(o.order_value, 0))) as total_refund_amount,
+              count(DISTINCT CASE WHEN o.refund_amount > 0 THEN o.order_id END) as refund_count
+          FROM klaviyo_order_line_items li
+          INNER JOIN klaviyo_orders o
+              ON li.order_id = o.order_id
+              AND li.klaviyo_public_id = o.klaviyo_public_id
+          WHERE li.klaviyo_public_id = {klaviyoId:String}
+              AND o.order_timestamp >= parseDateTime64BestEffort({startDate:String})
+              AND o.order_timestamp <= parseDateTime64BestEffort({endDate:String})
+              AND li.product_id != ''
+              AND li.quantity > 0
+          GROUP BY li.product_id
       )
 
       -- Final SELECT with all metrics
@@ -237,7 +255,14 @@ export const GET = withStoreAccess(async (request, context) => {
           if(COALESCE(rp.revenue_30d, 0) > 0, 'Active', 'Inactive') as status_30d,
 
           -- Revenue per customer
-          if(pm.unique_customers > 0, pm.total_revenue / pm.unique_customers, 0) as revenue_per_customer
+          if(pm.unique_customers > 0, pm.total_revenue / pm.unique_customers, 0) as revenue_per_customer,
+
+          -- Refund metrics
+          COALESCE(ref.total_refund_amount, 0) as total_refund_amount,
+          COALESCE(ref.refund_count, 0) as refund_count,
+          if(COALESCE(rp.revenue_30d, 0) > 0,
+             (COALESCE(ref.total_refund_amount, 0) / rp.revenue_30d) * 100.0,
+             0) as refund_rate
 
       FROM product_metrics pm
       LEFT JOIN recent_performance rp ON pm.product_id = rp.product_id
@@ -245,6 +270,7 @@ export const GET = withStoreAccess(async (request, context) => {
       LEFT JOIN same_product_repurchase spr ON pm.product_id = spr.product_id
       LEFT JOIN any_product_repurchase apr ON pm.product_id = apr.product_id
       LEFT JOIN ltv_metrics ltv ON pm.product_id = ltv.first_product_id
+      LEFT JOIN product_refunds ref ON pm.product_id = ref.product_id
 
       WHERE COALESCE(rp.units_30d, 0) > 0
 
@@ -284,7 +310,10 @@ export const GET = withStoreAccess(async (request, context) => {
       any_product_repurchase_rate: parseFloat(product.any_product_repurchase_rate || 0),
       any_product_repurchase_count: parseInt(product.any_product_repurchase_count || 0),
       repeat_purchase_rate: parseFloat(product.repeat_purchase_rate || 0),
-      ltv_multiplier: parseFloat(product.ltv_multiplier || 0)
+      ltv_multiplier: parseFloat(product.ltv_multiplier || 0),
+      total_refund_amount: parseFloat(product.total_refund_amount || 0),
+      refund_count: parseInt(product.refund_count || 0),
+      refund_rate: parseFloat(product.refund_rate || 0)
     }));
 
     // Debug: Check first product's customer data
@@ -336,11 +365,11 @@ export const GET = withStoreAccess(async (request, context) => {
       product_with_categories AS (
           SELECT
               product_id,
-              argMax(product_name, updated_at) as product_name,
-              argMax(total_revenue, updated_at) as total_revenue,
-              argMax(total_quantity, updated_at) as total_quantity,
-              argMax(unique_customers, updated_at) as unique_customers,
-              argMax(product_categories, updated_at) as categories
+              argMax(product_name, last_updated) as product_name,
+              argMax(total_revenue, last_updated) as total_revenue,
+              argMax(total_quantity, last_updated) as total_quantity,
+              argMax(unique_customers, last_updated) as unique_customers,
+              argMax(product_categories, last_updated) as categories
           FROM products_master
           WHERE klaviyo_public_id = {klaviyoId:String}
           GROUP BY product_id

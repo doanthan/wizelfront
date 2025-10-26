@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useStores } from "@/app/contexts/store-context";
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
 import { useTheme } from "@/app/contexts/theme-context";
@@ -12,6 +12,12 @@ import MorphingLoader from '@/app/components/ui/loading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/app/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -27,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -36,16 +43,25 @@ import {
   TrendingUp, TrendingDown, Mail, MousePointer,
   Eye, Target, Send, Users, DollarSign,
   ArrowUp, ArrowDown, Calendar, MessageSquare,
-  Clock, CheckCircle, XCircle, AlertCircle, ArrowUpDown
+  Clock, CheckCircle, XCircle, AlertCircle, ArrowUpDown, Info
 } from 'lucide-react';
 import UpcomingCampaigns from "@/app/(dashboard)/dashboard/components/UpcomingCampaigns";
+import EmailHealthScoreCard from "./components/EmailHealthScoreCard";
+import EmailFatigueChart from "./components/EmailFatigueChart";
+import ListQualityIndicators from "./components/ListQualityIndicators";
+import CampaignDetailsModal from "@/app/(dashboard)/calendar/components/CampaignDetailsModal";
+import CampaignROIMatrix from "./components/CampaignROIMatrix";
+import RevenueAttributionFunnel from "./components/RevenueAttributionFunnel";
+import CampaignQualityHeatmap from "./components/CampaignQualityHeatmap";
+import RevenueEfficiencyTrend from "./components/RevenueEfficiencyTrend";
 
 const COLORS = ['#60A5FA', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899'];
 
 export default function StoreCampaignsReportPage() {
   const router = useRouter();
   const params = useParams();
-  const { stores, isLoadingStores } = useStores();
+  const searchParams = useSearchParams();
+  const { stores, isLoadingStores, selectStore } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -56,6 +72,13 @@ export default function StoreCampaignsReportPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortField, setSortField] = useState("send_date");
   const [sortDirection, setSortDirection] = useState("desc");
+  const [healthData, setHealthData] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(true);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Get active tab from URL or default to "summary"
+  const activeTab = searchParams?.get('tab') || 'summary';
 
   // Get storePublicId from params
   useEffect(() => {
@@ -116,8 +139,43 @@ export default function StoreCampaignsReportPage() {
   // Handle store selection change
   const handleStoreChange = (newStoreId) => {
     if (newStoreId && newStoreId !== storePublicId) {
+      // Update the store context to synchronize with sidebar
+      selectStore(newStoreId);
+      // Navigate to the new store's report page
       router.push(`/store/${newStoreId}/report/campaigns`);
     }
+  };
+
+  // Handle campaign click to open modal
+  const handleCampaignClick = (campaign) => {
+    // Transform campaign data to match modal expectations
+    const transformedCampaign = {
+      ...campaign,
+      // Map field names for consistency with calendar modal
+      campaign_name: campaign.name,
+      send_date: campaign.send_date,
+      opensUnique: campaign.opens,
+      clicksUnique: campaign.clicks,
+      openRate: campaign.open_rate,
+      clickRate: campaign.click_rate,
+      conversionRate: campaign.conversion_rate,
+      revenuePerRecipient: campaign.revenue_per_recipient,
+      ctor: campaign.click_to_open_rate,
+      deliveryRate: campaign.delivery_rate,
+      bounceRate: campaign.bounce_rate,
+      unsubscribeRate: campaign.unsubscribe_rate,
+      spamComplaintRate: campaign.spam_complaint_rate,
+      channel: campaign.type, // 'email' or 'sms'
+      // Add message_id for email preview (if available)
+      message_id: campaign.message_id || campaign.groupings?.campaign_message_id,
+      // Store mapping
+      store_public_id: storePublicId,
+      klaviyo_public_id: currentStore?.klaviyo_integration?.public_id
+    };
+
+    console.log('Opening campaign modal:', transformedCampaign);
+    setSelectedCampaign(transformedCampaign);
+    setIsModalOpen(true);
   };
 
   // Fetch campaign data from API
@@ -170,6 +228,44 @@ export default function StoreCampaignsReportPage() {
 
     fetchCampaignData();
   }, [storePublicId, dateRangeSelection]);
+
+  // Fetch email health data from API
+  useEffect(() => {
+    if (!storePublicId) return;
+
+    const fetchHealthData = async () => {
+      try {
+        setHealthLoading(true);
+
+        const response = await fetch(
+          `/api/store/${storePublicId}/report/campaigns/health`,
+          {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          console.error('[Health Data] API Error:', response.status);
+          setHealthData(null);
+          return;
+        }
+
+        const data = await response.json();
+        console.log('[Health Data] Received:', data);
+        setHealthData(data);
+      } catch (err) {
+        console.error('Error fetching health data:', err);
+        setHealthData(null);
+      } finally {
+        setHealthLoading(false);
+      }
+    };
+
+    fetchHealthData();
+  }, [storePublicId]);
 
   // Mock data for fallback - replace with actual API calls
   const mockCampaignsData = {
@@ -291,12 +387,84 @@ export default function StoreCampaignsReportPage() {
 
   // Calculate metric changes
   const getPercentageChange = (current, previous) => {
-    if (!previous || previous === 0) return 0;
-    return ((current - previous) / previous) * 100;
+    // Handle null, undefined, or NaN values
+    const currentVal = Number(current) || 0;
+    const previousVal = Number(previous) || 0;
+
+    // If both are 0, show 0% change
+    if (currentVal === 0 && previousVal === 0) return 0;
+    // If previous is 0 but current is not, show 100% (or could show "New" instead)
+    if (previousVal === 0) return currentVal > 0 ? 100 : 0;
+
+    const change = ((currentVal - previousVal) / previousVal) * 100;
+
+    // Cap at reasonable values to avoid display issues
+    if (change > 10000) return 10000;
+    if (change < -10000) return -10000;
+
+    return change;
+  };
+
+  // Render change indicator with proper styling and previous period value
+  const renderChangeIndicator = (current, previous, metricType = 'number') => {
+    const currentVal = Number(current) || 0;
+    const previousVal = Number(previous) || 0;
+
+    // If both current and previous are 0, show "No change"
+    if (currentVal === 0 && previousVal === 0) {
+      return (
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          No change
+        </p>
+      );
+    }
+
+    const change = getPercentageChange(current, previous);
+
+    // Determine color and icon based on change
+    const isPositive = change > 0;
+    const isZero = change === 0;
+    const colorClass = isZero
+      ? "text-gray-500 dark:text-gray-400"
+      : isPositive
+        ? "text-green-600 dark:text-green-500"
+        : "text-red-600 dark:text-red-500";
+    const Icon = isZero ? null : isPositive ? ArrowUp : ArrowDown;
+
+    // Format both current and previous period values based on metric type
+    let formattedCurrent = '';
+    let formattedPrevious = '';
+    if (metricType === 'currency') {
+      formattedCurrent = formatCurrency(currentVal);
+      formattedPrevious = formatCurrency(previousVal);
+    } else if (metricType === 'percentage') {
+      formattedCurrent = formatPercentage(currentVal);
+      formattedPrevious = formatPercentage(previousVal);
+    } else {
+      formattedCurrent = formatNumber(currentVal);
+      formattedPrevious = formatNumber(previousVal);
+    }
+
+    return (
+      <div className="space-y-0.5">
+        <p className={`text-xs flex items-center ${colorClass}`}>
+          {Icon && <Icon className="h-3 w-3 mr-1" />}
+          {formatPercentage(Math.abs(change))} from last period
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Previous: {formattedPrevious}
+        </p>
+      </div>
+    );
   };
 
   // Use real data or fallback to mock data
-  const data = campaignsData || mockCampaignsData;
+  const data = campaignsData || mockCampaignsData || {
+    summary: {},
+    campaigns: [],
+    performanceOverTime: [],
+    attributedRevenueOverTime: []
+  };
 
   // Filter campaigns
   // Handle sorting
@@ -309,6 +477,13 @@ export default function StoreCampaignsReportPage() {
       setSortField(field);
       setSortDirection('desc');
     }
+  };
+
+  // Handle tab change with URL update
+  const handleTabChange = (tab) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    router.push(url.pathname + url.search);
   };
 
   const filteredCampaigns = useMemo(() => {
@@ -458,8 +633,17 @@ export default function StoreCampaignsReportPage() {
         </div>
       )}
 
-      {/* Metrics Cards */}
+      {/* Tabs Navigation */}
       {!loading && !error && (
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+        </TabsList>
+
+        {/* Summary Tab */}
+        <TabsContent value="summary" className="space-y-4">
+      {/* Metrics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -468,10 +652,7 @@ export default function StoreCampaignsReportPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{data.summary.total_campaigns}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {formatPercentage(getPercentageChange(data.summary.total_campaigns, data.previousPeriod.total_campaigns))} from last period
-            </p>
+            {renderChangeIndicator(data.summary.total_campaigns, data.previousPeriod.total_campaigns, 'number')}
           </CardContent>
         </Card>
 
@@ -482,10 +663,7 @@ export default function StoreCampaignsReportPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.avg_open_rate)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {(data.summary.avg_open_rate - data.previousPeriod.avg_open_rate).toFixed(1)}pp from last period
-            </p>
+            {renderChangeIndicator(data.summary.avg_open_rate, data.previousPeriod.avg_open_rate, 'percentage')}
           </CardContent>
         </Card>
 
@@ -496,10 +674,7 @@ export default function StoreCampaignsReportPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatPercentage(data.summary.avg_click_rate)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {(data.summary.avg_click_rate - data.previousPeriod.avg_click_rate).toFixed(1)}pp from last period
-            </p>
+            {renderChangeIndicator(data.summary.avg_click_rate, data.previousPeriod.avg_click_rate, 'percentage')}
           </CardContent>
         </Card>
 
@@ -510,22 +685,46 @@ export default function StoreCampaignsReportPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary.total_revenue)}</div>
-            <p className="text-xs flex items-center text-green-600">
-              <ArrowUp className="h-3 w-3 mr-1" />
-              {formatPercentage(getPercentageChange(data.summary.total_revenue, data.previousPeriod.total_revenue))} from last period
-            </p>
+            {renderChangeIndicator(data.summary.total_revenue, data.previousPeriod.total_revenue, 'currency')}
           </CardContent>
         </Card>
       </div>
-      )}
 
       {/* Charts Section - Side by Side */}
-      {!loading && !error && (
       <div className="grid gap-6 md:grid-cols-2">
         {/* Attributed Revenue */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">Attributed Revenue</CardTitle>
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              Attributed Revenue
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                    <div className="space-y-2">
+                      <p className="font-semibold text-gray-900 dark:text-white">Attribution Metrics</p>
+                      <ul className="text-xs space-y-1 text-gray-900 dark:text-gray-100">
+                        <li><strong>Total Store Revenue:</strong> All revenue from your store (light purple bars)</li>
+                        <li><strong>Attributed Revenue:</strong> Revenue directly from email/SMS campaigns (green bars)</li>
+                        <li><strong>Percent Attributed:</strong> What % of total revenue comes from campaigns (blue line)</li>
+                        <li><strong>Campaigns:</strong> Number of campaigns sent that period (purple dotted line)</li>
+                      </ul>
+                      <p className="text-xs mt-2 pt-2 border-t text-gray-900 dark:text-white font-semibold">
+                        How to Use:
+                      </p>
+                      <ul className="text-xs space-y-1 text-gray-900 dark:text-gray-100">
+                        <li>• Compare green vs light purple bars to see campaign impact</li>
+                        <li>• Blue line shows campaign effectiveness over time</li>
+                        <li>• If percent attributed drops, campaigns may need optimization</li>
+                        <li>• Track correlation between campaign count and attributed revenue</li>
+                      </ul>
+                    </div>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {/* Summary Metrics */}
@@ -587,7 +786,7 @@ export default function StoreCampaignsReportPage() {
 
             {/* Chart */}
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={data.attributedRevenueOverTime}>
+              <BarChart data={data.attributedRevenueOverTime} barGap={-32}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                 <XAxis
                   dataKey="month"
@@ -631,54 +830,57 @@ export default function StoreCampaignsReportPage() {
                   }}
                 />
                 <Legend
+                  wrapperStyle={{
+                    paddingTop: '20px'
+                  }}
                   formatter={(value) => {
                     if (value === 'Flows') return null; // Hide flows from legend
                     return value;
                   }}
                 />
 
-                {/* Bar for Total Store Revenue (larger, background) */}
+                {/* Bar for Total Store Revenue (larger, background - light purple) */}
                 <Bar
                   yAxisId="left"
                   dataKey="totalRevenue"
                   name="Total Store Revenue"
-                  fill="#E0E7FF"
+                  fill="#C4B5FD"
                   opacity={0.6}
                   radius={[4, 4, 0, 0]}
-                  barSize={40}
+                  barSize={50}
                 />
 
-                {/* Bar for Attributed Revenue (smaller, foreground) */}
+                {/* Bar for Attributed Revenue (smaller, foreground - vibrant emerald) */}
                 <Bar
                   yAxisId="left"
                   dataKey="attributedRevenue"
                   name="Attributed Revenue"
-                  fill="#22C55E"
-                  opacity={0.9}
+                  fill="#10B981"
+                  opacity={1}
                   radius={[4, 4, 0, 0]}
-                  barSize={40}
+                  barSize={50}
                 />
 
-                {/* Line for Percent Attributed */}
+                {/* Line for Percent Attributed - Sky Blue */}
                 <Line
                   yAxisId="right"
                   type="monotone"
                   dataKey="percentAttributed"
                   name="Percent Attributed"
                   stroke="#60A5FA"
-                  strokeWidth={2}
-                  dot={{ fill: '#60A5FA', r: 4 }}
+                  strokeWidth={3}
+                  dot={{ fill: '#60A5FA', r: 5, strokeWidth: 2, stroke: '#fff' }}
                 />
 
-                {/* Line for Campaigns */}
+                {/* Line for Campaigns - Vivid Violet */}
                 <Line
                   yAxisId="right"
                   type="monotone"
                   dataKey="campaigns"
                   name="Campaigns"
                   stroke="#8B5CF6"
-                  strokeWidth={2}
-                  dot={{ fill: '#8B5CF6', r: 3 }}
+                  strokeWidth={3}
+                  dot={{ fill: '#8B5CF6', r: 4, strokeWidth: 2, stroke: '#fff' }}
                   strokeDasharray="5 5"
                 />
               </BarChart>
@@ -689,7 +891,35 @@ export default function StoreCampaignsReportPage() {
         {/* Campaign Performance Over Time */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">Campaign Performance Over Time</CardTitle>
+            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              Campaign Performance Over Time
+              <TooltipProvider>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                    <div className="space-y-2">
+                      <p className="font-semibold text-gray-900 dark:text-white">Engagement Funnel</p>
+                      <ul className="text-xs space-y-1 text-gray-900 dark:text-gray-100">
+                        <li><strong>Opens:</strong> How many recipients opened your emails (blue bars)</li>
+                        <li><strong>Clicks:</strong> How many clicked links in your emails (purple bars)</li>
+                        <li><strong>Conversions:</strong> How many made a purchase (green bars)</li>
+                      </ul>
+                      <p className="text-xs mt-2 pt-2 border-t text-gray-900 dark:text-white font-semibold">
+                        How to Use:
+                      </p>
+                      <ul className="text-xs space-y-1 text-gray-900 dark:text-gray-100">
+                        <li>• Look for consistent growth trends across all three metrics</li>
+                        <li>• If opens high but clicks low = weak email content/CTAs</li>
+                        <li>• If clicks high but conversions low = landing page issues</li>
+                        <li>• Compare week-over-week to identify what's working</li>
+                      </ul>
+                    </div>
+                  </TooltipContent>
+                </UITooltip>
+              </TooltipProvider>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {/* Summary Metrics */}
@@ -769,10 +999,90 @@ export default function StoreCampaignsReportPage() {
           </CardContent>
         </Card>
       </div>
-      )}
 
-      {/* Campaigns Table */}
-      {!loading && !error && (
+      {/* List Quality Indicators - 4 Metric Cards */}
+      <ListQualityIndicators healthData={healthData} loading={healthLoading} />
+
+      {/* Email Fatigue Analysis Chart with Health Score */}
+      <EmailFatigueChart healthData={healthData} loading={healthLoading} />
+
+      {/* Advanced Analytics Section - moved from Campaigns tab */}
+      {data?.campaigns && data.campaigns.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Advanced Analytics & Insights
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Data-driven insights and actionable recommendations to optimize your campaign performance
+              </p>
+            </div>
+          </div>
+
+          {/* ROI Matrix & Attribution Funnel */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <CampaignROIMatrix
+              campaigns={data.campaigns.map(c => ({
+                ...c,
+                campaign_name: c.name,
+                statistics: {
+                  click_rate: c.click_rate,
+                  conversion_rate: c.conversion_rate,
+                  revenue: c.revenue
+                }
+              }))}
+              loading={loading}
+            />
+            <RevenueAttributionFunnel
+              campaigns={data.campaigns}
+              loading={loading}
+            />
+          </div>
+
+          {/* Quality Heatmap */}
+          <CampaignQualityHeatmap
+            campaigns={data.campaigns.map(c => ({
+              ...c,
+              campaign_name: c.name,
+              send_time: c.send_date,
+              statistics: {
+                open_rate: c.open_rate,
+                click_rate: c.click_rate,
+                conversion_rate: c.conversion_rate,
+                revenue: c.revenue
+              }
+            }))}
+            loading={loading}
+          />
+
+          {/* Revenue Efficiency Analysis */}
+          <RevenueEfficiencyTrend
+            campaigns={data.campaigns.map(c => ({
+              ...c,
+              campaign_name: c.name,
+              send_time: c.send_date,
+              statistics: {
+                recipients: c.recipients,
+                conversion_value: c.revenue,
+                revenue_per_recipient: c.revenue_per_recipient,
+                average_order_value: c.average_order_value
+              }
+            }))}
+            loading={loading}
+          />
+        </div>
+      )}
+        </TabsContent>
+
+        {/* Campaigns Tab */}
+        <TabsContent value="campaigns" className="space-y-4">
+      {/* Upcoming Campaigns - First */}
+      <UpcomingCampaigns
+        stores={storesForUpcoming}
+      />
+
+      {/* Recent Campaigns Table - Second */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -931,7 +1241,11 @@ export default function StoreCampaignsReportPage() {
                     : 'Untitled';
 
                   return (
-                  <TableRow key={campaign.id} className="text-sm">
+                  <TableRow
+                    key={campaign.id}
+                    className="text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => handleCampaignClick(campaign)}
+                  >
                     <TableCell className="py-2">
                       <div className="max-w-[160px]">
                         <div className="font-medium text-gray-900 dark:text-gray-100 truncate text-sm" title={campaign.name}>
@@ -1005,12 +1319,22 @@ export default function StoreCampaignsReportPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
       )}
 
-      {/* Upcoming Campaigns Section */}
-      <UpcomingCampaigns
-        stores={storesForUpcoming}
-      />
+      {/* Campaign Details Modal */}
+      {selectedCampaign && (
+        <CampaignDetailsModal
+          campaign={selectedCampaign}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedCampaign(null);
+          }}
+          stores={stores || []}
+        />
+      )}
     </div>
   );
 }

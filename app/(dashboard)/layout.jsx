@@ -1,7 +1,7 @@
 "use client";
 
 import Sidebar from "@/app/components/dashboard/sidebar";
-import ChatWidget from "@/app/components/chat/ChatWidget";
+import WizelChat from "@/app/components/ai/wizel-chat";
 import { Toaster } from "@/app/components/ui/toaster";
 import { ThemeProvider } from "@/app/contexts/theme-context";
 import { StoreProvider } from "@/app/contexts/store-context";
@@ -22,7 +22,7 @@ function DashboardContent({ children }) {
       <main className={`flex-1 p-4 lg:p-6 ${isBrandPage ? 'flex' : 'flex flex-col'} transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {children}
       </main>
-      <ChatWidget />
+      <WizelChat />
       <Toaster />
     </div>
   );

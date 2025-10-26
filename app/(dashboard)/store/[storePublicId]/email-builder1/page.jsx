@@ -72,7 +72,7 @@ export default function StoreEmailBuilderPage() {
 
       if (!store) {
         // DEVELOPMENT BYPASS: Try to fetch store directly
-        if (process.env.NODE_ENV === 'development' && retryCount >= 2) {
+        if (process.env.NEXT_PUBLIC_NODE_ENV === 'development' && retryCount >= 2) {
           console.warn('🔧 DEVELOPMENT MODE: Fetching store directly for', storePublicId);
 
           // Try to fetch the store directly from the API

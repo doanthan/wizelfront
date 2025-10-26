@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
 import { Badge } from "@/app/components/ui/badge"
@@ -86,7 +86,8 @@ const getFlowColor = (index) => {
 export default function FlowsTab({
     selectedAccounts,
     dateRangeSelection,
-    stores
+    stores,
+    onTabDataUpdate
 }) {
     const [loading, setLoading] = useState(true)
     const [messagesLoading, setMessagesLoading] = useState(false)
@@ -529,6 +530,34 @@ export default function FlowsTab({
             }
         })
     }
+
+    // Track last update to prevent infinite loops
+    const lastUpdateRef = useRef(null);
+
+    // Update AI context whenever flows data changes
+    useEffect(() => {
+        if (!onTabDataUpdate || !flowsData.flows || flowsData.flows.length === 0 || loading) {
+            return;
+        }
+
+        // Create a stable representation of the data to check for actual changes
+        const currentData = JSON.stringify({
+            flowCount: flowsData.flows.length,
+            totalRecipients: selectedFlowsData.aggregateMetrics?.totalRecipients || 0,
+            totalRevenue: selectedFlowsData.aggregateMetrics?.totalRevenue || 0
+        });
+
+        // Only update if data actually changed
+        if (lastUpdateRef.current !== currentData) {
+            lastUpdateRef.current = currentData;
+            onTabDataUpdate({
+                flows: flowsData.flows || [],
+                metrics: selectedFlowsData.aggregateMetrics || {},
+                loading,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }, [flowsData.flows.length, loading]); // Simplified dependencies - only length and loading
 
     // Render comparison chart
     const renderComparisonChart = () => {

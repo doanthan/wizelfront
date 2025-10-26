@@ -78,6 +78,22 @@ function getMetricLabel(metric) {
   return labels[metric] || metric;
 }
 
+// Helper function to format dates in a friendly way (e.g., "27th Sept")
+function formatFriendlyDate(dateString) {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+
+  // Add ordinal suffix (st, nd, rd, th)
+  const getOrdinal = (n) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  return `${getOrdinal(day)} ${month}`;
+}
+
 // Helper function to prepare time series data for multiple flows
 function prepareTimeSeriesData(performanceOverTime, selectedFlows, selectedMetric) {
   if (!performanceOverTime || Object.keys(performanceOverTime).length === 0) {
@@ -149,38 +165,6 @@ function getAvailableFlows(performanceOverTime) {
   });
 
   return Array.from(flowSet).sort();
-}
-
-// Helper function to prepare funnel data for a selected flow
-function prepareFunnelData(flows, selectedFlowName) {
-  if (!flows || flows.length === 0 || !selectedFlowName) {
-    return [];
-  }
-
-  const flow = flows.find(f => f.flow_name === selectedFlowName);
-  if (!flow) {
-    return [];
-  }
-
-  const recipients = flow.recipients || 0;
-  const delivered = flow.delivered || 0;
-  const opens = flow.opens || 0;
-  const clicks = flow.clicks || 0;
-  const conversions = flow.conversions || 0;
-
-  // Calculate percentages (of recipients)
-  const deliveredPct = recipients > 0 ? (delivered / recipients) * 100 : 0;
-  const opensPct = recipients > 0 ? (opens / recipients) * 100 : 0;
-  const clicksPct = recipients > 0 ? (clicks / recipients) * 100 : 0;
-  const conversionsPct = recipients > 0 ? (conversions / recipients) * 100 : 0;
-
-  return [
-    { stage: 'Recipients', value: recipients, percentage: 100 },
-    { stage: 'Delivered', value: delivered, percentage: deliveredPct },
-    { stage: 'Opened', value: opens, percentage: opensPct },
-    { stage: 'Clicked', value: clicks, percentage: clicksPct },
-    { stage: 'Converted', value: conversions, percentage: conversionsPct }
-  ];
 }
 
 // Helper function to prepare funnel data for a selected message
@@ -266,7 +250,7 @@ function prepareMessageTimeSeriesData(messagePerformanceOverTime, selectedMessag
 export default function StoreFlowsReportPage() {
   const router = useRouter();
   const params = useParams();
-  const { stores, isLoadingStores } = useStores();
+  const { stores, isLoadingStores, selectStore } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -290,10 +274,13 @@ export default function StoreFlowsReportPage() {
   // Flow Aggregate View selections
   const [selectedEngagementFlows, setSelectedEngagementFlows] = useState([]);
   const [selectedEngagementMetric, setSelectedEngagementMetric] = useState('open_rate');
-  const [selectedFunnelFlow, setSelectedFunnelFlow] = useState(null);
   const [selectedComparisonFlows, setSelectedComparisonFlows] = useState([]);
   const [selectedRevenueFlows, setSelectedRevenueFlows] = useState([]);
   const [hiddenFlowLines, setHiddenFlowLines] = useState(new Set());
+
+  // Flow Performance Over Time chart selections
+  const [selectedFlowMetric, setSelectedFlowMetric] = useState('conversion_value');
+  const [selectedFlowsForChart, setSelectedFlowsForChart] = useState([]);
 
   // Message Level View selections
   const [selectedMessageEngagementMessages, setSelectedMessageEngagementMessages] = useState([]);
@@ -394,6 +381,9 @@ export default function StoreFlowsReportPage() {
   // Handle store selection change
   const handleStoreChange = (newStoreId) => {
     if (newStoreId && newStoreId !== storePublicId) {
+      // Update the store context to synchronize with sidebar
+      selectStore(newStoreId);
+      // Navigate to the new store's report page
       router.push(`/store/${newStoreId}/report/flows`);
     }
   };
@@ -411,11 +401,23 @@ export default function StoreFlowsReportPage() {
         const endDate = dateRangeSelection.ranges.main.end.toISOString();
 
         const response = await fetch(
-          `/api/store/${storePublicId}/report/flows?startDate=${startDate}&endDate=${endDate}`
+          `/api/store/${storePublicId}/report/flows?startDate=${startDate}&endDate=${endDate}`,
+          {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
         );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch flow data');
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('[Flow Report] API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
+          throw new Error(errorData.error || `Failed to fetch flow data (${response.status})`);
         }
 
         const data = await response.json();
@@ -539,6 +541,29 @@ export default function StoreFlowsReportPage() {
     bVal = bVal || 0;
     return messageSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
   });
+
+  // Prepare time series data for Flow Performance Over Time chart
+  const flowTimeSeriesData = useMemo(() => {
+    if (!data.performanceOverTime) return [];
+    return prepareTimeSeriesData(
+      data.performanceOverTime,
+      selectedFlowsForChart.map(f => f.value || f.label),
+      selectedFlowMetric
+    );
+  }, [data.performanceOverTime, selectedFlowsForChart, selectedFlowMetric]);
+
+  // Auto-select top 5 revenue-performing flows on initial load
+  useEffect(() => {
+    if (data.flows && data.flows.length > 0 && selectedFlowsForChart.length === 0) {
+      // Sort flows by revenue (conversion_value) descending
+      const topFlows = [...data.flows]
+        .sort((a, b) => (b.conversion_value || 0) - (a.conversion_value || 0))
+        .slice(0, 5)
+        .map(f => ({ value: f.flow_name, label: f.flow_name }));
+
+      setSelectedFlowsForChart(topFlows);
+    }
+  }, [data.flows]);
 
   // Filter messages for selected flow
   const messageData = selectedFlow
@@ -721,7 +746,10 @@ export default function StoreFlowsReportPage() {
                       // Calculate changes vs previous period
                       const prevPeriod = flow.previous_period;
                       const calcChange = (current, previous) => {
-                        if (!previous || previous === 0) return null;
+                        // If both are 0, show 0% change
+                        if (current === 0 && previous === 0) return 0;
+                        // If previous is 0 but current is not, we can't calculate meaningful percentage
+                        if (!previous || previous === 0) return 0;
                         return ((current - previous) / previous) * 100;
                       };
 
@@ -729,54 +757,90 @@ export default function StoreFlowsReportPage() {
                       const openRateChange = prevPeriod ? calcChange(flow.open_rate, prevPeriod.open_rate) : null;
                       const clickRateChange = prevPeriod ? calcChange(flow.click_rate, prevPeriod.click_rate) : null;
                       const convRateChange = prevPeriod ? calcChange(flow.conversion_rate, prevPeriod.conversion_rate) : null;
-                      const revenueChange = prevPeriod ? calcChange(flow.conversion_value, prevPeriod.revenue) : null;
+                      const revenueChange = prevPeriod ? calcChange(flow.conversion_value, prevPeriod.conversion_value || prevPeriod.revenue) : null;
                       const rprChange = prevPeriod ? calcChange(flow.revenue_per_recipient, prevPeriod.revenue_per_recipient) : null;
                       const bounceRateChange = prevPeriod ? calcChange(flow.bounce_rate, prevPeriod.bounce_rate) : null;
 
-                      const ChangeIndicator = ({ change, inverse = false }) => {
+                      const ChangeIndicator = ({ change, previousValue, formatter, inverse = false }) => {
                         if (change === null || change === undefined) return null;
                         const isPositive = inverse ? change < 0 : change > 0;
-                        const color = isPositive ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500';
+                        const color = isPositive ? 'text-green-600 dark:text-green-500' : change === 0 ? 'text-gray-500' : 'text-red-600 dark:text-red-500';
                         const icon = change > 0 ? '↑' : change < 0 ? '↓' : '';
                         return (
-                          <div className={`text-xs ${color} font-medium`}>
-                            {icon} {Math.abs(change).toFixed(1)}%
+                          <div className="text-xs">
+                            <div className={`${color} font-medium`}>
+                              {icon} {Math.abs(change).toFixed(1)}%
+                            </div>
+                            {previousValue !== undefined && previousValue !== null && (
+                              <div className="text-gray-500 dark:text-gray-400">
+                                vs. {formatter ? formatter(previousValue) : previousValue}
+                              </div>
+                            )}
                           </div>
                         );
                       };
 
                       return (
                         <TableRow key={idx} className="text-sm">
-                          <TableCell className="font-medium text-gray-900 dark:text-white py-2">
+                          <TableCell className="font-medium text-gray-900 dark:text-white py-3">
                             {flow.flow_name}
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="text-gray-900 dark:text-gray-100">{formatNumber(flow.recipients)}</div>
-                            <ChangeIndicator change={recipientsChange} />
+                            <ChangeIndicator
+                              change={recipientsChange}
+                              previousValue={prevPeriod?.recipients}
+                              formatter={formatNumber}
+                            />
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.open_rate)}</div>
-                            <ChangeIndicator change={openRateChange} />
+                            <ChangeIndicator
+                              change={openRateChange}
+                              previousValue={prevPeriod?.open_rate}
+                              formatter={formatPercentage}
+                            />
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.click_rate)}</div>
-                            <ChangeIndicator change={clickRateChange} />
+                            <ChangeIndicator
+                              change={clickRateChange}
+                              previousValue={prevPeriod?.click_rate}
+                              formatter={formatPercentage}
+                            />
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.conversion_rate)}</div>
-                            <ChangeIndicator change={convRateChange} />
+                            <ChangeIndicator
+                              change={convRateChange}
+                              previousValue={prevPeriod?.conversion_rate}
+                              formatter={formatPercentage}
+                            />
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="text-gray-900 dark:text-gray-100">{formatCurrency(flow.conversion_value)}</div>
-                            <ChangeIndicator change={revenueChange} />
+                            <ChangeIndicator
+                              change={revenueChange}
+                              previousValue={prevPeriod?.conversion_value || prevPeriod?.revenue}
+                              formatter={formatCurrency}
+                            />
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="text-gray-900 dark:text-gray-100">{formatCurrency(flow.revenue_per_recipient)}</div>
-                            <ChangeIndicator change={rprChange} />
+                            <ChangeIndicator
+                              change={rprChange}
+                              previousValue={prevPeriod?.revenue_per_recipient}
+                              formatter={formatCurrency}
+                            />
                           </TableCell>
-                          <TableCell className="text-right py-2">
+                          <TableCell className="text-right py-3">
                             <div className="text-gray-900 dark:text-gray-100">{formatPercentage(flow.bounce_rate)}</div>
-                            <ChangeIndicator change={bounceRateChange} inverse={true} />
+                            <ChangeIndicator
+                              change={bounceRateChange}
+                              previousValue={prevPeriod?.bounce_rate}
+                              formatter={formatPercentage}
+                              inverse={true}
+                            />
                           </TableCell>
                         </TableRow>
                       );
@@ -787,31 +851,59 @@ export default function StoreFlowsReportPage() {
             </CardContent>
           </Card>
 
-          {/* Flow Performance Comparison */}
+          {/* Flow Performance Over Time */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle>Flow Performance Comparison</CardTitle>
-              <div className="w-96">
-                <MultiSelect
-                  options={METRIC_OPTIONS}
-                  value={selectedMetrics}
-                  onChange={setSelectedMetrics}
-                  placeholder="Select metrics to compare..."
-                />
+              <div>
+                <CardTitle>Flow Performance Over Time</CardTitle>
+                <CardDescription>Daily trend of selected flows for the chosen metric</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Select value={selectedFlowMetric} onValueChange={setSelectedFlowMetric}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recipients">Recipients</SelectItem>
+                    <SelectItem value="opens_unique">Unique Opens</SelectItem>
+                    <SelectItem value="clicks_unique">Unique Clicks</SelectItem>
+                    <SelectItem value="conversions">Conversions</SelectItem>
+                    <SelectItem value="open_rate">Open Rate %</SelectItem>
+                    <SelectItem value="click_rate">Click Rate %</SelectItem>
+                    <SelectItem value="conversion_rate">Conversion Rate %</SelectItem>
+                    <SelectItem value="conversion_value">Revenue</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={data.flows}>
+              <div className="mb-4">
+                <MultiSelect
+                  options={data.flows.map(f => ({ value: f.flow_name, label: f.flow_name }))}
+                  value={selectedFlowsForChart}
+                  onChange={setSelectedFlowsForChart}
+                  placeholder="Select flows to compare..."
+                />
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={flowTimeSeriesData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                   <XAxis
-                    dataKey="flow_name"
-                    angle={-15}
+                    dataKey="date"
+                    tick={{ fill: '#111827', fontSize: 12 }}
+                    tickFormatter={formatFriendlyDate}
+                    angle={-45}
                     textAnchor="end"
-                    height={100}
-                    tick={{ fill: 'currentColor' }}
+                    height={80}
                   />
-                  <YAxis tick={{ fill: 'currentColor' }} />
+                  <YAxis
+                    tick={{ fill: '#111827' }}
+                    tickFormatter={(value) => {
+                      if (selectedFlowMetric.includes('rate')) return `${value.toFixed(1)}%`;
+                      if (selectedFlowMetric === 'conversion_value') return formatCurrency(value).replace('$', '');
+                      return formatNumber(value);
+                    }}
+                  />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'var(--tooltip-bg, #ffffff)',
@@ -820,33 +912,31 @@ export default function StoreFlowsReportPage() {
                       color: 'var(--tooltip-text, #111827)'
                     }}
                     wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
+                    formatter={(value, name) => {
+                      if (selectedFlowMetric.includes('rate')) return `${value.toFixed(1)}%`;
+                      if (selectedFlowMetric === 'conversion_value') return formatCurrency(value);
+                      return formatNumber(value);
+                    }}
                   />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  {selectedMetrics.some(m => m.value === 'recipients') && (
-                    <Bar dataKey="recipients" fill="#60A5FA" name="Recipients" radius={[8, 8, 0, 0]} />
-                  )}
-                  {selectedMetrics.some(m => m.value === 'opens') && (
-                    <Bar dataKey="opens" fill="#22C55E" name="Unique Opens" radius={[8, 8, 0, 0]} />
-                  )}
-                  {selectedMetrics.some(m => m.value === 'clicks') && (
-                    <Bar dataKey="clicks" fill="#F59E0B" name="Unique Clicks" radius={[8, 8, 0, 0]} />
-                  )}
-                  {selectedMetrics.some(m => m.value === 'conversions') && (
-                    <Bar dataKey="conversions" fill="#8B5CF6" name="Conversions" radius={[8, 8, 0, 0]} />
-                  )}
-                  {selectedMetrics.some(m => m.value === 'open_rate') && (
-                    <Bar dataKey="open_rate" fill="#2563EB" name="Open Rate %" radius={[8, 8, 0, 0]} />
-                  )}
-                  {selectedMetrics.some(m => m.value === 'click_rate') && (
-                    <Bar dataKey="click_rate" fill="#7C3AED" name="Click Rate %" radius={[8, 8, 0, 0]} />
-                  )}
-                  {selectedMetrics.some(m => m.value === 'conversion_rate') && (
-                    <Bar dataKey="conversion_rate" fill="#EF4444" name="Conversion Rate %" radius={[8, 8, 0, 0]} />
-                  )}
-                  {selectedMetrics.some(m => m.value === 'revenue') && (
-                    <Bar dataKey="revenue" fill="#34D399" name="Revenue" radius={[8, 8, 0, 0]} />
-                  )}
-                </BarChart>
+                  <Legend
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    onClick={handleFlowLegendClick}
+                  />
+                  {selectedFlowsForChart.map((flowOption, idx) => (
+                    !hiddenFlowLines.has(flowOption.label) && (
+                      <Line
+                        key={flowOption.value}
+                        type="monotone"
+                        dataKey={flowOption.label}
+                        name={flowOption.label}
+                        stroke={COLORS[idx % COLORS.length]}
+                        strokeWidth={2}
+                        dot={{ fill: COLORS[idx % COLORS.length], r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    )
+                  ))}
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -964,128 +1054,6 @@ export default function StoreFlowsReportPage() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-
-          {/* Revenue Distribution & Flow Engagement Funnel */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Distribution</CardTitle>
-                <CardDescription>Revenue contribution by flow</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={data.flows.filter(f => f.revenue > 0)}
-                      dataKey="revenue"
-                      nameKey="flow_name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={(entry) => {
-                        const total = data.flows.reduce((sum, f) => sum + (f.revenue || 0), 0);
-                        const percentage = ((entry.revenue / total) * 100).toFixed(1);
-                        return `${percentage}%`;
-                      }}
-                    >
-                      {data.flows.filter(f => f.revenue > 0).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) => formatCurrency(value)}
-                      contentStyle={{
-                        backgroundColor: 'var(--tooltip-bg, #ffffff)',
-                        border: '1px solid var(--tooltip-border, #e5e7eb)',
-                        borderRadius: '8px',
-                        color: 'var(--tooltip-text, #111827)'
-                      }}
-                      wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      wrapperStyle={{ paddingTop: '20px' }}
-                      formatter={(value, entry) => {
-                        const flowName = value.length > 25 ? value.substring(0, 25) + '...' : value;
-                        return `${flowName}: ${formatCurrency(entry.payload.revenue)}`;
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle>Flow Engagement Funnel</CardTitle>
-                  <CardDescription>Conversion funnel for selected flow</CardDescription>
-                </div>
-                <Select value={selectedFunnelFlow} onValueChange={setSelectedFunnelFlow}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select flow" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.flows.map((flow, idx) => (
-                      <SelectItem key={idx} value={flow.flow_name}>
-                        {flow.flow_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardHeader>
-              <CardContent>
-                {selectedFunnelFlow ? (
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart
-                      data={prepareFunnelData(data.flows, selectedFunnelFlow)}
-                      layout="vertical"
-                      margin={{ left: 80, right: 30, top: 20, bottom: 20 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                      <XAxis
-                        type="number"
-                        tickFormatter={(value) => formatNumber(value)}
-                        tick={{ fill: 'currentColor' }}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="stage"
-                        tick={{ fill: 'currentColor' }}
-                        width={80}
-                      />
-                      <Tooltip
-                        formatter={(value, name, props) => {
-                          const percentage = props.payload.percentage;
-                          return [`${formatNumber(value)} (${formatPercentage(percentage)})`, 'Count'];
-                        }}
-                        contentStyle={{
-                          backgroundColor: 'var(--tooltip-bg, #ffffff)',
-                          border: '1px solid var(--tooltip-border, #e5e7eb)',
-                          borderRadius: '8px',
-                          color: 'var(--tooltip-text, #111827)'
-                        }}
-                        wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
-                      />
-                      <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                        {prepareFunnelData(data.flows, selectedFunnelFlow).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-[350px] text-gray-500 dark:text-gray-400">
-                    <div className="text-center">
-                      <Mail className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p>Select a flow to view the engagement funnel</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
             </div>
           )}
         </TabsContent>
@@ -1339,84 +1307,6 @@ export default function StoreFlowsReportPage() {
             </CardContent>
           </Card>
 
-          {/* Message Engagement Funnels - Multi-Select */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <div>
-                <CardTitle>Message Engagement Funnels</CardTitle>
-                <CardDescription>Compare conversion funnels across multiple messages</CardDescription>
-              </div>
-              <div className="w-[320px]">
-                <MultiSelect
-                  options={getUniqueMessages(data.messages)}
-                  value={selectedMessageRevenue}
-                  onChange={setSelectedMessageRevenue}
-                  placeholder="Select messages to compare..."
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {selectedMessageRevenue.length > 0 ? (
-                <div className={`grid gap-6 ${selectedMessageRevenue.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : selectedMessageRevenue.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                  {selectedMessageRevenue.map((msg, msgIdx) => {
-                    const funnelData = prepareMessageFunnelData(data.messages, msg.value);
-                    return (
-                      <div key={msg.value} className="space-y-2">
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate" title={msg.label}>
-                          {msg.label}
-                        </h4>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart
-                            data={funnelData}
-                            layout="vertical"
-                            margin={{ left: 80, right: 10, top: 10, bottom: 10 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                            <XAxis
-                              type="number"
-                              tickFormatter={(value) => formatNumber(value)}
-                              tick={{ fill: 'currentColor', fontSize: 11 }}
-                            />
-                            <YAxis
-                              type="category"
-                              dataKey="stage"
-                              tick={{ fill: 'currentColor', fontSize: 11 }}
-                              width={80}
-                            />
-                            <Tooltip
-                              formatter={(value, name, props) => {
-                                const percentage = props.payload.percentage;
-                                return [`${formatNumber(value)} (${formatPercentage(percentage)})`, 'Count'];
-                              }}
-                              contentStyle={{
-                                backgroundColor: 'var(--tooltip-bg, #ffffff)',
-                                border: '1px solid var(--tooltip-border, #e5e7eb)',
-                                borderRadius: '8px',
-                                color: 'var(--tooltip-text, #111827)'
-                              }}
-                              wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
-                            />
-                            <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                              {funnelData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[(msgIdx * 5 + index) % COLORS.length]} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-[350px] text-gray-500 dark:text-gray-400">
-                  <div className="text-center">
-                    <Mail className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>Select messages to view and compare engagement funnels</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
             </div>
           )}
         </TabsContent>

@@ -203,7 +203,7 @@ export async function GET(request) {
         total_revenue,
         total_orders
 
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE ${whereClause}
       ORDER BY date DESC
     `;
@@ -234,7 +234,7 @@ export async function GET(request) {
 
         updated_at
 
-      FROM campaign_statistics
+      FROM campaign_statistics_latest
       WHERE ${whereClause}
       ORDER BY date DESC, revenue DESC
       LIMIT 1000

@@ -51,7 +51,10 @@ import {
   ChevronDown,
   MousePointer,
   Eye,
-  Target
+  Target,
+  MessageSquare,
+  Bell,
+  Phone
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatNumber, formatCurrency, formatPercentage } from "@/lib/utils"
@@ -324,13 +327,15 @@ const getDeliverabilityColor = (value, metricType) => {
 export default function DeliverabilityTab({
     selectedAccounts,
     dateRangeSelection,
-    stores
+    stores,
+    onTabDataUpdate
 }) {
     const [loading, setLoading] = useState(true)
     const [deliverabilityData, setDeliverabilityData] = useState({ campaigns: [], dailyData: [] })
     const [searchQuery, setSearchQuery] = useState("")
     const [sortConfig, setSortConfig] = useState({ key: "health_score", direction: "desc" })
     const [filterPerformance, setFilterPerformance] = useState("all") // all, excellent, good, warning, critical
+    const [filterChannels, setFilterChannels] = useState(["email", "sms", "push", "whatsapp"]) // Selected channels to show
     const [selectedCampaign, setSelectedCampaign] = useState(null)
     const [showCampaignDetails, setShowCampaignDetails] = useState(false)
 
@@ -417,6 +422,14 @@ export default function DeliverabilityTab({
             )
         }
 
+        // Channel filter
+        if (filterChannels.length > 0 && filterChannels.length < 4) {
+            filtered = filtered.filter(campaign => {
+                const channel = (campaign.channel || 'email').toLowerCase();
+                return filterChannels.includes(channel);
+            })
+        }
+
         // Performance filter
         if (filterPerformance !== "all") {
             filtered = filtered.filter(campaign => {
@@ -452,7 +465,7 @@ export default function DeliverabilityTab({
         }
 
         return filtered
-    }, [deliverabilityData.campaigns, searchQuery, filterPerformance, sortConfig])
+    }, [deliverabilityData.campaigns, searchQuery, filterChannels, filterPerformance, sortConfig])
 
     // Aggregate metrics for filtered data
     const metrics = useMemo(() => {
@@ -479,6 +492,24 @@ export default function DeliverabilityTab({
             <ChevronDown className="h-4 w-4 text-gray-600" />
         )
     }
+
+    // Update AI context whenever deliverability data changes
+    useEffect(() => {
+        if (onTabDataUpdate && deliverabilityData.campaigns && !loading) {
+            onTabDataUpdate({
+                campaigns: deliverabilityData.campaigns || [],
+                summary: {
+                    deliveryRate: metrics.deliveryRate || 0,
+                    bounceRate: metrics.bounceRate || 0,
+                    spamRate: metrics.spamRate || 0,
+                    unsubscribeRate: metrics.unsubscribeRate || 0,
+                    avgHealthScore: metrics.avgHealthScore || 0
+                },
+                loading,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }, [deliverabilityData, metrics, loading]);
 
     if (loading) {
         return (
@@ -668,6 +699,90 @@ export default function DeliverabilityTab({
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-10"
                             />
+                        </div>
+
+                        {/* Channel Type Filter */}
+                        <div className="flex items-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
+                            <Button
+                                variant={filterChannels.includes("email") ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => {
+                                    setFilterChannels(prev =>
+                                        prev.includes("email")
+                                            ? prev.filter(c => c !== "email")
+                                            : [...prev, "email"]
+                                    )
+                                }}
+                                className={cn(
+                                    "h-8 px-3 transition-all",
+                                    filterChannels.includes("email")
+                                        ? "bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-sm"
+                                        : "text-gray-900 dark:text-gray-100 hover:bg-sky-tint dark:hover:bg-gray-800"
+                                )}
+                            >
+                                <Mail className="h-4 w-4 mr-1" />
+                                Email
+                            </Button>
+                            <Button
+                                variant={filterChannels.includes("sms") ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => {
+                                    setFilterChannels(prev =>
+                                        prev.includes("sms")
+                                            ? prev.filter(c => c !== "sms")
+                                            : [...prev, "sms"]
+                                    )
+                                }}
+                                className={cn(
+                                    "h-8 px-3 transition-all",
+                                    filterChannels.includes("sms")
+                                        ? "bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-sm"
+                                        : "text-gray-900 dark:text-gray-100 hover:bg-sky-tint dark:hover:bg-gray-800"
+                                )}
+                            >
+                                <MessageSquare className="h-4 w-4 mr-1" />
+                                SMS
+                            </Button>
+                            <Button
+                                variant={filterChannels.includes("push") ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => {
+                                    setFilterChannels(prev =>
+                                        prev.includes("push")
+                                            ? prev.filter(c => c !== "push")
+                                            : [...prev, "push"]
+                                    )
+                                }}
+                                className={cn(
+                                    "h-8 px-3 transition-all",
+                                    filterChannels.includes("push")
+                                        ? "bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-sm"
+                                        : "text-gray-900 dark:text-gray-100 hover:bg-sky-tint dark:hover:bg-gray-800"
+                                )}
+                            >
+                                <Bell className="h-4 w-4 mr-1" />
+                                Push
+                            </Button>
+                            <Button
+                                variant={filterChannels.includes("whatsapp") ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => {
+                                    setFilterChannels(prev =>
+                                        prev.includes("whatsapp")
+                                            ? prev.filter(c => c !== "whatsapp")
+                                            : [...prev, "whatsapp"]
+                                    )
+                                }}
+                                className={cn(
+                                    "h-8 px-3 transition-all",
+                                    filterChannels.includes("whatsapp")
+                                        ? "bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white shadow-sm"
+                                        : "text-gray-900 dark:text-gray-100 hover:bg-sky-tint dark:hover:bg-gray-800"
+                                )}
+                            >
+                                <Phone className="h-4 w-4 mr-1" />
+                                WhatsApp
+                            </Button>
                         </div>
 
                         <Select value={filterPerformance} onValueChange={setFilterPerformance}>

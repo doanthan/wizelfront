@@ -26,6 +26,92 @@ const StoreSchema = new mongoose.Schema({
         ref: "User",
         required: true,
     },
+    short_description: {
+        type: String
+    },
+
+    // Industry vertical for benchmark comparison
+    // No enum restriction to support ~60 verticals flexibly
+    vertical: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: 'ecommerce_general',
+        index: true
+    },
+
+    // Average Order Value (for RPR calculations)
+    aov: {
+        type: Number,
+        min: 0,
+        default: null
+    },
+
+    // Store Description (AI Chatbot Context)
+    store_description: {
+        summary: {
+            type: String,
+            trim: true
+        }, // 2-3 sentence positive, strengths-focused overview
+        primary_industry: {
+            type: String,
+            trim: true
+        }, // e.g., "Premium Women's Athletic Wear"
+        region: {
+            type: String,
+            trim: true
+        }, // Geographic region and language
+        store_nickname: {
+            type: String,
+            trim: true
+        }, // e.g., "The Premium Supplement Brand"
+        brand_positioning_tags: [{
+            type: String,
+            trim: true
+        }], // e.g., ["premium quality focus", "sustainability leader"]
+        primary_demographic: {
+            age_range: {
+                type: String,
+                trim: true
+            }, // e.g., "25-40 year old millennials"
+            gender_focus: {
+                type: String,
+                trim: true
+            }, // e.g., "primarily women"
+            income_level: {
+                type: String,
+                trim: true
+            } // e.g., "affluent consumers"
+        },
+        marketing_strengths: [{
+            type: String,
+            trim: true
+        }], // e.g., ["Strong flow automation", "Excellent retention"]
+        ai_estimated_customer_ltv: {
+            average_value: {
+                type: Number,
+                min: 0
+            }, // e.g., 400
+            currency: {
+                type: String,
+                default: 'USD',
+                trim: true
+            }, // e.g., "USD", "EUR", "AUD"
+            average_purchases: {
+                type: Number,
+                min: 0
+            } // e.g., 2.8
+        },
+        business_stage: {
+            type: String,
+            trim: true
+        }, // e.g., "well-established brand with mature marketing"
+        unique_characteristics: [{
+            type: String,
+            trim: true
+        }] // Brand-specific unique characteristics
+    },
+
     contract_id: {
         type: ObjectId,
         ref: "Contract",
@@ -75,63 +161,6 @@ const StoreSchema = new mongoose.Schema({
             default: new Map()
         }
     }],
-    
-    // Legacy users array for backward compatibility
-    users: [{
-        userId: {
-            type: ObjectId,
-            ref: "User",
-            required: true,
-        },
-        role: {
-            type: String,
-            enum: ["owner", "admin", "creator", "member"],
-            required: true,
-        },
-        permissions: {
-            canEditStore: { type: Boolean, default: false },
-            canEditBrand: { type: Boolean, default: false },
-            canEditContent: { type: Boolean, default: false },
-            canApproveContent: { type: Boolean, default: false },
-            canViewAnalytics: { type: Boolean, default: false },
-            canManageIntegrations: { type: Boolean, default: false },
-            canManageUsers: { type: Boolean, default: false },
-        },
-        addedAt: {
-            type: Date,
-            default: Date.now,
-        },
-        addedBy: {
-            type: ObjectId,
-            ref: "User",
-        }
-    }],
-    // Legacy shared_with array for backward compatibility
-    shared_with: [{
-        user: {
-            type: ObjectId,
-            ref: "User",
-            required: true,
-        },
-        permissions: [{
-            type: String,
-            enum: [
-                "view",
-                "edit",
-                "delete"
-            ],
-            default: ["view"]
-        }],
-        shared_at: {
-            type: Date,
-            default: Date.now,
-        },
-        shared_by: {
-            type: ObjectId,
-            ref: "User",
-            required: true,
-        }
-    }],
     brands: [{
         _id: {
             type: ObjectId,
@@ -165,6 +194,7 @@ const StoreSchema = new mongoose.Schema({
         type: String,
         trim: true,
     }],
+
         segment_tags: [{
         type: String,
         trim: true,
@@ -439,21 +469,6 @@ const StoreSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-    
-    // Legacy soft delete fields for backward compatibility
-    isActive: {
-        type: Boolean,
-        default: true
-    },
-    deletedAt: {
-        type: Date,
-        default: null
-    },
-    deletedBy: {
-        type: ObjectId,
-        ref: "User",
-        default: null
-    },
     is_deleted: {
         type: Boolean,
         default: false
@@ -472,24 +487,6 @@ StoreSchema.pre("save", async function (next) {
         this.public_id = await generateNanoid(7);
     }
 
-    // Automatically add owner to users array when creating new store
-    if (this.isNew && this.owner_id) {
-        this.users = [{
-            userId: this.owner_id,
-            role: "owner",
-            permissions: {
-                canEditStore: true,
-                canEditBrand: true,
-                canEditContent: true,
-                canApproveContent: true,
-                canViewAnalytics: true,
-                canManageIntegrations: true,
-                canManageUsers: true,
-            },
-            addedAt: new Date()
-        }]
-    }
-
     next()
 })
 
@@ -499,11 +496,9 @@ StoreSchema.index({ owner_id: 1 });
 StoreSchema.index({ contract_id: 1 });
 StoreSchema.index({ parent_store_id: 1 });
 StoreSchema.index({ shopify_domain: 1 });
-StoreSchema.index({ "shared_with.user": 1 });
-StoreSchema.index({ "users.userId": 1 });
 StoreSchema.index({ "team_members.user_id": 1 });
 StoreSchema.index({ "team_members.seat_id": 1 });
-StoreSchema.index({ is_active: 1, isActive: 1 });
+StoreSchema.index({ is_active: 1 });
 StoreSchema.index({ is_deleted: 1 });
 // V3.0 RFM indexes
 StoreSchema.index({ "adaptive_rfm_config.calculation_date": -1 });
@@ -515,8 +510,6 @@ StoreSchema.statics.findByUser = function (userId) {
     return this.find({
         $or: [
             { owner_id: userId },
-            { "shared_with.user": userId },
-            { "users.userId": userId },
             { "team_members.user_id": userId }
         ],
         is_deleted: { $ne: true } // Exclude soft-deleted stores
@@ -580,24 +573,24 @@ StoreSchema.statics.findByIdOrPublicId = async function (storeIdentifier) {
     const isPublicId = storeIdentifier?.length === 7;
 
     if (isPublicId) {
-        return await this.findOne({ public_id: storeIdentifier, isActive: true });
+        return await this.findOne({ public_id: storeIdentifier, is_active: true });
     } else {
-        return await this.findOne({ _id: storeIdentifier, isActive: true });
+        return await this.findOne({ _id: storeIdentifier, is_active: true });
     }
 }
 
 // Static method to check if user has access to store (updated for ContractSeat architecture)
-StoreSchema.statics.hasAccess = async function (storeIdentifier, userId, requiredPermission = "view") {
+StoreSchema.statics.hasAccess = async function (storeIdentifier, userId) {
     const isPublicId = storeIdentifier?.length === 7;
     let store;
 
     if (isPublicId) {
-        store = await this.findOne({ public_id: storeIdentifier, is_active: true, isActive: true });
+        store = await this.findOne({ public_id: storeIdentifier, is_active: true });
     } else {
         store = await this.findById(storeIdentifier);
     }
 
-    if (!store || !store.is_active || !store.isActive) return false;
+    if (!store || !store.is_active) return false;
 
     // Check if user is owner
     if (store.owner_id.toString() === userId.toString()) return true;
@@ -609,7 +602,7 @@ StoreSchema.statics.hasAccess = async function (storeIdentifier, userId, require
         contract_id: store.contract_id,
         status: 'active'
     });
-    
+
     if (seat) {
         // Check if user has specific access to this store
         const hasStoreAccess = seat.hasStoreAccess(store._id);
@@ -618,25 +611,15 @@ StoreSchema.statics.hasAccess = async function (storeIdentifier, userId, require
         }
     }
 
-    // Fall back to legacy permission checks
-    const sharedAccess = store.shared_with.find(
-        share => share.user.toString() === userId.toString() &&
-            share.permissions.includes(requiredPermission)
-    );
-    
-    const userAccess = store.users.find(
-        user => user.userId.toString() === userId.toString()
-    );
-
-    return !!(sharedAccess || userAccess);
+    return false;
 };
 
 StoreSchema.statics.findByIdOrPublicIdAndUpdate = function (id, update, options) {
     let query;
     if (isValidObjectId(id)) {
-        query = { $and: [{ isActive: true, is_active: true }, { $or: [{ _id: id }, { public_id: id }] }] };
+        query = { $and: [{ is_active: true }, { $or: [{ _id: id }, { public_id: id }] }] };
     } else {
-        query = { public_id: id, isActive: true, is_active: true };
+        query = { public_id: id, is_active: true };
     }
     return this.findOneAndUpdate(query, update, options);
 };
@@ -722,8 +705,7 @@ StoreSchema.methods.removeTeamMember = async function(userId) {
 StoreSchema.methods.getChildStores = function() {
     return this.constructor.find({
         parent_store_id: this._id,
-        is_active: true,
-        isActive: true
+        is_active: true
     });
 };
 
@@ -1009,6 +991,31 @@ StoreSchema.statics.findNeedingRFMRecalculation = function() {
         ],
         is_deleted: { $ne: true }
     });
+};
+
+// Instance method to get benchmark for this store's vertical
+StoreSchema.methods.getBenchmark = async function(year = null) {
+    if (!this.vertical) {
+        return null;
+    }
+
+    const Benchmark = mongoose.model('Benchmark');
+    return await Benchmark.getActiveBenchmark(this.vertical, year);
+};
+
+// Instance method to compare store performance to benchmark
+StoreSchema.methods.compareToBenchmark = async function(storeMetrics, year = null) {
+    const benchmark = await this.getBenchmark(year);
+
+    if (!benchmark) {
+        return {
+            error: 'No benchmark available for vertical: ' + this.vertical,
+            vertical: this.vertical
+        };
+    }
+
+    const Benchmark = mongoose.model('Benchmark');
+    return Benchmark.comparePerformance(storeMetrics, benchmark);
 };
 
 // Static method to get RFM statistics across all stores

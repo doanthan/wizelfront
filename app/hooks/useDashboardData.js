@@ -59,7 +59,21 @@ export function useDashboardData(storeIds, dateRange, comparison = null) {
         const response = await fetch(`/api/dashboard?${params.toString()}`);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch dashboard data: ${response.statusText}`);
+          // Try to parse error response for detailed message
+          let errorMessage = `Failed to fetch dashboard data: ${response.statusText}`;
+          try {
+            const errorData = await response.json();
+            if (errorData.error) {
+              errorMessage = errorData.error;
+              if (errorData.details) {
+                errorMessage += `: ${errorData.details}`;
+              }
+            }
+          } catch (e) {
+            // If JSON parsing fails, use status text
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
         }
 
         const responseData = await response.json();
@@ -134,7 +148,21 @@ export function useDashboardData(storeIds, dateRange, comparison = null) {
       const response = await fetch(`/api/dashboard?${params.toString()}`);
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch dashboard data: ${response.statusText}`);
+        // Try to parse error response for detailed message
+        let errorMessage = `Failed to fetch dashboard data: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+            if (errorData.details) {
+              errorMessage += `: ${errorData.details}`;
+            }
+          }
+        } catch (e) {
+          // If JSON parsing fails, use status text
+          console.error('Could not parse error response:', e);
+        }
+        throw new Error(errorMessage);
       }
 
       const responseData = await response.json();

@@ -41,6 +41,7 @@ export default function CalendarPage() {
   });
   
   const [view, setView] = useState(() => searchParams.get('view') || 'month');
+  const [displayMode, setDisplayMode] = useState(() => searchParams.get('displayMode') || 'calendar'); // 'calendar' or 'table'
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -526,12 +527,13 @@ export default function CalendarPage() {
     updateURLWithFilters(router, pathname, {
       date: date.toISOString(),
       view,
+      displayMode,
       stores: selectedStores.join(','),
       channels: selectedChannels.join(','),
       tags: selectedTags.join(','),
       statuses: selectedStatuses.join(',')
     });
-  }, [date, view, selectedStores, selectedChannels, selectedTags, selectedStatuses, router, pathname]);
+  }, [date, view, displayMode, selectedStores, selectedChannels, selectedTags, selectedStatuses, router, pathname]);
   
   /**
    * Get campaigns for a specific date with filters applied
@@ -759,94 +761,103 @@ export default function CalendarPage() {
         setSelectedTags={setSelectedTags}
         selectedStatuses={selectedStatuses}
         setSelectedStatuses={setSelectedStatuses}
+        displayMode={displayMode}
+        setDisplayMode={setDisplayMode}
         className="mb-4"
       />
 
-      {/* Calendar Header */}
-      <CalendarHeader
-        date={date}
-        setDate={setDate}
-        view={view}
-        setView={setView}
-        stores={stores}
-        selectedStores={selectedStores}
-        setSelectedStores={setSelectedStores}
-        selectedChannels={selectedChannels}
-        setSelectedChannels={setSelectedChannels}
-        selectedTags={selectedTags}
-        setSelectedTags={setSelectedTags}
-        selectedStatuses={selectedStatuses}
-        setSelectedStatuses={setSelectedStatuses}
-        availableTags={availableTags}
-        showStoreDropdown={showStoreDropdown}
-        setShowStoreDropdown={setShowStoreDropdown}
-        setShowCampaignModal={setShowCampaignModal}
-        selectedForComparison={selectedForComparison}
-        setShowCompareModal={setShowCompareModal}
-        futureLoading={futureLoadingState}
-        pastLoading={pastLoading}
-        loading={loading}
-        loadingStores={loadingStores}
-        onRefresh={handleRefresh}
-      />
-          
-      
-      {/* Loading indicators for future campaigns */}
-      {futureLoadingState && (
-        <div className="bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-lg shadow-sm">
-          <InlineLoader size="small" showText={true} text="Loading scheduled campaigns..." />
-        </div>
-      )}
-      
-      {/* Calendar Views */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        {(pastLoading || loadingStores) ? (
-          <CalendarSkeleton view={view} />
-        ) : view === 'month' ? (
-          <MonthView
+      {/* Conditionally render based on displayMode */}
+      {displayMode === 'calendar' ? (
+        <>
+          {/* Calendar Header */}
+          <CalendarHeader
             date={date}
             setDate={setDate}
-            campaigns={campaigns}
+            view={view}
+            setView={setView}
             stores={stores}
-            handleCampaignClick={handleCampaignClick}
-            getCampaignsForDate={getCampaignsForDate}
-            handleDayClick={handleDayClick}
+            selectedStores={selectedStores}
+            setSelectedStores={setSelectedStores}
+            selectedChannels={selectedChannels}
+            setSelectedChannels={setSelectedChannels}
+            selectedTags={selectedTags}
+            setSelectedTags={setSelectedTags}
+            selectedStatuses={selectedStatuses}
+            setSelectedStatuses={setSelectedStatuses}
+            availableTags={availableTags}
+            showStoreDropdown={showStoreDropdown}
+            setShowStoreDropdown={setShowStoreDropdown}
+            setShowCampaignModal={setShowCampaignModal}
             selectedForComparison={selectedForComparison}
-            handleComparisonToggle={handleComparisonToggle}
+            setShowCompareModal={setShowCompareModal}
+            futureLoading={futureLoadingState}
+            pastLoading={pastLoading}
+            loading={loading}
+            loadingStores={loadingStores}
+            onRefresh={handleRefresh}
           />
-        ) : view === 'week' ? (
-          <WeekView
-            date={date}
-            campaigns={campaigns}
-            stores={stores}
-            handleCampaignClick={handleCampaignClick}
-            getCampaignsForDate={getCampaignsForDate}
-            handleDayClick={handleDayClick}
-            selectedForComparison={selectedForComparison}
-            handleComparisonToggle={handleComparisonToggle}
-          />
-        ) : view === 'day' ? (
-          <DayView
-            date={date}
-            campaigns={campaigns}
-            stores={stores}
-            handleCampaignClick={handleCampaignClick}
-            getCampaignsForDate={getCampaignsForDate}
-            selectedForComparison={selectedForComparison}
-            handleComparisonToggle={handleComparisonToggle}
-          />
-        ) : null}
-      </div>
 
-      {/* Campaigns Table - Shows campaigns for the current view period */}
-      <CampaignsTable
-        campaigns={getFilteredCampaigns()}
-        stores={stores}
-        onCampaignClick={handleCampaignClick}
-        view={view}
-        date={date}
-        loading={pastLoading || loadingStores}
-      />
+
+          {/* Loading indicators for future campaigns */}
+          {futureLoadingState && (
+            <div className="bg-white/80 dark:bg-gray-800/80 px-3 py-1.5 rounded-lg shadow-sm">
+              <InlineLoader size="small" showText={true} text="Loading scheduled campaigns..." />
+            </div>
+          )}
+
+          {/* Calendar Views */}
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            {(pastLoading || loadingStores) ? (
+              <CalendarSkeleton view={view} />
+            ) : view === 'month' ? (
+              <MonthView
+                date={date}
+                setDate={setDate}
+                campaigns={campaigns}
+                stores={stores}
+                handleCampaignClick={handleCampaignClick}
+                getCampaignsForDate={getCampaignsForDate}
+                handleDayClick={handleDayClick}
+                selectedForComparison={selectedForComparison}
+                handleComparisonToggle={handleComparisonToggle}
+              />
+            ) : view === 'week' ? (
+              <WeekView
+                date={date}
+                campaigns={campaigns}
+                stores={stores}
+                handleCampaignClick={handleCampaignClick}
+                getCampaignsForDate={getCampaignsForDate}
+                handleDayClick={handleDayClick}
+                selectedForComparison={selectedForComparison}
+                handleComparisonToggle={handleComparisonToggle}
+              />
+            ) : view === 'day' ? (
+              <DayView
+                date={date}
+                campaigns={campaigns}
+                stores={stores}
+                handleCampaignClick={handleCampaignClick}
+                getCampaignsForDate={getCampaignsForDate}
+                selectedForComparison={selectedForComparison}
+                handleComparisonToggle={handleComparisonToggle}
+              />
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Performance Table View */}
+          <CampaignsTable
+            campaigns={getFilteredCampaigns()}
+            stores={stores}
+            onCampaignClick={handleCampaignClick}
+            view={view}
+            date={date}
+            loading={pastLoading || loadingStores}
+          />
+        </>
+      )}
       
       {/* Modals */}
       {selectedCampaign && (

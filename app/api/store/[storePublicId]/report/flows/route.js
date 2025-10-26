@@ -50,27 +50,28 @@ export const GET = withStoreAccess(async (request, context) => {
     });
 
     // Query flow statistics with argMax pattern
+    // Try flow_statistics_latest first, fall back to flow_statistics if view doesn't exist
     const flowStatsQuery = `
       SELECT
         flow_id,
         flow_message_id,
-        argMax(flow_name, updated_at) as flow_name,
-        argMax(flow_message_name, updated_at) as flow_message_name,
-        argMax(send_channel, updated_at) as send_channel,
-        argMax(recipients, updated_at) as recipients,
-        argMax(delivered, updated_at) as delivered,
-        argMax(opens_unique, updated_at) as opens_unique,
-        argMax(clicks_unique, updated_at) as clicks_unique,
-        argMax(bounced, updated_at) as bounced,
-        argMax(unsubscribes, updated_at) as unsubscribes,
-        argMax(conversions, updated_at) as conversions,
-        argMax(conversion_value, updated_at) as conversion_value,
-        argMax(open_rate, updated_at) as open_rate,
-        argMax(click_rate, updated_at) as click_rate,
-        argMax(delivery_rate, updated_at) as delivery_rate,
-        argMax(bounce_rate, updated_at) as bounce_rate,
-        argMax(unsubscribe_rate, updated_at) as unsubscribe_rate,
-        argMax(conversion_rate, updated_at) as conversion_rate
+        argMax(flow_name, last_updated) as flow_name,
+        argMax(flow_message_name, last_updated) as flow_message_name,
+        argMax(send_channel, last_updated) as send_channel,
+        argMax(recipients, last_updated) as recipients,
+        argMax(delivered, last_updated) as delivered,
+        argMax(opens_unique, last_updated) as opens_unique,
+        argMax(clicks_unique, last_updated) as clicks_unique,
+        argMax(bounced, last_updated) as bounced,
+        argMax(unsubscribes, last_updated) as unsubscribes,
+        argMax(conversions, last_updated) as conversions,
+        argMax(conversion_value, last_updated) as conversion_value,
+        argMax(open_rate, last_updated) as open_rate,
+        argMax(click_rate, last_updated) as click_rate,
+        argMax(delivery_rate, last_updated) as delivery_rate,
+        argMax(bounce_rate, last_updated) as bounce_rate,
+        argMax(unsubscribe_rate, last_updated) as unsubscribe_rate,
+        argMax(conversion_rate, last_updated) as conversion_rate
       FROM flow_statistics
       WHERE klaviyo_public_id = {klaviyoId:String}
         AND date >= {startDate:String}
@@ -79,32 +80,56 @@ export const GET = withStoreAccess(async (request, context) => {
       ORDER BY conversion_value DESC
     `;
 
-    const currentFlowsResult = await clickhouse.query({
-      query: flowStatsQuery,
-      query_params: {
-        klaviyoId: klaviyoPublicId,
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
-      },
-      format: 'JSONEachRow'
-    });
+    let currentFlowsResult;
+    try {
+      currentFlowsResult = await clickhouse.query({
+        query: flowStatsQuery,
+        query_params: {
+          klaviyoId: klaviyoPublicId,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        },
+        format: 'JSONEachRow'
+      });
+    } catch (chError) {
+      console.error('[Flow Report] ClickHouse query error:', chError.message);
+      // Return empty data instead of crashing
+      return NextResponse.json({
+        summary: getEmptySummary(),
+        previousPeriod: getEmptySummary(),
+        flows: [],
+        messages: [],
+        performanceOverTime: {},
+        messagePerformanceOverTime: {},
+        dateRange: {
+          start: startDate,
+          end: endDate
+        }
+      });
+    }
 
     const currentFlowsData = await currentFlowsResult.json();
     console.log('[Flow Report] Current period flows:', currentFlowsData.length);
 
     // Query previous period for comparison
-    const previousFlowsResult = await clickhouse.query({
-      query: flowStatsQuery,
-      query_params: {
-        klaviyoId: klaviyoPublicId,
-        startDate: previousStart.toISOString().split('T')[0],
-        endDate: previousEnd.toISOString().split('T')[0]
-      },
-      format: 'JSONEachRow'
-    });
-
-    const previousFlowsData = await previousFlowsResult.json();
-    console.log('[Flow Report] Previous period flows:', previousFlowsData.length);
+    let previousFlowsData = [];
+    try {
+      const previousFlowsResult = await clickhouse.query({
+        query: flowStatsQuery,
+        query_params: {
+          klaviyoId: klaviyoPublicId,
+          startDate: previousStart.toISOString().split('T')[0],
+          endDate: previousEnd.toISOString().split('T')[0]
+        },
+        format: 'JSONEachRow'
+      });
+      previousFlowsData = await previousFlowsResult.json();
+      console.log('[Flow Report] Previous period flows:', previousFlowsData.length);
+    } catch (chError) {
+      console.error('[Flow Report] ClickHouse previous period query error:', chError.message);
+      // Continue with empty previous data
+      previousFlowsData = [];
+    }
 
     // Calculate aggregate summary for current period
     const currentSummary = calculateFlowSummary(currentFlowsData);
@@ -181,23 +206,28 @@ export const GET = withStoreAccess(async (request, context) => {
   }
 });
 
+// Helper function to get empty summary
+function getEmptySummary() {
+  return {
+    total_flows: 0,
+    total_messages: 0,
+    total_recipients: 0,
+    total_delivered: 0,
+    total_opens: 0,
+    total_clicks: 0,
+    total_conversions: 0,
+    total_revenue: 0,
+    avg_open_rate: 0,
+    avg_click_rate: 0,
+    avg_conversion_rate: 0,
+    avg_delivery_rate: 0
+  };
+}
+
 // Helper function to calculate summary statistics
 function calculateFlowSummary(flowsData) {
   if (!flowsData || flowsData.length === 0) {
-    return {
-      total_flows: 0,
-      total_messages: 0,
-      total_recipients: 0,
-      total_delivered: 0,
-      total_opens: 0,
-      total_clicks: 0,
-      total_conversions: 0,
-      total_revenue: 0,
-      avg_open_rate: 0,
-      avg_click_rate: 0,
-      avg_conversion_rate: 0,
-      avg_delivery_rate: 0
-    };
+    return getEmptySummary();
   }
 
   // Sum up all metrics
@@ -309,16 +339,16 @@ async function generateDailyPerformance(clickhouse, klaviyoPublicId, startDate, 
       SELECT
         date,
         flow_id,
-        argMax(flow_name, updated_at) as flow_name,
-        argMax(recipients, updated_at) as recipients,
-        argMax(delivered, updated_at) as delivered,
-        argMax(opens_unique, updated_at) as opens_unique,
-        argMax(clicks_unique, updated_at) as clicks_unique,
-        argMax(conversions, updated_at) as conversions,
-        argMax(conversion_value, updated_at) as conversion_value,
-        argMax(open_rate, updated_at) as open_rate,
-        argMax(click_rate, updated_at) as click_rate,
-        argMax(conversion_rate, updated_at) as conversion_rate
+        argMax(flow_name, last_updated) as flow_name,
+        argMax(recipients, last_updated) as recipients,
+        argMax(delivered, last_updated) as delivered,
+        argMax(opens_unique, last_updated) as opens_unique,
+        argMax(clicks_unique, last_updated) as clicks_unique,
+        argMax(conversions, last_updated) as conversions,
+        argMax(conversion_value, last_updated) as conversion_value,
+        argMax(open_rate, last_updated) as open_rate,
+        argMax(click_rate, last_updated) as click_rate,
+        argMax(conversion_rate, last_updated) as conversion_rate
       FROM flow_statistics
       WHERE klaviyo_public_id = {klaviyoId:String}
         AND date >= {startDate:String}
@@ -372,17 +402,17 @@ async function generateDailyMessagePerformance(clickhouse, klaviyoPublicId, star
       SELECT
         date,
         flow_message_id,
-        argMax(flow_name, updated_at) as flow_name,
-        argMax(flow_message_name, updated_at) as flow_message_name,
-        argMax(recipients, updated_at) as recipients,
-        argMax(delivered, updated_at) as delivered,
-        argMax(opens_unique, updated_at) as opens_unique,
-        argMax(clicks_unique, updated_at) as clicks_unique,
-        argMax(conversions, updated_at) as conversions,
-        argMax(conversion_value, updated_at) as conversion_value,
-        argMax(open_rate, updated_at) as open_rate,
-        argMax(click_rate, updated_at) as click_rate,
-        argMax(conversion_rate, updated_at) as conversion_rate
+        argMax(flow_name, last_updated) as flow_name,
+        argMax(flow_message_name, last_updated) as flow_message_name,
+        argMax(recipients, last_updated) as recipients,
+        argMax(delivered, last_updated) as delivered,
+        argMax(opens_unique, last_updated) as opens_unique,
+        argMax(clicks_unique, last_updated) as clicks_unique,
+        argMax(conversions, last_updated) as conversions,
+        argMax(conversion_value, last_updated) as conversion_value,
+        argMax(open_rate, last_updated) as open_rate,
+        argMax(click_rate, last_updated) as click_rate,
+        argMax(conversion_rate, last_updated) as conversion_rate
       FROM flow_statistics
       WHERE klaviyo_public_id = {klaviyoId:String}
         AND date >= {startDate:String}

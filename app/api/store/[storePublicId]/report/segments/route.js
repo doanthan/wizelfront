@@ -60,7 +60,7 @@ export const GET = withStoreAccess(async (request, context) => {
         removed_members,
         daily_change,
         conversion_value
-      FROM segment_statistics
+      FROM segment_statistics_latest
       WHERE klaviyo_public_id = {klaviyoId:String}
         AND date >= {startDate:String}
         AND date <= {endDate:String}

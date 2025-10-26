@@ -234,7 +234,7 @@ export async function GET(request) {
                       SUM(sms_recipients) as sms_recipients
                     FROM (
                       SELECT *
-                      FROM account_metrics_daily
+                      FROM account_metrics_daily_latest
                       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
                         ${mainDateFilter}
                       ORDER BY klaviyo_public_id, date, updated_at DESC
@@ -248,7 +248,7 @@ export async function GET(request) {
                       SUM(unique_customers) as unique_customers
                     FROM (
                       SELECT *
-                      FROM account_metrics_daily
+                      FROM account_metrics_daily_latest
                       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
                         ${comparisonDateFilter}
                       ORDER BY klaviyo_public_id, date, updated_at DESC
@@ -291,7 +291,7 @@ export async function GET(request) {
                       SUM(sms_revenue) as sms_revenue
                     FROM (
                       SELECT *
-                      FROM account_metrics_daily
+                      FROM account_metrics_daily_latest
                       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
                         ${mainDateFilter}
                       ORDER BY klaviyo_public_id, date, updated_at DESC
@@ -334,7 +334,7 @@ export async function GET(request) {
                     (SUM(campaign_revenue + flow_revenue) / nullIf(SUM(total_revenue), 0)) * 100 as attribution_percentage
                   FROM (
                     SELECT *
-                    FROM account_metrics_daily
+                    FROM account_metrics_daily_latest
                     WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
                       ${mainDateFilter}
                     ORDER BY klaviyo_public_id, date, updated_at DESC
@@ -359,7 +359,7 @@ export async function GET(request) {
                     SUM(email_clicks) as clicks
                   FROM (
                     SELECT *
-                    FROM account_metrics_daily
+                    FROM account_metrics_daily_latest
                     WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
                       ${mainDateFilter}
                     ORDER BY klaviyo_public_id, date, updated_at DESC
@@ -376,7 +376,7 @@ export async function GET(request) {
                     SUM(sms_clicks) as clicks
                   FROM (
                     SELECT *
-                    FROM account_metrics_daily
+                    FROM account_metrics_daily_latest
                     WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
                       ${mainDateFilter}
                     ORDER BY klaviyo_public_id, date, updated_at DESC

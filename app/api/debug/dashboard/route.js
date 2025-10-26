@@ -140,7 +140,7 @@ export async function GET(request) {
             MAX(date) as max_date,
             SUM(total_revenue) as total_revenue,
             SUM(total_orders) as total_orders
-          FROM account_metrics_daily FINAL
+          FROM account_metrics_daily_latest FINAL
           WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
         `;
 
@@ -158,7 +158,7 @@ export async function GET(request) {
             total_revenue,
             total_orders,
             unique_customers
-          FROM account_metrics_daily FINAL
+          FROM account_metrics_daily_latest FINAL
           WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
             AND date >= today() - INTERVAL 30 DAY
           ORDER BY date DESC

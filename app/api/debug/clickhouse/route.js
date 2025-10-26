@@ -91,7 +91,7 @@ export async function GET(request) {
             total_revenue,
             total_orders,
             unique_customers
-          FROM account_metrics_daily
+          FROM account_metrics_daily_latest
           ORDER BY date DESC
           LIMIT 5
         `,

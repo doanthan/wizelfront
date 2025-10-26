@@ -20,7 +20,7 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
       maskTextContent: false,
     },
     loaded: (posthog) => {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NEXT_PUBLIC_NODE_ENV === 'development') {
         posthog.debug();
       }
     },

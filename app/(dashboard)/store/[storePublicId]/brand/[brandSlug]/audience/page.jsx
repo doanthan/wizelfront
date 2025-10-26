@@ -9,7 +9,7 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Badge } from "@/app/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Edit2, X, Check, Plus, Users, Target, ShoppingBag, Package, Sparkles, User, DollarSign, MapPin, Heart, TrendingUp } from "lucide-react";
+import { Edit2, X, Check, Plus, Users, Target, ShoppingBag, Package, Sparkles, User, DollarSign, MapPin, Heart, TrendingUp, Trash2, Loader2 } from "lucide-react";
 
 export default function BrandAudiencePage() {
   const {
@@ -28,6 +28,11 @@ export default function BrandAudiencePage() {
   const [showAddDialog, setShowAddDialog] = useState(null);
   const [newItemValue, setNewItemValue] = useState("");
   const [showPersonaDialog, setShowPersonaDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [personaToDelete, setPersonaToDelete] = useState(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [isGeneratingPersona, setIsGeneratingPersona] = useState(false);
+  const [personaPrompt, setPersonaPrompt] = useState("");
   const [newPersona, setNewPersona] = useState({
     name: "",
     description: "",
@@ -68,6 +73,58 @@ export default function BrandAudiencePage() {
       handleArrayItemAdd(showAddDialog, newItemValue.trim());
       setShowAddDialog(null);
       setNewItemValue("");
+    }
+  };
+
+  const handleGeneratePersona = async () => {
+    if (!personaPrompt.trim()) {
+      return;
+    }
+
+    setIsGeneratingPersona(true);
+    try {
+      const response = await fetch(`/api/store/${brand.store_public_id}/brand/${brand.slug}/generate-persona`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: personaPrompt,
+          brandData: {
+            name: brand.name || brand.brandName,
+            websiteUrl: brand.websiteUrl,
+            tagline: brand.brandTagline,
+            industry: brand.industryCategories,
+            values: brand.coreValues,
+            voice: brand.brandVoice,
+            products: brand.mainProductCategories,
+            painPoints: brand.customerPainPoints,
+            aspirations: brand.customerAspirations,
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate persona');
+      }
+
+      const generatedPersona = await response.json();
+      setNewPersona(generatedPersona);
+      setPersonaPrompt("");
+    } catch (error) {
+      console.error('Error generating persona:', error);
+      alert('Failed to generate persona. Please try again.');
+    } finally {
+      setIsGeneratingPersona(false);
+    }
+  };
+
+  const handleDeletePersona = () => {
+    if (deleteConfirmName.trim().toLowerCase() === personaToDelete.persona.name.toLowerCase()) {
+      handleArrayItemRemove('customerPersonas', personaToDelete.idx);
+      setShowDeleteDialog(false);
+      setPersonaToDelete(null);
+      setDeleteConfirmName("");
     }
   };
 
@@ -354,7 +411,7 @@ export default function BrandAudiencePage() {
                   className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30 hover:shadow-lg transition-all"
                 >
                   {/* Persona Header */}
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-sky-blue to-vivid-violet rounded-full flex items-center justify-center">
                         <User className="h-6 w-6 text-white" />
@@ -364,14 +421,6 @@ export default function BrandAudiencePage() {
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{persona.description}</p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleArrayItemRemove('customerPersonas', idx)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
 
                   {/* Demographics */}
@@ -505,6 +554,22 @@ export default function BrandAudiencePage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Delete Button */}
+                  <div className="mt-6 pt-4 border-t border-blue-200 dark:border-blue-800/30">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setPersonaToDelete({ persona, idx });
+                        setShowDeleteDialog(true);
+                      }}
+                      className="w-full bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Customer Persona
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -606,6 +671,63 @@ export default function BrandAudiencePage() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-md bg-white dark:bg-gray-900">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Delete Customer Persona
+            </DialogTitle>
+            <DialogDescription className="dark:text-gray-400">
+              This action cannot be undone. This will permanently delete the customer persona.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800/30">
+              <p className="text-sm text-gray-900 dark:text-white font-medium mb-2">
+                You are about to delete: <strong>{personaToDelete?.persona?.name}</strong>
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Type the persona name below to confirm deletion.
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 block">
+                Confirm by typing: <span className="font-bold">{personaToDelete?.persona?.name}</span>
+              </label>
+              <Input
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder={`Type "${personaToDelete?.persona?.name}" to confirm`}
+                className="border-red-300 dark:border-red-800"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setPersonaToDelete(null);
+                setDeleteConfirmName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeletePersona}
+              disabled={deleteConfirmName.trim().toLowerCase() !== personaToDelete?.persona?.name?.toLowerCase()}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Persona
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Customer Persona Creation Dialog */}
       <Dialog open={showPersonaDialog} onOpenChange={setShowPersonaDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -617,6 +739,43 @@ export default function BrandAudiencePage() {
           </DialogHeader>
 
           <div className="space-y-6">
+            {/* AI Generation Section */}
+            <div className="p-4 bg-gradient-to-r from-sky-50 to-purple-50 dark:from-sky-900/20 dark:to-purple-900/20 rounded-lg border-2 border-sky-200 dark:border-sky-800/30">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-sky-blue" />
+                AI-Powered Persona Generator
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Describe the type of customer persona you want to create, and our AI will generate a detailed profile based on your brand information.
+              </p>
+              <div className="space-y-3">
+                <Textarea
+                  placeholder="e.g., 'Create a persona for eco-conscious millennials who prioritize sustainable skincare' or 'Generate a persona for busy professionals looking for premium wellness products'"
+                  value={personaPrompt}
+                  onChange={(e) => setPersonaPrompt(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                  disabled={isGeneratingPersona}
+                />
+                <Button
+                  onClick={handleGeneratePersona}
+                  disabled={!personaPrompt.trim() || isGeneratingPersona}
+                  className="w-full bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white"
+                >
+                  {isGeneratingPersona ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating Persona...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate with AI
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
             {/* Basic Information */}
             <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">

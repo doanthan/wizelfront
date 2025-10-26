@@ -83,6 +83,7 @@ const sidebarItemsConfig = [
     href: "/email-builder",
     feature: FEATURES.CAMPAIGNS,
     action: ACTIONS.CREATE,
+    comingSoon: true,
   },
   {
     title: "Web Feeds",
@@ -99,30 +100,6 @@ const sidebarItemsConfig = [
     href: "/idea-generator",
     feature: FEATURES.CAMPAIGNS,
     action: ACTIONS.CREATE,
-  },
-  {
-    title: "Design Studio",
-    shortLabel: "Design",
-    icon: Palette,
-    href: "/design-studio",
-    feature: FEATURES.CAMPAIGNS,
-    action: ACTIONS.CREATE,
-    children: [
-      {
-        title: "CTA Designer",
-        icon: MousePointer2,
-        href: "/design-studio/cta-designer",
-        feature: FEATURES.CAMPAIGNS,
-        action: ACTIONS.CREATE,
-      },
-      {
-        title: "GIF Designer",
-        icon: ImageIcon,
-        href: "/design-studio/gif-designer",
-        feature: FEATURES.CAMPAIGNS,
-        action: ACTIONS.CREATE,
-      },
-    ],
   },
   {
     title: "Multi-Account Reporting",
@@ -220,14 +197,6 @@ const sidebarItemsConfig = [
         action: ACTIONS.VIEW,
       },
     ],
-  },
-  {
-    title: "Permissions",
-    shortLabel: "Access",
-    icon: Shield,
-    href: "/permissions",
-    feature: FEATURES.PERMISSIONS,
-    action: ACTIONS.VIEW,
   },
   {
     title: "Users",
@@ -466,41 +435,105 @@ export default function Sidebar() {
                 <li key={item.title}>
                   <div>
                     {item.children ? (
-                      <button
-                        onClick={() => !isCollapsed && toggleExpanded(item.title)}
-                        className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
-                          isParentActive(item)
-                            ? "bg-blue-50 dark:bg-sky-blue/20 text-sky-blue"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
-                        )}
-                        title={isCollapsed ? item.title : ""}
-                      >
-                        <div className={cn(
-                          "flex items-center",
-                          isCollapsed ? "flex-col justify-center w-full gap-0.5" : "space-x-3"
-                        )}>
-                          <item.icon className="h-4 w-4 flex-shrink-0" />
-                          {!isCollapsed && <span>{item.title}</span>}
+                      item.comingSoon ? (
+                        <div
+                          className={cn(
+                            "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative cursor-not-allowed",
+                            "text-gray-400 dark:text-gray-600 opacity-60"
+                          )}
+                          title={isCollapsed ? `${item.title} - Coming Soon` : ""}
+                        >
+                          <div className={cn(
+                            "flex items-center flex-1",
+                            isCollapsed ? "flex-col justify-center w-full gap-0.5" : "space-x-3"
+                          )}>
+                            <item.icon className="h-4 w-4 flex-shrink-0" />
+                            {!isCollapsed && (
+                              <div className="flex items-center justify-between flex-1">
+                                <span>{item.title}</span>
+                                <Badge variant="outline" className="ml-2 text-[10px] px-1.5 py-0 border-vivid-violet/30 text-vivid-violet dark:border-vivid-violet/50 dark:text-vivid-violet">
+                                  Coming Soon
+                                </Badge>
+                              </div>
+                            )}
+                            {isCollapsed && (
+                              <span className="text-[9px] font-medium leading-tight">
+                                {item.shortLabel || item.title}
+                              </span>
+                            )}
+                          </div>
                           {isCollapsed && (
+                            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                              {item.title} - Coming Soon
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => !isCollapsed && toggleExpanded(item.title)}
+                          className={cn(
+                            "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative",
+                            isParentActive(item)
+                              ? "bg-blue-50 dark:bg-sky-blue/20 text-sky-blue"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                          )}
+                          title={isCollapsed ? item.title : ""}
+                        >
+                          <div className={cn(
+                            "flex items-center",
+                            isCollapsed ? "flex-col justify-center w-full gap-0.5" : "space-x-3"
+                          )}>
+                            <item.icon className="h-4 w-4 flex-shrink-0" />
+                            {!isCollapsed && <span>{item.title}</span>}
+                            {isCollapsed && (
+                              <span className="text-[9px] font-medium leading-tight">
+                                {item.shortLabel || item.title}
+                              </span>
+                            )}
+                          </div>
+                          {!isCollapsed && (
+                            expandedItems[item.title] ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )
+                          )}
+                          {isCollapsed && (
+                            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                              {item.title}
+                            </div>
+                          )}
+                        </button>
+                      )
+                    ) : item.comingSoon ? (
+                      <div
+                        className={cn(
+                          "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors group relative cursor-not-allowed",
+                          "text-gray-400 dark:text-gray-600 opacity-60",
+                          isCollapsed ? "flex-col justify-center gap-0.5" : "space-x-3"
+                        )}
+                        title={isCollapsed ? `${item.title} - Coming Soon` : ""}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {!isCollapsed && (
+                          <div className="flex items-center justify-between flex-1">
+                            <span>{item.title}</span>
+                            <Badge variant="outline" className="ml-2 text-[10px] px-1.5 py-0 border-vivid-violet/30 text-vivid-violet dark:border-vivid-violet/50 dark:text-vivid-violet">
+                              Coming Soon
+                            </Badge>
+                          </div>
+                        )}
+                        {isCollapsed && (
+                          <>
                             <span className="text-[9px] font-medium leading-tight">
                               {item.shortLabel || item.title}
                             </span>
-                          )}
-                        </div>
-                        {!isCollapsed && (
-                          expandedItems[item.title] ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )
+                            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                              {item.title} - Coming Soon
+                            </div>
+                          </>
                         )}
-                        {isCollapsed && (
-                          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                            {item.title}
-                          </div>
-                        )}
-                      </button>
+                      </div>
                     ) : (
                       <Link
                         href={getAdjustedHref(item.href)}

@@ -92,7 +92,7 @@ export default function ProductsReportPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const { stores, isLoadingStores } = useStores();
+  const { stores, isLoadingStores, selectStore } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -159,6 +159,9 @@ export default function ProductsReportPage() {
   // Handle store selection change
   const handleStoreChange = (newStoreId) => {
     if (newStoreId && newStoreId !== storePublicId) {
+      // Update the store context to synchronize with sidebar
+      selectStore(newStoreId);
+      // Navigate to the new store's report page
       router.push(`/store/${newStoreId}/report/products`);
     }
   };

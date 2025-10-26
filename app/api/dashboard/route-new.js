@@ -133,13 +133,13 @@ const fetchRevenueMetrics = async (klaviyoPublicIds, dateRange, comparison = nul
     const attributedRevenueQuery = `
       WITH campaign_revenue AS (
         SELECT SUM(conversion_value) as revenue
-        FROM campaign_statistics FINAL
+        FROM campaign_statistics_latest FINAL
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${dateFilterCampaigns}
       ),
       flow_revenue AS (
         SELECT SUM(conversion_value) as revenue
-        FROM flow_statistics FINAL
+        FROM flow_statistics_latest FINAL
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${dateFilterCampaigns}
       )
@@ -330,7 +330,7 @@ const fetchPerformanceMetrics = async (klaviyoPublicIds, dateRange) => {
           SUM(opens_unique) as campaign_opens,
           SUM(clicks_unique) as campaign_clicks,
           SUM(conversion_value) as campaign_revenue
-        FROM campaign_statistics FINAL
+        FROM campaign_statistics_latest FINAL
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${dateFilter}
         GROUP BY date
@@ -343,7 +343,7 @@ const fetchPerformanceMetrics = async (klaviyoPublicIds, dateRange) => {
           SUM(opens_unique) as flow_opens,
           SUM(clicks_unique) as flow_clicks,
           SUM(conversion_value) as flow_revenue
-        FROM flow_statistics FINAL
+        FROM flow_statistics_latest FINAL
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${dateFilter}
         GROUP BY date

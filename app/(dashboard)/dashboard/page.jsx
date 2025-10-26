@@ -15,12 +15,14 @@ import SimpleDashboard from "./components/SimpleDashboard";
 import RecentCampaigns from "./components/RecentCampaigns";
 import UpcomingCampaigns from "./components/UpcomingCampaigns";
 import GetStarted from "./components/GetStarted";
+import { useAI } from "@/app/contexts/ai-context";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { stores, isLoadingStores } = useStores();
   const { theme, toggleTheme } = useTheme();
+  const { updateAIState } = useAI();
   const [mounted, setMounted] = useState(false);
 
   // Calculate default dates dynamically
@@ -50,6 +52,10 @@ export default function DashboardPage() {
   const [dateRangeSelection, setDateRangeSelection] = useState(getDefaultDateRange());
   const [selectedAccounts, setSelectedAccounts] = useState([]);
   const [allKnownAccounts, setAllKnownAccounts] = useState({});
+
+  // NEW: State for campaigns data to pass to SimpleDashboard
+  const [recentCampaignsData, setRecentCampaignsData] = useState([]);
+  const [upcomingCampaignsData, setUpcomingCampaignsData] = useState([]);
 
   // Redirect to homepage if not authenticated
   useEffect(() => {
@@ -220,6 +226,43 @@ export default function DashboardPage() {
     });
   }, [availableAccounts, stores, isLoadingStores]);
 
+  // Update AI context when key data changes
+  useEffect(() => {
+    if (isLoadingStores || !stores || stores.length === 0) return;
+
+    // Map selected accounts to include store data
+    const selectedStoresData = selectedAccounts
+      .map(acc => {
+        const store = stores.find(s => s.public_id === acc.value);
+        if (!store) return null;
+        return {
+          value: store.public_id,
+          label: store.name,
+          klaviyo_id: store.klaviyo_integration?.public_id
+        };
+      })
+      .filter(Boolean);
+
+    updateAIState({
+      currentPage: '/dashboard',
+      pageTitle: 'Dashboard',
+      pageType: 'dashboard',
+      selectedStores: selectedStoresData,
+      selectedKlaviyoIds: selectedStoresData
+        .map(s => s.klaviyo_id)
+        .filter(Boolean),
+      dateRange: {
+        start: dateRangeSelection.ranges?.main?.start || null,
+        end: dateRangeSelection.ranges?.main?.end || null,
+        preset: dateRangeSelection.period || 'last90',
+        comparison: dateRangeSelection.ranges?.comparison || null
+      }
+    });
+
+    // Clean up on unmount
+    return () => updateAIState({ currentPage: null, selectedStores: [], dateRange: {} });
+  }, [selectedAccounts, dateRangeSelection, stores, isLoadingStores, updateAIState]);
+
   // Handle date range changes from the date selector
   const handleDateRangeChange = (newDateRangeSelection) => {
     console.log('📅 Dashboard: Date range changed', {
@@ -322,15 +365,19 @@ export default function DashboardPage() {
           selectedAccounts={selectedAccounts}
           dateRangeSelection={dateRangeSelection}
           stores={stores}
+          recentCampaignsData={recentCampaignsData}
+          upcomingCampaignsData={upcomingCampaignsData}
         />
 
         {/* Campaigns Section - Recent and Upcoming side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <RecentCampaigns
             stores={stores}
+            onCampaignsLoad={setRecentCampaignsData}
           />
           <UpcomingCampaigns
             stores={stores}
+            onCampaignsLoad={setUpcomingCampaignsData}
           />
         </div>
       </div>

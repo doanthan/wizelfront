@@ -67,53 +67,6 @@ const UserSchema = new mongoose.Schema({
     oauth_id: {
         type: String,
     },
-    stores: [{
-        _id: false,
-        store_id: ObjectId,
-        store_public_id: String,
-        role: {
-            type: String,
-            enum: [
-                'owner',           // Level 100 - Full control
-                'admin',           // Level 90  - Administrative
-                'manager',         // Level 80  - Team management
-                'brand_guardian',  // Level 70  - Brand protection
-                'creator',         // Level 60  - Content creation
-                'publisher',       // Level 50  - Direct publishing
-                'reviewer',        // Level 40  - Content review
-                'analyst',         // Level 30  - Data analysis
-                'viewer',          // Level 20  - Read-only
-                'guest'           // Level 10  - Limited access
-            ],
-            default: 'viewer'
-        },
-        permissions: [String], // Feature:action format permissions (e.g., 'templates:edit')
-        data_scope: {
-            type: String,
-            enum: ['global', 'organization', 'assigned_accounts', 'own_account', 'specific_items'],
-            default: 'assigned_accounts'
-        },
-        approval_level: {
-            type: String,
-            enum: ["none", "draft", "pending", "approved"],
-            default: "none"
-        },
-        can_approve_others: {
-            type: Boolean,
-            default: false
-        },
-        joined_at: {
-            type: Date,
-            default: Date.now
-        },
-        invited_by: ObjectId // user_id who invited them
-    }],
-    // Global user role (deprecated - use store-specific roles)
-    role: {
-        type: String,
-        enum: ["user", "admin", "super_admin"],
-        default: "user",
-    },
     // Super user fields - System-wide administration
     is_super_user: {
         type: Boolean,
@@ -202,27 +155,7 @@ const UserSchema = new mongoose.Schema({
         email_weekly_reports: { type: Boolean, default: false },
         push_notifications: { type: Boolean, default: true }
     },
-    
-    // Legacy Contract Relations (deprecated - use active_seats instead)
-    primary_contract_id: {
-        type: ObjectId,
-        ref: 'Contract'
-    },
-    contract_access: [{
-        contract_id: {
-            type: ObjectId,
-            ref: 'Contract'
-        },
-        role: {
-            type: String,
-            enum: ['owner', 'admin', 'member'],
-            default: 'member'
-        },
-        added_at: {
-            type: Date,
-            default: Date.now
-        }
-    }],
+
     // Store permissions V2 - Feature:Action format
     store_permissions: [{
         store_id: {
@@ -334,7 +267,7 @@ UserSchema.methods.hasStoreAccess = function (storeId, requiredPermission = 'vie
 
     const isPublicId = storeId?.length === 7;
 
-    // Check new store_permissions structure
+    // Check store_permissions structure
     const storePermission = this.store_permissions?.find(perm => {
         if (isPublicId) {
             // TODO: Add store_public_id to store_permissions
@@ -343,15 +276,7 @@ UserSchema.methods.hasStoreAccess = function (storeId, requiredPermission = 'vie
         return perm.store_id?.toString() === storeId?.toString();
     });
 
-    // Also check legacy stores array
-    const storeAccess = this.stores?.find(store => {
-        if (isPublicId) {
-            return store.store_public_id === storeId;
-        }
-        return store.store_id?.toString() === storeId?.toString();
-    });
-
-    if (!storePermission && !storeAccess) {
+    if (!storePermission) {
         const endTime = process.hrtime.bigint();
         const duration = Number(endTime - startTime) / 1000000; // Convert to milliseconds
 
@@ -365,51 +290,44 @@ UserSchema.methods.hasStoreAccess = function (storeId, requiredPermission = 'vie
 
     // Check permissions based on role and specific permissions
     let hasAccess = false;
-    
-    if (storePermission) {
-        // Check new permission structure
-        if (storePermission.permissions_v2?.includes('*:*')) {
-            hasAccess = true;
-        } else if (requiredPermission && storePermission.permissions_v2) {
-            // Check for specific permission in feature:action format
-            hasAccess = storePermission.permissions_v2.includes(requiredPermission) ||
-                       storePermission.permissions_v2.includes(`*:${requiredPermission.split(':')[1]}`) ||
-                       storePermission.permissions_v2.includes(`${requiredPermission.split(':')[0]}:*`);
-        }
-        
-        // Check role-based access
-        if (!hasAccess && storePermission.role) {
-            const roleHierarchy = {
-                'owner': 100,
-                'admin': 90,
-                'manager': 80,
-                'brand_guardian': 70,
-                'creator': 60,
-                'publisher': 50,
-                'reviewer': 40,
-                'analyst': 30,
-                'viewer': 20,
-                'guest': 10
-            };
-            
-            const userRoleLevel = roleHierarchy[storePermission.role] || 0;
-            
-            // Basic permission checks based on role level
-            if (requiredPermission === 'view') {
-                hasAccess = userRoleLevel >= 10; // Guest and above can view
-            } else if (requiredPermission === 'edit' || requiredPermission === 'create') {
-                hasAccess = userRoleLevel >= 60; // Creator and above can edit/create
-            } else if (requiredPermission === 'delete') {
-                hasAccess = userRoleLevel >= 80; // Manager and above can delete
-            } else if (requiredPermission === 'manage') {
-                hasAccess = userRoleLevel >= 90; // Admin and above can manage
-            }
-        }
+
+    // Check for wildcard permission
+    if (storePermission.permissions_v2?.includes('*:*')) {
+        hasAccess = true;
+    } else if (requiredPermission && storePermission.permissions_v2) {
+        // Check for specific permission in feature:action format
+        hasAccess = storePermission.permissions_v2.includes(requiredPermission) ||
+                   storePermission.permissions_v2.includes(`*:${requiredPermission.split(':')[1]}`) ||
+                   storePermission.permissions_v2.includes(`${requiredPermission.split(':')[0]}:*`);
     }
-    
-    // Fall back to legacy stores array
-    if (!hasAccess && storeAccess) {
-        hasAccess = true; // Legacy structure implies access
+
+    // Check role-based access
+    if (!hasAccess && storePermission.role) {
+        const roleHierarchy = {
+            'owner': 100,
+            'admin': 90,
+            'manager': 80,
+            'brand_guardian': 70,
+            'creator': 60,
+            'publisher': 50,
+            'reviewer': 40,
+            'analyst': 30,
+            'viewer': 20,
+            'guest': 10
+        };
+
+        const userRoleLevel = roleHierarchy[storePermission.role] || 0;
+
+        // Basic permission checks based on role level
+        if (requiredPermission === 'view') {
+            hasAccess = userRoleLevel >= 10; // Guest and above can view
+        } else if (requiredPermission === 'edit' || requiredPermission === 'create') {
+            hasAccess = userRoleLevel >= 60; // Creator and above can edit/create
+        } else if (requiredPermission === 'delete') {
+            hasAccess = userRoleLevel >= 80; // Manager and above can delete
+        } else if (requiredPermission === 'manage') {
+            hasAccess = userRoleLevel >= 90; // Admin and above can manage
+        }
     }
 
     const endTime = process.hrtime.bigint();

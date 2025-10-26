@@ -197,6 +197,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
           sum(email_opens) as opens,
           sum(email_clicks + sms_clicks) as clicks,
           sum(total_revenue) as revenue,
+          sum(attributed_revenue) as attributed_revenue,
           sum(total_orders) as orders,
           if(sum(total_orders) > 0, sum(total_revenue) / sum(total_orders), 0) as aov,
           if(sum(email_delivered) > 0, (sum(email_opens) * 100.0 / sum(email_delivered)), 0) as open_rate,
@@ -205,7 +206,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
           if((sum(email_delivered) + sum(sms_delivered)) > 0,
              sum(total_revenue) / (sum(email_delivered) + sum(sms_delivered)),
              0) as revenue_per_recipient
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoIdList})
           AND date >= '${currentStart}'
           AND date <= '${currentEnd}'
@@ -219,6 +220,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
           sum(email_opens) as opens,
           sum(email_clicks + sms_clicks) as clicks,
           sum(total_revenue) as revenue,
+          sum(attributed_revenue) as attributed_revenue,
           sum(total_orders) as orders,
           if(sum(total_orders) > 0, sum(total_revenue) / sum(total_orders), 0) as aov,
           if(sum(email_delivered) > 0, (sum(email_opens) * 100.0 / sum(email_delivered)), 0) as open_rate,
@@ -227,7 +229,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
           if((sum(email_delivered) + sum(sms_delivered)) > 0,
              sum(total_revenue) / (sum(email_delivered) + sum(sms_delivered)),
              0) as revenue_per_recipient
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoIdList})
           ${compareStart && compareEnd ? `AND date >= '${compareStart}' AND date <= '${compareEnd}'` : 'AND 0=1'}
         GROUP BY klaviyo_public_id
@@ -239,6 +241,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
         c.opens,
         c.clicks,
         c.revenue,
+        c.attributed_revenue,
         c.orders,
         c.aov,
         c.open_rate,
@@ -248,6 +251,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
 
         -- Previous period values
         p.revenue as previous_revenue,
+        p.attributed_revenue as previous_attributed_revenue,
         p.emails_sent as previous_emails_sent,
         p.sms_sent as previous_sms_sent,
         p.opens as previous_opens,
@@ -259,6 +263,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
 
         -- Percentage changes
         if(p.revenue > 0, ((c.revenue - p.revenue) * 100.0 / p.revenue), if(c.revenue > 0, 999999, 0)) as revenue_change,
+        if(p.attributed_revenue > 0, ((c.attributed_revenue - p.attributed_revenue) * 100.0 / p.attributed_revenue), if(c.attributed_revenue > 0, 999999, 0)) as attributed_revenue_change,
         if(p.emails_sent > 0, ((c.emails_sent - p.emails_sent) * 100.0 / p.emails_sent), if(c.emails_sent > 0, 999999, 0)) as emails_sent_change,
         if(p.sms_sent > 0, ((c.sms_sent - p.sms_sent) * 100.0 / p.sms_sent), if(c.sms_sent > 0, 999999, 0)) as sms_sent_change,
         if(p.open_rate > 0, ((c.open_rate - p.open_rate) * 100.0 / p.open_rate), 0) as open_rate_change,
@@ -298,6 +303,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
         openRate: parseFloat(stat.open_rate) || 0,
         clickRate: parseFloat(stat.click_rate) || 0,
         revenue: parseFloat(stat.revenue) || 0,
+        attributedRevenue: parseFloat(stat.attributed_revenue) || 0,
         orders: parseInt(stat.orders) || 0,
         aov: parseFloat(stat.aov) || 0,
         revenuePerRecipient: parseFloat(stat.revenue_per_recipient) || 0,
@@ -305,6 +311,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
 
         // Previous period values
         previousRevenue: parseFloat(stat.previous_revenue) || 0,
+        previousAttributedRevenue: parseFloat(stat.previous_attributed_revenue) || 0,
         previousEmailsSent: parseInt(stat.previous_emails_sent) || 0,
         previousSmsSent: parseInt(stat.previous_sms_sent) || 0,
         previousOpens: parseInt(stat.previous_opens) || 0,
@@ -316,6 +323,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
 
         // Percentage changes (capped at 999% for display purposes)
         revenueChange: Math.min(parseFloat(stat.revenue_change) || 0, 999),
+        attributedRevenueChange: Math.min(parseFloat(stat.attributed_revenue_change) || 0, 999),
         emailsSentChange: Math.min(parseFloat(stat.emails_sent_change) || 0, 999),
         smsSentChange: Math.min(parseFloat(stat.sms_sent_change) || 0, 999),
         openRateChange: parseFloat(stat.open_rate_change) || 0,
@@ -341,11 +349,13 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
           openRate: 0,
           clickRate: 0,
           revenue: 0,
+          attributedRevenue: 0,
           orders: 0,
           aov: 0,
           revenuePerRecipient: 0,
           ctor: 0,
           previousRevenue: 0,
+          previousAttributedRevenue: 0,
           previousEmailsSent: 0,
           previousSmsSent: 0,
           previousOpens: 0,
@@ -355,6 +365,7 @@ async function fetchAccountStatistics(klaviyoPublicIds, storeMap, dateRange, com
           previousCtor: 0,
           previousRevenuePerRecipient: 0,
           revenueChange: 0,
+          attributedRevenueChange: 0,
           emailsSentChange: 0,
           smsSentChange: 0,
           openRateChange: 0,

@@ -45,7 +45,7 @@ export const GET = withStoreAccess(async (request, context) => {
         SUM(closed_form) as closed_form,
         SUM(closed_form_uniques) as closed_form_uniques,
         SUM(conversion_value) as conversion_value
-      FROM form_statistics
+      FROM form_statistics_latest
       WHERE klaviyo_public_id = '${klaviyoPublicId}'
         AND date >= '${startDate.split('T')[0]}'
         AND date <= '${endDate.split('T')[0]}'

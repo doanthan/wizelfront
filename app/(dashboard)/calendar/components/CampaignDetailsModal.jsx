@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/app/components/ui/dialog'
 import { Badge } from '@/app/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/app/components/ui/tabs'
@@ -1132,7 +1132,9 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                                 </span>
                                             </div>
                                         </div>
-                                        </>
+                                    </div>
+
+                                    </>
                                     )}
                                 </div>
                             </div>

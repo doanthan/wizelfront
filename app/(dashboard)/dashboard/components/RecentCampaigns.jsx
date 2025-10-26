@@ -25,7 +25,7 @@ const CampaignDetailsModal = dynamic(
   { ssr: false }
 )
 
-export default function RecentCampaigns({ stores }) {
+export default function RecentCampaigns({ stores, onCampaignsLoad }) {
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -74,6 +74,10 @@ export default function RecentCampaigns({ stores }) {
         allCampaigns.sort((a, b) => new Date(b.date) - new Date(a.date))
 
         setCampaigns(allCampaigns)
+        // NEW: Pass campaigns data to parent for AI context
+        if (onCampaignsLoad) {
+          onCampaignsLoad(allCampaigns)
+        }
       } catch (err) {
         console.error('Error fetching recent campaigns:', err)
         setError(err.message)

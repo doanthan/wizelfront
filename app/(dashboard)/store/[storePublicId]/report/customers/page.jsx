@@ -23,7 +23,7 @@ export default function CustomersReportPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const { stores, isLoadingStores } = useStores();
+  const { stores, isLoadingStores, selectStore } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [storePublicId, setStorePublicId] = useState(null);
@@ -64,6 +64,8 @@ export default function CustomersReportPage() {
   // Handle store selection change
   const handleStoreChange = (newStoreId) => {
     if (newStoreId && newStoreId !== storePublicId) {
+      // Update the store context to synchronize with sidebar
+      selectStore(newStoreId);
       // Preserve the current page parameter when changing stores
       const currentPage = searchParams.get('page');
       const url = currentPage

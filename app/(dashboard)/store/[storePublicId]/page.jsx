@@ -10,12 +10,12 @@ import { Label } from "@/app/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { useToast } from "@/app/hooks/use-toast";
-import { 
-  ArrowLeft, 
-  Store, 
-  Globe, 
-  Trash2, 
-  Save, 
+import {
+  ArrowLeft,
+  Store,
+  Globe,
+  Trash2,
+  Save,
   Settings,
   Package,
   Tag,
@@ -28,7 +28,6 @@ import {
   AlertTriangle,
   ExternalLink,
   Copy,
-  ShoppingCart,
   Palette,
   Image,
   RefreshCw,
@@ -57,7 +56,6 @@ export default function StoreDetailsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [domainValidation, setDomainValidation] = useState({ isValid: true, error: null });
-  const [connectingProducts, setConnectingProducts] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -448,7 +446,7 @@ export default function StoreDetailsPage() {
         title: "Store Deleted",
         description: "Store has been successfully deleted",
       });
-      
+
       router.push('/stores');
     } catch (error) {
       console.error('Error deleting store:', error);
@@ -460,47 +458,6 @@ export default function StoreDetailsPage() {
     } finally {
       setShowDeleteDialog(false);
       setDeleteConfirmName("");
-    }
-  };
-
-  const handleConnectProducts = async () => {
-    if (!store.url) {
-      toast({
-        title: "Domain Required",
-        description: "Please set a store domain before connecting products",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setConnectingProducts(true);
-    try {
-      const response = await fetch(`/api/store/${storePublicId}/connect-products`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: data.message || "Products connection initiated",
-        });
-        setActiveTab("products");
-      } else {
-        throw new Error(data.error || 'Failed to connect products');
-      }
-    } catch (error) {
-      console.error('Error connecting products:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setConnectingProducts(false);
     }
   };
 
@@ -588,13 +545,6 @@ export default function StoreDetailsPage() {
             className="rounded-none border-b-2 border-transparent hover:border-gray-300 px-4 py-2"
           >
             Collections
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/store/${storePublicId}/products`)}
-            className="rounded-none border-b-2 border-transparent hover:border-gray-300 px-4 py-2"
-          >
-            Products
           </Button>
           <Button
             variant="ghost"
@@ -814,31 +764,7 @@ export default function StoreDetailsPage() {
                 {/* Integrations */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-slate-gray dark:text-white">Integrations</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer border-gray-200"
-                          onClick={() => router.push(`/store/${storePublicId}/shopify-connect`)}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <img src="/shopify-icon.png" alt="Shopify" className="h-8 w-8" />
-                          {store.shopify_integration?.status === "connected" ? (
-                            <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
-                              Connected
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">
-                              Not Connected
-                            </Badge>
-                          )}
-                        </div>
-                        <h4 className="font-medium text-slate-gray dark:text-white mb-1">Shopify</h4>
-                        <p className="text-xs text-neutral-gray dark:text-gray-400">
-                          {store.shopify_integration?.status === "connected" 
-                            ? "Manage your Shopify connection" 
-                            : "Connect your Shopify store"}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card className="hover:shadow-md transition-shadow cursor-pointer border-gray-200"
                           onClick={() => router.push(`/store/${storePublicId}/klaviyo-connect`)}>
                       <CardContent className="p-4">
@@ -856,27 +782,9 @@ export default function StoreDetailsPage() {
                         </div>
                         <h4 className="font-medium text-slate-gray dark:text-white mb-1">Klaviyo</h4>
                         <p className="text-xs text-neutral-gray dark:text-gray-400">
-                          {store.klaviyo_integration?.status === "connected" 
-                            ? "Manage your Klaviyo connection" 
+                          {store.klaviyo_integration?.status === "connected"
+                            ? "Manage your Klaviyo connection"
                             : "Connect your email marketing"}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer border-gray-200"
-                          onClick={handleConnectProducts}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="h-8 w-8 bg-gradient-to-br from-vivid-violet to-deep-purple rounded-lg flex items-center justify-center">
-                            <Package className="h-4 w-4 text-white" />
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {store.url ? "Ready" : "Domain Required"}
-                          </Badge>
-                        </div>
-                        <h4 className="font-medium text-slate-gray dark:text-white mb-1">Products</h4>
-                        <p className="text-xs text-neutral-gray dark:text-gray-400">
-                          {store.url ? "Import and manage products" : "Set domain first"}
                         </p>
                       </CardContent>
                     </Card>
@@ -1005,10 +913,6 @@ export default function StoreDetailsPage() {
                     <CardTitle className="text-base text-slate-gray dark:text-white">Quick Stats</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-neutral-gray dark:text-gray-400">Products</span>
-                      <span className="font-semibold text-slate-gray dark:text-white">0</span>
-                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-neutral-gray dark:text-gray-400">Collections</span>
                       <span className="font-semibold text-slate-gray dark:text-white">0</span>

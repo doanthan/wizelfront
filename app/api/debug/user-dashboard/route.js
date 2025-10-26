@@ -134,7 +134,7 @@ export async function POST(request) {
           SUM(total_orders) as orders_sum,
           SUM(unique_customers) as customers_sum,
           COUNT(*) as days_with_data
-        FROM account_metrics_daily FINAL
+        FROM account_metrics_daily_latest FINAL
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           AND date >= '${past90Days.toISOString().split('T')[0]}'
           AND date <= '${now.toISOString().split('T')[0]}'

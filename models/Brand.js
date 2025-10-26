@@ -810,74 +810,15 @@ const brandSettingsSchema = new mongoose.Schema(
             dataSource: String
         },
         
-        // Comprehensive CSS and Brand Style System
-        // Consolidated from BrandStyle model - all styling elements in one field
+        // CSS Design System (Claude-generated from visual analysis)
         css: {
-            // Color System
-            colors: {
-                // Primary brand colors
-                primary: { type: String, default: '#000000' },
-                secondary: { type: String },
-                accent: { type: String },
-
-                // Semantic colors
-                success: { type: String, default: '#28a745' },
-                warning: { type: String, default: '#ffc107' },
-                error: { type: String, default: '#dc3545' },
-                info: { type: String, default: '#17a2b8' },
-
-                // Background colors
-                background: {
-                    light: { type: String, default: '#ffffff' },
-                    dark: { type: String, default: '#000000' },
-                    muted: { type: String, default: '#f7f7f7' },
-                    canvas: { type: String, default: '#fafafa' }
-                },
-
-                // Text colors
-                text: {
-                    primary: { type: String, default: '#000000' },
-                    secondary: { type: String, default: '#666666' },
-                    muted: { type: String, default: '#999999' },
-                    inverse: { type: String, default: '#ffffff' },
-                    link: { type: String },
-                    linkHover: { type: String }
-                },
-
-                // Border colors
-                border: {
-                    primary: { type: String, default: '#e5e5e5' },
-                    secondary: { type: String, default: '#cccccc' },
-                    focus: { type: String }
-                },
-
-                // Color palette with usage notes
-                palette: [{
-                    name: { type: String, required: true },
-                    value: { type: String, required: true }, // Hex color code
-                    usage: { type: String } // "primary", "accent", "background", etc.
-                }],
-
-                // Scraped/extracted colors
-                extracted: {
-                    primary: [String],
-                    text: [String],
-                    background: [String]
-                }
-            },
-
-            // Typography System
+            // Typography Scale
             typography: {
-                // Font families
                 fontFamilies: {
-                    primary: { type: String, default: 'Arial, Helvetica, sans-serif' },
-                    secondary: { type: String },
-                    heading: { type: String },
-                    body: { type: String },
-                    mono: { type: String }
+                    primary: { type: String }, // e.g., "'Poppins', Arial, Helvetica, sans-serif"
+                    secondary: { type: String }, // e.g., "'Kalnia', Georgia, serif"
+                    monospace: { type: String }
                 },
-
-                // Font sizes (in pixels)
                 fontSize: {
                     xs: { type: Number, default: 12 },
                     sm: { type: Number, default: 14 },
@@ -885,52 +826,73 @@ const brandSettingsSchema = new mongoose.Schema(
                     md: { type: Number, default: 18 },
                     lg: { type: Number, default: 20 },
                     xl: { type: Number, default: 24 },
-                    '2xl': { type: Number, default: 28 },
-                    '3xl': { type: Number, default: 32 },
-                    '4xl': { type: Number, default: 36 },
-                    '5xl': { type: Number, default: 42 },
-                    '6xl': { type: Number, default: 48 }
+                    '2xl': { type: Number, default: 30 },
+                    '3xl': { type: Number, default: 36 },
+                    '4xl': { type: Number, default: 48 },
+                    '5xl': { type: Number, default: 60 }
                 },
-
-                // Font weights
                 fontWeight: {
                     light: { type: Number, default: 300 },
-                    normal: { type: Number, default: 400 },
+                    regular: { type: Number, default: 400 },
                     medium: { type: Number, default: 500 },
                     semibold: { type: Number, default: 600 },
                     bold: { type: Number, default: 700 },
-                    black: { type: Number, default: 900 }
+                    extrabold: { type: Number, default: 800 }
                 },
-
-                // Line heights
                 lineHeight: {
                     tight: { type: Number, default: 1.2 },
+                    snug: { type: Number, default: 1.375 },
                     normal: { type: Number, default: 1.5 },
-                    relaxed: { type: Number, default: 1.6 },
+                    relaxed: { type: Number, default: 1.625 },
                     loose: { type: Number, default: 1.8 }
                 },
-
-                // Letter spacing
                 letterSpacing: {
-                    tight: { type: String, default: '-0.5px' },
-                    normal: { type: String, default: '0px' },
-                    wide: { type: String, default: '0.5px' },
-                    wider: { type: String, default: '1px' }
-                },
-
-                // Scraped heading styles
-                headings: {
-                    h1: mongoose.Schema.Types.Mixed,
-                    h2: mongoose.Schema.Types.Mixed,
-                    h3: mongoose.Schema.Types.Mixed,
-                    p: mongoose.Schema.Types.Mixed,
-                    body: mongoose.Schema.Types.Mixed
+                    tighter: { type: String, default: '-0.05em' },
+                    tight: { type: String, default: '-0.025em' },
+                    normal: { type: String, default: '0' },
+                    wide: { type: String, default: '0.025em' },
+                    wider: { type: String, default: '0.05em' }
                 }
             },
 
-            // Spacing System
+            // Color System
+            colors: {
+                primary: { type: String }, // "#bee99c"
+                primaryDark: { type: String }, // Darker shade for hover
+                primaryLight: { type: String }, // Lighter tint
+                secondary: { type: String },
+                secondaryDark: { type: String },
+                secondaryLight: { type: String },
+                accent: { type: String },
+                background: {
+                    primary: { type: String, default: '#ffffff' },
+                    secondary: { type: String, default: '#f7f7f7' },
+                    dark: { type: String },
+                    muted: { type: String }
+                },
+                text: {
+                    primary: { type: String, default: '#000000' },
+                    secondary: { type: String, default: '#666666' },
+                    tertiary: { type: String },
+                    inverse: { type: String, default: '#ffffff' },
+                    link: { type: String },
+                    linkHover: { type: String }
+                },
+                border: {
+                    light: { type: String, default: '#e0e0e0' },
+                    medium: { type: String, default: '#cccccc' },
+                    dark: { type: String, default: '#999999' }
+                },
+                status: {
+                    success: { type: String }, // Green
+                    warning: { type: String }, // Yellow/Orange
+                    error: { type: String }, // Red
+                    info: { type: String } // Blue
+                }
+            },
+
+            // Spacing Scale
             spacing: {
-                // Standard spacing scale (in pixels)
                 xs: { type: Number, default: 4 },
                 sm: { type: Number, default: 8 },
                 md: { type: Number, default: 16 },
@@ -938,188 +900,152 @@ const brandSettingsSchema = new mongoose.Schema(
                 xl: { type: Number, default: 32 },
                 '2xl': { type: Number, default: 48 },
                 '3xl': { type: Number, default: 64 },
-                '4xl': { type: Number, default: 96 },
-
-                // Extracted spacing patterns
-                commonPaddings: [String],
-                commonMargins: [String]
+                '4xl': { type: Number, default: 80 },
+                '5xl': { type: Number, default: 96 }
             },
 
-            // Border Radius System
+            // Border Radius
             borderRadius: {
                 none: { type: Number, default: 0 },
-                sm: { type: Number, default: 2 },
-                base: { type: Number, default: 4 },
-                md: { type: Number, default: 6 },
-                lg: { type: Number, default: 8 },
-                xl: { type: Number, default: 12 },
-                '2xl': { type: Number, default: 16 },
-                full: { type: Number, default: 9999 },
-                pill: { type: String, default: '50px' }
+                sm: { type: Number, default: 4 },
+                md: { type: Number, default: 8 },
+                lg: { type: Number, default: 12 },
+                xl: { type: Number, default: 16 },
+                '2xl': { type: Number, default: 24 },
+                full: { type: Number, default: 999 }
             },
 
-            // Shadow System
+            // Shadows
             shadows: {
                 none: { type: String, default: 'none' },
-                sm: { type: String, default: '0 1px 2px rgba(0, 0, 0, 0.05)' },
-                base: { type: String, default: '0 1px 3px rgba(0, 0, 0, 0.1)' },
-                md: { type: String, default: '0 4px 6px rgba(0, 0, 0, 0.1)' },
-                lg: { type: String, default: '0 10px 15px rgba(0, 0, 0, 0.1)' },
-                xl: { type: String, default: '0 20px 25px rgba(0, 0, 0, 0.15)' }
+                sm: { type: String, default: '0 1px 2px rgba(0,0,0,0.05)' },
+                md: { type: String, default: '0 4px 6px rgba(0,0,0,0.1)' },
+                lg: { type: String, default: '0 10px 15px rgba(0,0,0,0.1)' },
+                xl: { type: String, default: '0 20px 25px rgba(0,0,0,0.15)' }
             },
 
-            // Component-Specific Styles
+            // Component Styles
             components: {
-                // Button styles (primary, secondary, outline, etc.)
-                button: {
-                    primary: {
-                        backgroundColor: { type: String },
+                buttons: [{
+                    name: { type: String }, // "primary", "secondary"
+                    variant: { type: String }, // "primary", "secondary", "outline"
+                    styles: {
+                        type: Map,
+                        of: String
+                    }, // { "background-color": "#ffffff", "color": "#01164f", ... }
+                    hover: {
+                        type: Map,
+                        of: String
+                    } // Hover state styles
+                }],
+                cards: {
+                    default: {
+                        background: { type: String },
+                        border: { type: String },
+                        'border-radius': { type: String },
+                        padding: { type: String },
+                        shadow: { type: String }
+                    }
+                },
+                inputs: {
+                    default: {
+                        border: { type: String },
+                        'border-radius': { type: String },
+                        padding: { type: String },
+                        'font-size': { type: String },
+                        'focus-border-color': { type: String }
+                    }
+                },
+                links: {
+                    default: {
                         color: { type: String },
-                        borderRadius: { type: Number },
-                        fontSize: { type: Number },
-                        fontWeight: { type: Number },
-                        paddingX: { type: Number },
-                        paddingY: { type: Number },
-                        borderWidth: { type: Number },
-                        borderColor: { type: String },
-                        hoverBackgroundColor: { type: String },
-                        hoverColor: { type: String }
-                    },
-                    secondary: mongoose.Schema.Types.Mixed,
-                    outline: mongoose.Schema.Types.Mixed,
-                    ghost: mongoose.Schema.Types.Mixed,
-                    link: mongoose.Schema.Types.Mixed
-                },
-
-                // Scraped button styles
-                buttons: [mongoose.Schema.Types.Mixed],
-
-                // Heading styles (h1-h6)
-                heading: {
-                    h1: {
-                        fontSize: { type: Number },
-                        fontWeight: { type: Number },
-                        lineHeight: { type: Number },
-                        letterSpacing: { type: String },
-                        color: { type: String }
-                    },
-                    h2: mongoose.Schema.Types.Mixed,
-                    h3: mongoose.Schema.Types.Mixed,
-                    h4: mongoose.Schema.Types.Mixed,
-                    h5: mongoose.Schema.Types.Mixed,
-                    h6: mongoose.Schema.Types.Mixed
-                },
-
-                // Text styles
-                text: {
-                    body: {
-                        fontSize: { type: Number },
-                        lineHeight: { type: Number },
-                        color: { type: String },
-                        fontWeight: { type: Number }
-                    },
-                    small: mongoose.Schema.Types.Mixed,
-                    caption: mongoose.Schema.Types.Mixed,
-                    lead: mongoose.Schema.Types.Mixed
-                },
-
-                // Link styles
-                link: {
-                    color: { type: String },
-                    textDecoration: { type: String, default: 'underline' },
-                    hoverColor: { type: String },
-                    fontWeight: { type: Number }
-                },
-
-                // Scraped link styles
-                links: [mongoose.Schema.Types.Mixed],
-
-                // Card styles
-                card: {
-                    backgroundColor: { type: String },
-                    borderRadius: { type: Number },
-                    padding: { type: Number },
-                    borderWidth: { type: Number },
-                    borderColor: { type: String },
-                    shadow: { type: String }
-                },
-
-                // Scraped card styles
-                cards: [mongoose.Schema.Types.Mixed],
-
-                // Section/container styles
-                section: {
-                    paddingY: { type: Number },
-                    paddingX: { type: Number },
-                    backgroundColor: { type: String }
-                },
-
-                // Header styles
-                headers: mongoose.Schema.Types.Mixed,
-
-                // Form styles
-                forms: mongoose.Schema.Types.Mixed,
-
-                // Testimonial styles
-                testimonials: [mongoose.Schema.Types.Mixed],
-
-                // Segment styles
-                segments: [mongoose.Schema.Types.Mixed],
-
-                // Hero styles
-                heroes: [mongoose.Schema.Types.Mixed]
+                        'text-decoration': { type: String },
+                        'font-weight': { type: String },
+                        'hover-color': { type: String }
+                    }
+                }
             },
 
-            // Email-Specific Styles
-            email: {
-                // Email defaults
-                maxWidth: { type: Number, default: 600 },
-                backgroundColor: { type: String, default: '#f7f7f7' },
-                contentBackgroundColor: { type: String, default: '#ffffff' },
-                fontFamily: { type: String },
-                fontSize: { type: Number, default: 16 },
-                lineHeight: { type: Number, default: 1.6 },
-                textColor: { type: String },
-                linkColor: { type: String },
-                padding: { type: Number, default: 20 },
-
-                // Email-optimized components
-                optimized: {
-                    button: mongoose.Schema.Types.Mixed,
-                    heading: mongoose.Schema.Types.Mixed,
-                    paragraph: mongoose.Schema.Types.Mixed,
-                    card: mongoose.Schema.Types.Mixed,
-                    link: mongoose.Schema.Types.Mixed,
-                    testimonial: mongoose.Schema.Types.Mixed,
-                    segment: mongoose.Schema.Types.Mixed,
-                    hero: mongoose.Schema.Types.Mixed
-                },
-
-                // Email block templates
-                blocks: [mongoose.Schema.Types.Mixed]
-            },
-
-            // Raw CSS Rules
-            rules: {
-                buttons: [mongoose.Schema.Types.Mixed],
-                links: [mongoose.Schema.Types.Mixed],
-                variables: mongoose.Schema.Types.Mixed,
-                importantSelectors: [mongoose.Schema.Types.Mixed]
-            },
-
-            // CSS Metadata
-            metadata: {
-                scrapedFrom: [{ type: String }], // URLs where styles were scraped
-                confidence: {
-                    type: Number,
-                    default: 0,
-                    min: 0,
-                    max: 1
-                },
-                version: { type: Number, default: 1 },
-                lastUpdated: { type: Date, default: Date.now },
-                manualOverrides: { type: Boolean, default: false }
+            // Alternate Color Palettes
+            alternateColors: {
+                pastel: [{
+                    hex: { type: String },
+                    name: { type: String }
+                }],
+                metallic: [{
+                    hex: { type: String },
+                    name: { type: String }
+                }],
+                earthTone: [{
+                    hex: { type: String },
+                    name: { type: String }
+                }]
             }
+        },
+
+        // Store Description (AI Chatbot Context)
+        store_description: {
+            summary: {
+                type: String,
+                trim: true
+            }, // 2-3 sentence positive, strengths-focused overview
+            primary_industry: {
+                type: String,
+                trim: true
+            }, // e.g., "Premium Women's Athletic Wear"
+            region: {
+                type: String,
+                trim: true
+            }, // Geographic region and language
+            store_nickname: {
+                type: String,
+                trim: true
+            }, // e.g., "The Premium Supplement Brand"
+            brand_positioning_tags: [{
+                type: String,
+                trim: true
+            }], // e.g., ["premium quality focus", "sustainability leader"]
+            primary_demographic: {
+                age_range: {
+                    type: String,
+                    trim: true
+                }, // e.g., "25-40 year old millennials"
+                gender_focus: {
+                    type: String,
+                    trim: true
+                }, // e.g., "primarily women"
+                income_level: {
+                    type: String,
+                    trim: true
+                } // e.g., "affluent consumers"
+            },
+            marketing_strengths: [{
+                type: String,
+                trim: true
+            }], // e.g., ["Strong flow automation", "Excellent retention"]
+            ai_estimated_customer_ltv: {
+                average_value: {
+                    type: Number,
+                    min: 0
+                }, // e.g., 400
+                currency: {
+                    type: String,
+                    default: 'USD',
+                    trim: true
+                }, // e.g., "USD", "EUR", "AUD"
+                average_purchases: {
+                    type: Number,
+                    min: 0
+                } // e.g., 2.8
+            },
+            business_stage: {
+                type: String,
+                trim: true
+            }, // e.g., "well-established brand with mature marketing"
+            unique_characteristics: [{
+                type: String,
+                trim: true
+            }] // Brand-specific unique characteristics
         },
 
         // Platform detection
@@ -1254,21 +1180,37 @@ brandSettingsSchema.methods.getCssVariables = function () {
     // Color variables
     if (this.css.colors) {
         if (this.css.colors.primary) vars['--brand-primary'] = this.css.colors.primary;
+        if (this.css.colors.primaryDark) vars['--brand-primary-dark'] = this.css.colors.primaryDark;
+        if (this.css.colors.primaryLight) vars['--brand-primary-light'] = this.css.colors.primaryLight;
         if (this.css.colors.secondary) vars['--brand-secondary'] = this.css.colors.secondary;
+        if (this.css.colors.secondaryDark) vars['--brand-secondary-dark'] = this.css.colors.secondaryDark;
+        if (this.css.colors.secondaryLight) vars['--brand-secondary-light'] = this.css.colors.secondaryLight;
         if (this.css.colors.accent) vars['--brand-accent'] = this.css.colors.accent;
-        if (this.css.colors.success) vars['--brand-success'] = this.css.colors.success;
-        if (this.css.colors.warning) vars['--brand-warning'] = this.css.colors.warning;
-        if (this.css.colors.error) vars['--brand-error'] = this.css.colors.error;
-        if (this.css.colors.info) vars['--brand-info'] = this.css.colors.info;
+
+        // Status colors
+        if (this.css.colors.status?.success) vars['--brand-success'] = this.css.colors.status.success;
+        if (this.css.colors.status?.warning) vars['--brand-warning'] = this.css.colors.status.warning;
+        if (this.css.colors.status?.error) vars['--brand-error'] = this.css.colors.status.error;
+        if (this.css.colors.status?.info) vars['--brand-info'] = this.css.colors.status.info;
 
         // Text colors
         if (this.css.colors.text?.primary) vars['--text-primary'] = this.css.colors.text.primary;
         if (this.css.colors.text?.secondary) vars['--text-secondary'] = this.css.colors.text.secondary;
+        if (this.css.colors.text?.tertiary) vars['--text-tertiary'] = this.css.colors.text.tertiary;
+        if (this.css.colors.text?.inverse) vars['--text-inverse'] = this.css.colors.text.inverse;
         if (this.css.colors.text?.link) vars['--text-link'] = this.css.colors.text.link;
+        if (this.css.colors.text?.linkHover) vars['--text-link-hover'] = this.css.colors.text.linkHover;
 
         // Background colors
-        if (this.css.colors.background?.light) vars['--bg-light'] = this.css.colors.background.light;
+        if (this.css.colors.background?.primary) vars['--bg-primary'] = this.css.colors.background.primary;
+        if (this.css.colors.background?.secondary) vars['--bg-secondary'] = this.css.colors.background.secondary;
         if (this.css.colors.background?.dark) vars['--bg-dark'] = this.css.colors.background.dark;
+        if (this.css.colors.background?.muted) vars['--bg-muted'] = this.css.colors.background.muted;
+
+        // Border colors
+        if (this.css.colors.border?.light) vars['--border-light'] = this.css.colors.border.light;
+        if (this.css.colors.border?.medium) vars['--border-medium'] = this.css.colors.border.medium;
+        if (this.css.colors.border?.dark) vars['--border-dark'] = this.css.colors.border.dark;
     }
 
     // Typography variables
@@ -1276,11 +1218,11 @@ brandSettingsSchema.methods.getCssVariables = function () {
         if (this.css.typography.fontFamilies.primary) {
             vars['--font-primary'] = this.css.typography.fontFamilies.primary;
         }
-        if (this.css.typography.fontFamilies.heading) {
-            vars['--font-heading'] = this.css.typography.fontFamilies.heading;
+        if (this.css.typography.fontFamilies.secondary) {
+            vars['--font-secondary'] = this.css.typography.fontFamilies.secondary;
         }
-        if (this.css.typography.fontFamilies.body) {
-            vars['--font-body'] = this.css.typography.fontFamilies.body;
+        if (this.css.typography.fontFamilies.monospace) {
+            vars['--font-monospace'] = this.css.typography.fontFamilies.monospace;
         }
     }
 
@@ -1298,6 +1240,15 @@ brandSettingsSchema.methods.getCssVariables = function () {
         Object.keys(this.css.borderRadius).forEach((key) => {
             if (typeof this.css.borderRadius[key] === 'number') {
                 vars[`--radius-${key}`] = `${this.css.borderRadius[key]}px`;
+            }
+        });
+    }
+
+    // Shadow variables
+    if (this.css.shadows) {
+        Object.keys(this.css.shadows).forEach((key) => {
+            if (this.css.shadows[key]) {
+                vars[`--shadow-${key}`] = this.css.shadows[key];
             }
         });
     }
@@ -1323,49 +1274,50 @@ brandSettingsSchema.methods.getEmailStyles = function () {
 
     return {
         body: {
-            backgroundColor: css.email?.backgroundColor || css.colors?.background?.light || '#f7f7f7',
-            fontFamily: css.email?.fontFamily || css.typography?.fontFamilies?.primary || 'Arial, sans-serif',
-            fontSize: `${css.email?.fontSize || 16}px`,
-            lineHeight: css.email?.lineHeight || 1.6,
-            color: css.email?.textColor || css.colors?.text?.primary || '#000000',
+            backgroundColor: css.colors?.background?.secondary || '#f7f7f7',
+            fontFamily: css.typography?.fontFamilies?.primary || 'Arial, sans-serif',
+            fontSize: `${css.typography?.fontSize?.base || 16}px`,
+            lineHeight: css.typography?.lineHeight?.normal || 1.5,
+            color: css.colors?.text?.primary || '#000000',
             margin: 0,
             padding: 0
         },
         container: {
-            maxWidth: `${css.email?.maxWidth || 600}px`,
-            backgroundColor: css.email?.contentBackgroundColor || '#ffffff',
+            maxWidth: '600px',
+            backgroundColor: css.colors?.background?.primary || '#ffffff',
             margin: '0 auto',
-            padding: `${css.email?.padding || 20}px`
+            padding: `${css.spacing?.lg || 24}px`
         },
         heading: {
             h1: {
-                fontSize: `${css.components?.heading?.h1?.fontSize || css.typography?.fontSize?.['3xl'] || 32}px`,
-                fontWeight: css.components?.heading?.h1?.fontWeight || css.typography?.fontWeight?.bold || 700,
-                color: css.components?.heading?.h1?.color || css.colors?.text?.primary || '#000000',
-                lineHeight: css.components?.heading?.h1?.lineHeight || css.typography?.lineHeight?.tight || 1.2,
+                fontSize: `${css.typography?.fontSize?.['3xl'] || 36}px`,
+                fontWeight: css.typography?.fontWeight?.bold || 700,
+                color: css.colors?.text?.primary || '#000000',
+                lineHeight: css.typography?.lineHeight?.tight || 1.2,
                 margin: '0 0 16px 0'
             },
             h2: {
-                fontSize: `${css.components?.heading?.h2?.fontSize || css.typography?.fontSize?.['2xl'] || 28}px`,
-                fontWeight: css.components?.heading?.h2?.fontWeight || css.typography?.fontWeight?.bold || 700,
-                color: css.components?.heading?.h2?.color || css.colors?.text?.primary || '#000000'
+                fontSize: `${css.typography?.fontSize?.['2xl'] || 30}px`,
+                fontWeight: css.typography?.fontWeight?.bold || 700,
+                color: css.colors?.text?.primary || '#000000',
+                lineHeight: css.typography?.lineHeight?.snug || 1.375
             }
         },
         button: {
             primary: {
-                backgroundColor: css.components?.button?.primary?.backgroundColor || css.colors?.primary || '#000000',
-                color: css.components?.button?.primary?.color || '#ffffff',
-                padding: `${css.components?.button?.primary?.paddingY || 12}px ${css.components?.button?.primary?.paddingX || 24}px`,
-                borderRadius: `${css.components?.button?.primary?.borderRadius || css.borderRadius?.base || 4}px`,
+                backgroundColor: css.colors?.primary || '#000000',
+                color: css.colors?.text?.inverse || '#ffffff',
+                padding: `${css.spacing?.sm || 8}px ${css.spacing?.lg || 24}px`,
+                borderRadius: `${css.borderRadius?.md || 8}px`,
                 textDecoration: 'none',
                 display: 'inline-block',
-                fontWeight: css.components?.button?.primary?.fontWeight || css.typography?.fontWeight?.medium || 500,
-                fontSize: `${css.components?.button?.primary?.fontSize || 16}px`
+                fontWeight: css.typography?.fontWeight?.semibold || 600,
+                fontSize: `${css.typography?.fontSize?.base || 16}px`
             }
         },
         link: {
-            color: css.email?.linkColor || css.colors?.text?.link || css.colors?.primary || '#000000',
-            textDecoration: css.components?.link?.textDecoration || 'underline'
+            color: css.colors?.text?.link || css.colors?.primary || '#000000',
+            textDecoration: css.components?.links?.default?.['text-decoration'] || 'underline'
         }
     };
 };
@@ -1374,8 +1326,7 @@ brandSettingsSchema.methods.getEmailStyles = function () {
 brandSettingsSchema.methods.hasCssStyles = function () {
     return !!(
         this.css?.colors?.primary &&
-        this.css?.typography?.fontFamilies?.primary &&
-        this.css?.email?.maxWidth
+        this.css?.typography?.fontFamilies?.primary
     );
 };
 

@@ -4,9 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { AccountSelector } from "@/app/components/ui/account-selector"
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector"
-import { Loading } from "@/app/components/ui/loading"
 import { useStores } from "@/app/contexts/store-context"
-// Campaign data will be fetched directly - no shared context
 import { useAI } from "@/app/contexts/ai-context"
 import { useCampaignData } from "@/app/hooks/useCampaignData"
 
@@ -259,20 +257,101 @@ export default function AnalyticsPage() {
         }
     }, [searchParams])
     
+    // State to collect data from tab components
+    const [tabData, setTabData] = useState({
+        campaigns: null,
+        revenue: null,
+        flows: null,
+        deliverability: null
+    })
+
+    // Track last update to prevent infinite loops
+    const lastUpdateRef = useRef({})
+
+    // Callback for tabs to report their data
+    const handleTabDataUpdate = useCallback((tab, data) => {
+        // Only update if data has actually changed (simple timestamp check)
+        const dataTimestamp = data?.timestamp
+        if (dataTimestamp && lastUpdateRef.current[tab] === dataTimestamp) {
+            return // Skip if this exact data was already processed
+        }
+
+        lastUpdateRef.current[tab] = dataTimestamp
+        setTabData(prev => ({
+            ...prev,
+            [tab]: data
+        }))
+    }, [])
+
     // Update AI state when tab changes or data is updated
     useEffect(() => {
         const pageTitle = `Multi-Account Reporting - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`
-        
+
         // Calculate basic metrics
         const selectedAccountsList = selectedAccounts.map(acc => acc.label).join(', ')
-        const dateRange = dateRangeSelection.ranges?.main ? 
-            `${dateRangeSelection.ranges.main.start?.toLocaleDateString()} - ${dateRangeSelection.ranges.main.end?.toLocaleDateString()}` : 
+        const dateRange = dateRangeSelection.ranges?.main ?
+            `${dateRangeSelection.ranges.main.start?.toLocaleDateString()} - ${dateRangeSelection.ranges.main.end?.toLocaleDateString()}` :
             'Last 90 days'
-        
+
+        // Build selected stores arrays for AI context
+        // If "View All" is selected, use all available stores
+        const isViewAll = selectedAccounts.some(acc => acc.value === 'all')
+        const storesForContext = isViewAll ? stores : stores.filter(store =>
+            selectedAccounts.some(acc => acc.value === store.public_id)
+        )
+
+        const selectedStoresForAI = storesForContext.map(store => ({
+            id: store.public_id,
+            name: store.name,
+            klaviyoId: store.klaviyo_integration?.public_id
+        }))
+
+        const selectedKlaviyoIds = Array.from(new Set(
+            storesForContext
+                .map(store => store.klaviyo_integration?.public_id)
+                .filter(Boolean)
+        ))
+
+        const storeMetadata = {}
+        storesForContext.forEach(store => {
+            if (store.public_id) {
+                storeMetadata[store.public_id] = {
+                    name: store.name,
+                    klaviyoId: store.klaviyo_integration?.public_id,
+                    hasKlaviyo: !!store.klaviyo_integration?.public_id
+                }
+            }
+        })
+
         // Base AI state
         const aiState = {
             currentPage: `multi-account-reporting-${activeTab}`,
             pageTitle,
+            pageType: activeTab,
+            isLoading: campaignsLoading,  // Disable chat while data is loading
+            selectedStores: selectedStoresForAI,
+            selectedKlaviyoIds: selectedKlaviyoIds,
+            storeMetadata: storeMetadata,
+            dateRange: {
+                start: dateRangeSelection.ranges?.main?.start,
+                end: dateRangeSelection.ranges?.main?.end,
+                preset: dateRangeSelection.period,
+                daysSpan: dateRangeSelection.ranges?.main?.start && dateRangeSelection.ranges?.main?.end
+                    ? Math.ceil((dateRangeSelection.ranges.main.end - dateRangeSelection.ranges.main.start) / (1000 * 60 * 60 * 24))
+                    : 0
+            },
+            rawData: {
+                campaigns: [],
+                flows: [],
+                revenue: [],
+                deliverability: [],
+                metrics: {},
+                totalItems: 0,
+                estimatedTokens: 0,
+                dataFreshness: new Date().toISOString(),
+                isTruncated: false,
+                truncationReason: ''
+            },
             filters: {
                 accounts: selectedAccountsList,
                 dateRange,
@@ -283,70 +362,157 @@ export default function AnalyticsPage() {
             data: {},
             insights: []
         }
-        
-        // Add tab-specific data and insights
-        if (activeTab === 'campaigns' && campaignsData) {
-            const totalCampaigns = campaignsData.campaigns?.length || 0
-            const avgOpenRate = campaignsData.aggregateStats?.avgOpenRate || 0
-            const avgClickRate = campaignsData.aggregateStats?.avgClickRate || 0
-            const avgRevenue = campaignsData.aggregateStats?.avgRevenue || 0
-            
+
+        // Add tab-specific data and insights from collected tab data
+        const currentTabData = tabData[activeTab]
+
+        if (activeTab === 'campaigns' && currentTabData) {
+            // Feed ALL campaign data to Haiku (not just summary)
+            aiState.rawData.campaigns = currentTabData.campaigns || []
+            aiState.rawData.totalItems = currentTabData.campaigns?.length || 0
+
             aiState.metrics = {
-                totalCampaigns,
-                avgOpenRate: `${avgOpenRate.toFixed(1)}%`,
-                avgClickRate: `${avgClickRate.toFixed(1)}%`,
-                avgRevenue: `$${avgRevenue.toFixed(2)}`,
-                ...campaignsData.aggregateStats
+                totalCampaigns: currentTabData.campaigns?.length || 0,
+                avgOpenRate: `${(currentTabData.aggregateStats?.averageOpenRate || 0).toFixed(1)}%`,
+                avgClickRate: `${(currentTabData.aggregateStats?.averageClickRate || 0).toFixed(1)}%`,
+                avgRevenue: `$${(currentTabData.aggregateStats?.totalRevenue || 0).toFixed(2)}`,
+                totalRecipients: currentTabData.aggregateStats?.totalRecipients || 0,
+                totalOpens: currentTabData.aggregateStats?.totalOpens || 0,
+                totalClicks: currentTabData.aggregateStats?.totalClicks || 0,
+                totalConversions: currentTabData.aggregateStats?.totalConversions || 0,
+                totalRevenue: currentTabData.aggregateStats?.totalRevenue || 0,
+                averageOpenRate: currentTabData.aggregateStats?.averageOpenRate || 0,
+                averageClickRate: currentTabData.aggregateStats?.averageClickRate || 0,
+                averageConversionRate: currentTabData.aggregateStats?.averageConversionRate || 0,
+                averageRevenuePerRecipient: currentTabData.aggregateStats?.averageRevenuePerRecipient || 0
             }
-            
+
             aiState.data = {
-                totalRecords: totalCampaigns,
+                totalRecords: currentTabData.campaigns?.length || 0,
                 dateRange,
-                topPerformers: campaignsData.campaigns?.slice(0, 5).map(c => ({
-                    name: c.subject,
-                    openRate: c.openRate,
-                    revenue: c.totalRevenue
-                }))
+                topPerformers: currentTabData.campaigns?.slice(0, 5).map(c => ({
+                    name: c.campaign_name || c.subject,
+                    openRate: c.openRate || c.open_rate || 0,
+                    revenue: c.totalRevenue || c.revenue || 0
+                })) || []
             }
-            
+
             // Generate insights
             const insights = []
+            const avgOpenRate = currentTabData.aggregateStats?.averageOpenRate || 0
+            const avgClickRate = currentTabData.aggregateStats?.averageClickRate || 0
+
             if (avgOpenRate > 25) {
                 insights.push(`Strong open rate performance at ${avgOpenRate.toFixed(1)}% (industry average: 20-25%)`)
             } else if (avgOpenRate < 15) {
                 insights.push(`Open rates need improvement at ${avgOpenRate.toFixed(1)}% (industry average: 20-25%)`)
             }
-            
+
             if (avgClickRate > 3) {
                 insights.push(`Excellent click rate at ${avgClickRate.toFixed(1)}% (industry average: 2-3%)`)
             } else if (avgClickRate < 1.5) {
                 insights.push(`Click rates could be improved at ${avgClickRate.toFixed(1)}% (industry average: 2-3%)`)
             }
-            
-            if (totalCampaigns > 0) {
-                const topCampaign = campaignsData.campaigns?.reduce((max, c) => 
-                    c.totalRevenue > (max?.totalRevenue || 0) ? c : max, null)
+
+            if (currentTabData.campaigns?.length > 0) {
+                const topCampaign = currentTabData.campaigns?.reduce((max, c) =>
+                    (c.totalRevenue || c.revenue || 0) > (max?.totalRevenue || max?.revenue || 0) ? c : max, null)
                 if (topCampaign) {
-                    insights.push(`Top performing campaign "${topCampaign.subject}" generated $${topCampaign.totalRevenue.toFixed(2)}`)
+                    const revenue = topCampaign.totalRevenue || topCampaign.revenue || 0
+                    insights.push(`Top performing campaign "${topCampaign.campaign_name || topCampaign.subject}" generated $${revenue.toFixed(2)}`)
                 }
             }
-            
+
             aiState.insights = insights
-        } else if (activeTab === 'deliverability' && campaignsData) {
-            // Add deliverability-specific metrics
-            const bounceRate = campaignsData.aggregateStats?.bounceRate || 0
-            const unsubscribeRate = campaignsData.aggregateStats?.unsubscribeRate || 0
-            const spamRate = campaignsData.aggregateStats?.spamRate || 0
-            
+
+        } else if (activeTab === 'revenue' && currentTabData) {
+            // Feed revenue data to Haiku
+            aiState.rawData.revenue = currentTabData.trendData || []
+            aiState.rawData.metrics = currentTabData.metrics || {}
+            aiState.rawData.totalItems = (currentTabData.trendData?.length || 0) + (currentTabData.accountComparison?.length || 0)
+
             aiState.metrics = {
-                bounceRate: `${bounceRate.toFixed(2)}%`,
-                unsubscribeRate: `${unsubscribeRate.toFixed(2)}%`,
-                spamRate: `${spamRate.toFixed(2)}%`,
-                deliverabilityScore: calculateDeliverabilityScore(bounceRate, spamRate)
+                totalRevenue: currentTabData.metrics?.totalRevenue || 0,
+                attributedRevenue: currentTabData.metrics?.attributedRevenue || 0,
+                totalOrders: currentTabData.metrics?.totalOrders || 0,
+                uniqueCustomers: currentTabData.metrics?.uniqueCustomers || 0,
+                totalRecipients: currentTabData.metrics?.totalRecipients || 0,
+                averageOrderValue: currentTabData.metrics?.averageOrderValue || 0,
+                revenuePerRecipient: currentTabData.metrics?.revenuePerRecipient || 0,
+                revenueChange: currentTabData.metrics?.revenueChange || 0
             }
-            
+
+            aiState.data = {
+                trendDataPoints: currentTabData.trendData?.length || 0,
+                accountCount: currentTabData.accountComparison?.length || 0,
+                topPerformingAccounts: currentTabData.accountComparison?.slice(0, 5).map(acc => ({
+                    account: acc.account,
+                    revenue: acc.totalRevenue
+                })) || []
+            }
+
+            const insights = []
+            const revenueChange = currentTabData.metrics?.revenueChange || 0
+            if (revenueChange > 10) {
+                insights.push(`Revenue up ${revenueChange.toFixed(1)}% compared to previous period`)
+            } else if (revenueChange < -10) {
+                insights.push(`Revenue down ${Math.abs(revenueChange).toFixed(1)}% compared to previous period`)
+            }
+
+            aiState.insights = insights
+
+        } else if (activeTab === 'flows' && currentTabData) {
+            // Feed flows data to Haiku
+            aiState.rawData.flows = currentTabData.flows || []
+            aiState.rawData.totalItems = currentTabData.flows?.length || 0
+
+            aiState.metrics = {
+                totalFlows: currentTabData.flows?.length || 0,
+                totalRecipients: currentTabData.metrics?.totalRecipients || 0,
+                totalRevenue: currentTabData.metrics?.totalRevenue || 0,
+                averageOpenRate: currentTabData.metrics?.openRate || 0,
+                averageClickRate: currentTabData.metrics?.clickRate || 0,
+                conversionRate: currentTabData.metrics?.conversionRate || 0,
+                revenuePerRecipient: currentTabData.metrics?.revenuePerRecipient || 0
+            }
+
+            aiState.data = {
+                totalFlows: currentTabData.flows?.length || 0,
+                topPerformers: currentTabData.flows?.slice(0, 5).map(f => ({
+                    name: f.flow_name,
+                    recipients: f.total_recipients || 0,
+                    revenue: f.total_revenue || 0
+                })) || []
+            }
+
+            const insights = []
+            const avgOpenRate = currentTabData.metrics?.openRate || 0
+            if (avgOpenRate > 30) {
+                insights.push(`Strong flow open rate at ${avgOpenRate.toFixed(1)}%`)
+            }
+
+            aiState.insights = insights
+
+        } else if (activeTab === 'deliverability' && currentTabData) {
+            // Feed deliverability data to Haiku
+            aiState.rawData.deliverability = currentTabData.campaigns || []
+            aiState.rawData.totalItems = currentTabData.campaigns?.length || 0
+
+            aiState.metrics = {
+                totalCampaigns: currentTabData.campaigns?.length || 0,
+                deliveryRate: currentTabData.summary?.deliveryRate || 0,
+                bounceRate: currentTabData.summary?.bounceRate || 0,
+                spamRate: currentTabData.summary?.spamRate || 0,
+                unsubscribeRate: currentTabData.summary?.unsubscribeRate || 0,
+                averageHealthScore: currentTabData.summary?.avgHealthScore || 0
+            }
+
             // Generate deliverability insights
             const insights = []
+            const bounceRate = currentTabData.summary?.bounceRate || 0
+            const unsubscribeRate = currentTabData.summary?.unsubscribeRate || 0
+            const spamRate = currentTabData.summary?.spamRate || 0
+
             if (bounceRate > 2) {
                 insights.push(`High bounce rate at ${bounceRate.toFixed(2)}% - consider list cleaning`)
             }
@@ -356,24 +522,14 @@ export default function AnalyticsPage() {
             if (spamRate > 0.1) {
                 insights.push(`Spam complaints at ${spamRate.toFixed(2)}% - review sending practices`)
             }
-            
+
             aiState.insights = insights
-        } else if (activeTab === 'flows') {
-            // Flows tab data will be added when flows data is available
-            aiState.metrics = {
-                status: 'Flows data loading...'
-            }
-            aiState.insights = ['Flows analytics will be available once data is loaded']
-        } else if (activeTab === 'revenue') {
-            // Revenue tab data will be handled by the RevenueTab component itself
-            aiState.metrics = {
-                status: 'Revenue data managed by RevenueTab component'
-            }
         }
-        
+
         // Update AI context
         updateAIState(aiState)
-    }, [activeTab, selectedAccounts, dateRangeSelection, campaignsData, updateAIState])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, selectedAccounts, dateRangeSelection, stores, tabData])
     
     // Helper function to calculate deliverability score
     const calculateDeliverabilityScore = (bounceRate, spamRate) => {
@@ -467,15 +623,16 @@ export default function AnalyticsPage() {
                 </TabsList>
                 
                 <TabsContent value="revenue" className="space-y-4">
-                    <RevenueTab 
+                    <RevenueTab
                         selectedAccounts={selectedAccounts}
                         dateRangeSelection={dateRangeSelection}
                         stores={stores}
+                        onTabDataUpdate={(data) => handleTabDataUpdate('revenue', data)}
                     />
                 </TabsContent>
                 
                 <TabsContent value="campaigns" className="space-y-4">
-                    <CampaignsTab 
+                    <CampaignsTab
                         selectedAccounts={selectedAccounts}
                         campaignsData={campaignsData}
                         campaignsLoading={campaignsLoading}
@@ -483,19 +640,19 @@ export default function AnalyticsPage() {
                         onAccountsChange={(newValue) => {
                             console.log('Campaign tab account selection changed:', newValue)
                             let updatedSelection = []
-                            
+
                             if (!newValue || newValue.length === 0) {
                                 // If nothing selected, default to View All
                                 updatedSelection = [{ value: 'all', label: 'View All' }]
                             } else if (Array.isArray(newValue)) {
                                 const hasViewAll = newValue.some(item => item.value === 'all')
                                 const hasOtherAccounts = newValue.some(item => item.value !== 'all')
-                                
+
                                 if (hasViewAll && hasOtherAccounts) {
                                     // Both View All and specific accounts are selected
                                     // Determine which was just added
                                     const previouslyHadViewAll = selectedAccounts.some(item => item.value === 'all')
-                                    
+
                                     if (previouslyHadViewAll) {
                                         // View All was already selected, user selected a specific account
                                         // Remove View All and keep only specific accounts
@@ -515,12 +672,12 @@ export default function AnalyticsPage() {
                                 // Single selection (shouldn't happen with isMulti but handle it)
                                 updatedSelection = [newValue]
                             }
-                            
+
                             console.log('Campaign tab updated selection:', updatedSelection)
-                            
+
                             // Update state
                             setSelectedAccounts(updatedSelection)
-                            
+
                             // Save to localStorage
                             if (typeof window !== 'undefined') {
                                 try {
@@ -535,28 +692,25 @@ export default function AnalyticsPage() {
                         onDateRangeChange={handleDateRangeChange}
                         stores={stores}
                         availableAccounts={availableAccounts}
-                        campaignsData={campaignsData}
-                        campaignsLoading={campaignsLoading}
-                        campaignsError={campaignsError}
+                        onTabDataUpdate={(data) => handleTabDataUpdate('campaigns', data)}
                     />
                 </TabsContent>
                 
                 <TabsContent value="flows" className="space-y-4">
-                    <FlowsTab 
+                    <FlowsTab
                         selectedAccounts={selectedAccounts}
                         dateRangeSelection={dateRangeSelection}
                         stores={stores}
+                        onTabDataUpdate={(data) => handleTabDataUpdate('flows', data)}
                     />
                 </TabsContent>
-                
+
                 <TabsContent value="deliverability" className="space-y-4">
-                    <DeliverabilityTab 
+                    <DeliverabilityTab
                         selectedAccounts={selectedAccounts}
                         dateRangeSelection={dateRangeSelection}
                         stores={stores}
-                        campaignsData={campaignsData}
-                        campaignsLoading={campaignsLoading}
-                        campaignsError={campaignsError}
+                        onTabDataUpdate={(data) => handleTabDataUpdate('deliverability', data)}
                     />
                 </TabsContent>
             </Tabs>

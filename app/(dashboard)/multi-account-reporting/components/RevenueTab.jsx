@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import LoadingSpinner from "@/app/components/ui/loading-spinner"
 import Select from "react-select"
@@ -55,7 +55,8 @@ export default function RevenueTab({
     selectedAccounts,
     dateRangeSelection,
     stores,
-    isLoading = false
+    isLoading = false,
+    onTabDataUpdate
 }) {
     const [timeGranularity, setTimeGranularity] = useState('monthly')
     const [revenueMetric, setRevenueMetric] = useState('overall') // overall, attributed, attributedPercent
@@ -176,10 +177,44 @@ export default function RevenueTab({
     }, [selectedAccounts, dateRangeSelection, timeGranularity])
 
     // Separate effect for account comparison (always fetch all accounts)
-
     useEffect(() => {
         fetchAllAccountsData()
     }, [dateRangeSelection, timeGranularity]) // No dependency on selectedAccounts
+
+    // Update AI context whenever revenue data changes
+    // Use a ref to track if we've already sent this data
+    const lastSentDataRef = useRef(null)
+
+    useEffect(() => {
+        if (!onTabDataUpdate || !revenueData || isLoadingData) {
+            return
+        }
+
+        // Create a simple hash of the data to detect actual changes
+        const dataHash = JSON.stringify({
+            trendCount: revenueData.trendData?.length || 0,
+            totalRevenue: revenueData.metrics?.totalRevenue || 0,
+            attributedRevenue: revenueData.metrics?.attributedRevenue || 0,
+            accountCount: accountComparison?.length || 0
+        })
+
+        // Only update if data has actually changed
+        if (lastSentDataRef.current === dataHash) {
+            return
+        }
+
+        lastSentDataRef.current = dataHash
+
+        onTabDataUpdate({
+            trendData: revenueData.trendData || [],
+            metrics: revenueData.metrics || {},
+            accountComparison: accountComparison || [],
+            channelRevenue: channelRevenue || [],
+            loading: isLoadingData,
+            timestamp: new Date().toISOString()
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [revenueData, accountComparison, channelRevenue, isLoadingData]);
 
     const fetchAllAccountsData = async () => {
         setIsLoadingAllAccounts(true)

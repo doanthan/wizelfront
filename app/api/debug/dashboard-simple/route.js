@@ -37,7 +37,7 @@ export async function GET(request) {
             MIN(date) as earliest_date,
             MAX(date) as latest_date,
             SUM(total_revenue) as total_revenue
-          FROM account_metrics_daily
+          FROM account_metrics_daily_latest
           WHERE klaviyo_public_id IN (${klaviyoIds.map(id => `'${id}'`).join(',')})
           GROUP BY klaviyo_public_id
           LIMIT 10
@@ -66,7 +66,7 @@ export async function GET(request) {
             MAX(date) as latest_date,
             SUM(recipients) as total_recipients,
             SUM(conversion_value) as total_revenue
-          FROM campaign_statistics
+          FROM campaign_statistics_latest
           WHERE klaviyo_public_id IN (${klaviyoIds.map(id => `'${id}'`).join(',')})
           GROUP BY klaviyo_public_id
           LIMIT 10

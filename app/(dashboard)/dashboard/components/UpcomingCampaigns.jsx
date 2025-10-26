@@ -25,7 +25,7 @@ const ScheduledCampaignModal = dynamic(
   { ssr: false }
 )
 
-export default function UpcomingCampaigns({ stores }) {
+export default function UpcomingCampaigns({ stores, onCampaignsLoad }) {
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -84,6 +84,10 @@ export default function UpcomingCampaigns({ stores }) {
         console.log('Upcoming campaigns found:', allCampaigns.length, 'from', data.campaigns?.length, 'total campaigns')
 
         setCampaigns(allCampaigns)
+        // NEW: Pass campaigns data to parent for AI context
+        if (onCampaignsLoad) {
+          onCampaignsLoad(allCampaigns)
+        }
       } catch (err) {
         console.error('Error fetching upcoming campaigns:', err)
         setError(err.message)

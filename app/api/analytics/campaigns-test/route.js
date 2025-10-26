@@ -71,7 +71,7 @@ export async function GET(request) {
           flow_revenue as total_flow_revenue,
           total_revenue
 
-        FROM account_metrics_daily FINAL
+        FROM account_metrics_daily_latest FINAL
         WHERE date >= today() - 30
       )
 

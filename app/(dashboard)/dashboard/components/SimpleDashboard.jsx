@@ -46,7 +46,9 @@ export default function SimpleDashboard({
     selectedAccounts,
     dateRangeSelection,
     stores,
-    showAccountTable = true
+    showAccountTable = true,
+    recentCampaignsData,  // ADD: Pass recent campaigns from parent
+    upcomingCampaignsData  // ADD: Pass upcoming campaigns from parent
 }) {
     const { updateAIState } = useAI();
     const { theme } = useTheme();
@@ -61,6 +63,17 @@ export default function SimpleDashboard({
 
     // Use appropriate select styles based on theme
     const currentSelectStyles = theme === 'dark' ? selectStylesDark : selectStyles
+
+    // Available performance metrics for dropdown
+    const PERFORMANCE_METRICS = [
+        { value: 'revenue', label: 'Total Revenue' },
+        { value: 'attributedRevenue', label: 'Attributed Revenue' },
+        { value: 'orders', label: 'Orders' },
+        { value: 'customers', label: 'Customers' },
+        { value: 'aov', label: 'Average Order Value' },
+        { value: 'openRate', label: 'Open Rate %' },
+        { value: 'clickRate', label: 'Click Rate %' }
+    ]
 
     // Prepare store IDs for the API - memoized to prevent infinite re-renders
     const storeIds = useMemo(() => {
@@ -87,38 +100,157 @@ export default function SimpleDashboard({
         } : null
     );
 
-    // Update AI context when data changes
+    // Update AI context when data changes - COMPREHENSIVE VERSION
     useEffect(() => {
         if (data?.summary) {
+            // Build selected stores data for context
+            const selectedStoresData = selectedAccounts?.map(acc => {
+                const store = stores?.find(s => s.public_id === acc.value);
+                return store ? {
+                    value: store.public_id,
+                    label: store.name,
+                    klaviyo_id: store.klaviyo_integration?.public_id
+                } : null;
+            }).filter(Boolean) || [];
+
+            // Format date range for display
+            const formatDate = (date) => {
+                if (!date) return 'N/A';
+                return new Date(date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            };
+
+            // Calculate date range duration in days
+            const calculateDaysDuration = (start, end) => {
+                if (!start || !end) return null;
+                const diffTime = Math.abs(new Date(end) - new Date(start));
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            };
+
+            const daysDuration = calculateDaysDuration(
+                dateRangeSelection?.ranges?.main?.start,
+                dateRangeSelection?.ranges?.main?.end
+            );
+
             updateAIState({
                 currentPage: "dashboard",
                 pageTitle: "Dashboard Overview",
-                data: {
-                    dateRange: `${dateRangeSelection?.ranges?.main?.start || 'N/A'} - ${dateRangeSelection?.ranges?.main?.end || 'N/A'}`,
-                    trends: {
+                pageType: "dashboard",
+
+                // Selected stores with names for natural language queries
+                selectedStores: selectedStoresData,
+                selectedKlaviyoIds: selectedStoresData.map(s => s.klaviyo_id).filter(Boolean),
+
+                // ENHANCED: Date range information with duration
+                dateRange: {
+                    start: dateRangeSelection?.ranges?.main?.start || null,
+                    end: dateRangeSelection?.ranges?.main?.end || null,
+                    preset: dateRangeSelection?.period || 'last90',
+                    formatted: `${formatDate(dateRangeSelection?.ranges?.main?.start)} - ${formatDate(dateRangeSelection?.ranges?.main?.end)}`,
+                    daysSpan: daysDuration,
+                    label: dateRangeSelection?.ranges?.main?.label || `Past ${daysDuration} days`,
+                    comparison: dateRangeSelection?.ranges?.comparison ? {
+                        start: dateRangeSelection.ranges.comparison.start,
+                        end: dateRangeSelection.ranges.comparison.end,
+                        formatted: `${formatDate(dateRangeSelection.ranges.comparison.start)} - ${formatDate(dateRangeSelection.ranges.comparison.end)}`,
+                        label: dateRangeSelection.ranges.comparison.label || 'Previous period'
+                    } : null
+                },
+
+                // ✅ NEW STRUCTURE: Summary Data (sent to AI)
+                summaryData: {
+                    // Dashboard KPI summary
+                    dashboard: {
+                        totalRevenue: data.summary?.totalRevenue || 0,
+                        attributedRevenue: data.summary?.attributedRevenue || 0,
+                        totalOrders: data.summary?.totalOrders || 0,
+                        uniqueCustomers: data.summary?.uniqueCustomers || 0,
+                        avgOrderValue: data.summary?.avgOrderValue || 0,
                         revenueChange: data.summary?.revenueChange || 0,
+                        attributedRevenueChange: data.summary?.attributedRevenueChange || 0,
                         ordersChange: data.summary?.ordersChange || 0,
-                        customersChange: data.summary?.customersChange || 0
-                    }
+                        customersChange: data.summary?.customersChange || 0,
+                    },
+
+                    // By-account summaries (all accounts)
+                    byAccount: data.byAccount?.map(account => ({
+                        name: account.storeName,
+                        storeName: account.storeName, // Include both for compatibility
+                        id: account.storePublicId,
+                        storePublicId: account.storePublicId,
+                        klaviyoId: account.klaviyoPublicId,
+                        klaviyoPublicId: account.klaviyoPublicId,
+                        revenue: account.revenue || 0,
+                        revenueChange: account.revenueChange || 0,
+                        orders: account.orders || 0,
+                        customers: account.customers || 0,
+                        avgOrderValue: account.avgOrderValue || 0,
+                        openRate: account.openRate || 0,
+                        clickRate: account.clickRate || 0,
+                        attributedRevenue: account.attributedRevenue || 0,
+                        // ✅ ADD: Missing fields that formatter expects
+                        recipients: account.recipients || 0,
+                        emailRecipients: account.emailRecipients || 0,
+                        smsRecipients: account.smsRecipients || 0,
+                        revenuePerRecipient: account.revenuePerRecipient || 0,
+                        ctor: account.ctor || 0,
+                    })) || [],
+
+                    // Time series (sampled to ~20 points for AI)
+                    timeSeries: data.timeSeries?.length > 20
+                        ? data.timeSeries.filter((_, i) => i % Math.ceil(data.timeSeries.length / 20) === 0).slice(0, 20)
+                        : data.timeSeries || [],
+
+                    // Recent campaigns (top 10 only for AI)
+                    campaigns: {
+                        total: recentCampaignsData?.length || 0,
+                        topPerformers: (recentCampaignsData || [])
+                            .sort((a, b) => (b.statistics?.conversion_value || b.revenue || 0) - (a.statistics?.conversion_value || a.revenue || 0))
+                            .slice(0, 10)
+                            .map(campaign => ({
+                                name: campaign.campaign_name || campaign.name,
+                                sentAt: campaign.send_time || campaign.sendTime,
+                                channel: campaign.send_channel || campaign.channel,
+                                recipients: campaign.statistics?.recipients || campaign.recipients || 0,
+                                openRate: campaign.statistics?.open_rate || campaign.openRate || 0,
+                                clickRate: campaign.statistics?.click_rate || campaign.clickRate || 0,
+                                revenue: campaign.statistics?.conversion_value || campaign.revenue || 0,
+                            })),
+                        summaryStats: {
+                            totalRevenue: (recentCampaignsData || []).reduce((sum, c) => sum + (c.statistics?.conversion_value || c.revenue || 0), 0),
+                        },
+                    },
+
+                    // Metadata
+                    dataFreshness: new Date().toISOString(),
+                    estimatedTokens: 0, // Will be calculated by context
                 },
-                metrics: {
-                    totalRevenue: data.summary?.totalRevenue || 0,
-                    attributedRevenue: data.summary?.attributedRevenue || 0,
-                    totalOrders: data.summary?.totalOrders || 0,
-                    uniqueCustomers: data.summary?.uniqueCustomers || 0
+
+                // ✅ Raw data (NOT sent to AI, kept for UI)
+                rawData: {
+                    campaigns: recentCampaignsData || [],
+                    timeSeries: data.timeSeries || [],
+                    timeSeriesByAccount: data.timeSeriesByAccount || [],
+                    metrics: data.summary || {},
                 },
-                filters: {
-                    accounts: selectedAccounts?.map(a => a.label).join(', ') || 'All Accounts',
-                    dateRange: dateRangeSelection?.label || 'Past 90 days'
+
+                // Insights (pre-calculated)
+                insights: {
+                    automated: [
+                        `Revenue ${data.summary?.revenueChange >= 0 ? 'increased' : 'decreased'} by ${Math.abs(data.summary?.revenueChange || 0).toFixed(1)}%`,
+                        `${data.summary?.uniqueCustomers || 0} unique customers generated ${formatCurrency(data.summary?.totalRevenue || 0)} in revenue`,
+                        `Average order value: ${formatCurrency(data.summary?.avgOrderValue || 0)}`,
+                        `Viewing ${selectedStoresData.length} store${selectedStoresData.length !== 1 ? 's' : ''}: ${selectedStoresData.map(s => s.label).join(', ')}`,
+                    ],
+                    patterns: {},
+                    recommendations: [],
                 },
-                insights: [
-                    `Revenue ${data.summary?.revenueChange >= 0 ? 'increased' : 'decreased'} by ${Math.abs(data.summary?.revenueChange || 0).toFixed(1)}%`,
-                    `${data.summary?.uniqueCustomers || 0} unique customers generated ${formatCurrency(data.summary?.totalRevenue || 0)} in revenue`,
-                    `Average order value: ${formatCurrency(data.summary?.avgOrderValue || 0)}`
-                ]
             });
         }
-    }, [data, updateAIState, selectedAccounts, dateRangeSelection]);
+    }, [data, updateAIState, selectedAccounts, dateRangeSelection, stores, performanceMetric, performanceView, selectedLineAccounts, recentCampaignsData, upcomingCampaignsData]);
 
     // Initialize selected accounts when data loads (select top 3 by default)
     useEffect(() => {
@@ -222,7 +354,7 @@ export default function SimpleDashboard({
                                          `${Math.abs(dashboardData.summary.revenueChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {dashboardData.summary.revenueChange >= 999999 ? '$0' : formatCurrency(dashboardData.summary.totalRevenue / (1 + dashboardData.summary.revenueChange / 100))}
+                                        Previous: {formatCurrency(dashboardData.summary.prevTotalRevenue || 0)}
                                     </p>
                                 </div>
                             ) : (
@@ -268,7 +400,7 @@ export default function SimpleDashboard({
                                          `${Math.abs(dashboardData.summary.attributedRevenueChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {dashboardData.summary.attributedRevenueChange >= 999999 ? '$0' : formatCurrency(dashboardData.summary.attributedRevenue / (1 + dashboardData.summary.attributedRevenueChange / 100))}
+                                        Previous: {formatCurrency(dashboardData.summary.prevAttributedRevenue || 0)}
                                     </p>
                                 </div>
                             ) : (
@@ -309,7 +441,7 @@ export default function SimpleDashboard({
                                          `${Math.abs(dashboardData.summary.ordersChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {dashboardData.summary.ordersChange >= 999999 ? '0' : formatNumber(Math.round(dashboardData.summary.totalOrders / (1 + dashboardData.summary.ordersChange / 100)))}
+                                        Previous: {formatNumber(dashboardData.summary.prevTotalOrders || 0)}
                                     </p>
                                 </div>
                             ) : (
@@ -350,7 +482,7 @@ export default function SimpleDashboard({
                                          `${Math.abs(dashboardData.summary.customersChange).toFixed(1)}%`} from last period
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
-                                        Previous: {dashboardData.summary.customersChange >= 999999 ? '0' : formatNumber(Math.round(dashboardData.summary.uniqueCustomers / (1 + dashboardData.summary.customersChange / 100)))}
+                                        Previous: {formatNumber(dashboardData.summary.prevUniqueCustomers || 0)}
                                     </p>
                                 </div>
                             ) : (

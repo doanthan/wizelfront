@@ -6,6 +6,7 @@ import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { ArrowLeft, Save, Sparkles, Users, Megaphone, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CampaignPromptGenerator } from "@/app/components/brand/campaign-prompt-generator";
 
 export function BrandNavigation({ storePublicId, brandSlug, brandName, brandTagline, hasChanges, onSave, isSaving, isLoading = false }) {
   const pathname = usePathname();
@@ -84,6 +85,20 @@ export function BrandNavigation({ storePublicId, brandSlug, brandName, brandTagl
                 Unsaved changes
               </Badge>
             )}
+
+            {/* Campaign Prompt Generator */}
+            <CampaignPromptGenerator
+              triggerButton={
+                <Button
+                  variant="outline"
+                  className="border-vivid-violet text-vivid-violet hover:bg-vivid-violet/10 dark:border-vivid-violet dark:text-vivid-violet gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Generate Campaign Prompt
+                </Button>
+              }
+            />
+
             <Button
               onClick={onSave}
               disabled={!hasChanges || isSaving}

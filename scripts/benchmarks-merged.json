@@ -1,0 +1,4147 @@
+[
+  {
+    "vertical": "e-commerce_apparel_accessories",
+    "display_name": "E-commerce (Apparel and Accessories)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 40.5,
+        "top10": 57,
+        "top25": 48,
+        "bottom25": 33
+      },
+      "clickRate": {
+        "median": 1.65,
+        "top10": 5.5,
+        "top25": 2.5,
+        "bottom25": 1.1
+      },
+      "conversionRate": {
+        "median": 0.12,
+        "top10": 0.5
+      },
+      "rpr": {
+        "median": 0.14,
+        "top10": 1.05,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 53,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6.5,
+          "top10": 12.5
+        },
+        "conversionRate": {
+          "median": 1.8,
+          "top10": 6
+        },
+        "rpr": {
+          "median": 4,
+          "top10": 25,
+          "range": [
+            2.5,
+            6
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 52,
+          "top10": 70
+        },
+        "rpr": {
+          "median": 2.8,
+          "top10": 10
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.15,
+          "top10": 4
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.3,
+          "top10": 4.5
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.9,
+          "top10": 3
+        }
+      }
+    },
+    "sms": {
+      "clickRate": {
+        "median": 4.2,
+        "top10": 12.5
+      },
+      "rpr": {
+        "median": 0.15,
+        "top10": 0.9
+      }
+    },
+    "insights": [
+      "Segmentation is critical; personalized product recommendations and size/style guides perform exceptionally well.",
+      "Fashion/Apparel flows show strong RPR due to higher AOV, especially abandoned cart.",
+      "This vertical is highly visual, and emails with strong imagery and clear CTAs have a significant advantage. ",
+      "Segmentation Impact: Highly segmented campaigns (< 5% of list) perform 2-3x better than batch-and-blast",
+      "Top performing campaigns target under 5% of list with 2+ conditions",
+      "60% of top performing campaigns are sent to segmented lists",
+      "Visual content and trend-driven promotions drive higher engagement"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_automotive",
+    "display_name": "E-commerce (Automotive)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.7,
+        "top10": 55,
+        "top25": 46,
+        "bottom25": 32
+      },
+      "clickRate": {
+        "median": 1.45,
+        "top10": 5,
+        "top25": 2.2,
+        "bottom25": 0.9
+      },
+      "conversionRate": {
+        "median": 0.1,
+        "top10": 0.45
+      },
+      "rpr": {
+        "median": 0.12,
+        "top10": 0.8,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3.4,
+          "top10": 22,
+          "range": [
+            2,
+            5
+          ]
+        }
+      },
+      "welcome": {
+        "rpr": {
+          "median": 2.5,
+          "top10": 8
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.25,
+          "top10": 4.2
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.8,
+          "top10": 2.4
+        }
+      }
+    },
+    "sms": {
+      "clickRate": {
+        "median": 4,
+        "top10": 11
+      },
+      "rpr": {
+        "median": 0.12,
+        "top10": 0.8
+      }
+    },
+    "insights": [
+      "High segmentation potential by vehicle make/model/year for accessories and parts.",
+      "Post-purchase flows are crucial for maintenance, parts, and future upgrades.",
+      "High-value items lead to significant abandoned cart RPR",
+      "Community building around enthusiasts drives engagement",
+      "Educational content about products performs well"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_electronics",
+    "display_name": "E-commerce (Electronics)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 37,
+        "top10": 52,
+        "top25": 43,
+        "bottom25": 30
+      },
+      "clickRate": {
+        "median": 1.5,
+        "top10": 4.5,
+        "top25": 2.2,
+        "bottom25": 0.9
+      },
+      "conversionRate": {
+        "median": 0.08,
+        "top10": 0.4
+      },
+      "rpr": {
+        "median": 0.18,
+        "top10": 1.4,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 4.5,
+          "top10": 35,
+          "range": [
+            3.5,
+            6.5
+          ]
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.3,
+          "top10": 5
+        }
+      }
+    },
+    "sms": {
+      "rpr": {
+        "median": 0.18,
+        "top10": 1.3
+      }
+    },
+    "insights": [
+      "Highest average RPR due to high AOV of products.",
+      "Browse abandonment and back-in-stock notifications are highly effective due to researched, high-ticket purchases.",
+      "Educational content about product features drives engagement",
+      "Technical terminology should be balanced with accessibility",
+      "Product comparison content performs well"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_food_beverage",
+    "display_name": "E-commerce (Food and Beverage)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 42,
+        "top10": 58,
+        "top25": 49,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 1.25,
+        "top10": 4,
+        "top25": 1.9,
+        "bottom25": 0.8
+      },
+      "conversionRate": {
+        "median": 0.2,
+        "top10": 0.8
+      },
+      "rpr": {
+        "median": 0.08,
+        "top10": 0.5,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 2.2,
+          "top10": 15
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.5,
+          "top10": 5
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Lower AOV results in lower RPR, but higher placed order rate (conversion) due to consumable nature.",
+      "Subscription reminders and replenishment flows are the highest-performing automations.",
+      "Highest conversion rate (6.82%) across all verticals",
+      "Higher Q4 performance due to seasonal gifting",
+      "Strong repeat purchase patterns",
+      "Recipe content and food imagery drive high click rates"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_jewelry",
+    "display_name": "E-commerce (Jewelry)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 36.5,
+        "top10": 52,
+        "top25": 43,
+        "bottom25": 30
+      },
+      "clickRate": {
+        "median": 1.7,
+        "top10": 5.5,
+        "top25": 2.5,
+        "bottom25": 1
+      },
+      "conversionRate": {
+        "median": 0.07,
+        "top10": 0.35
+      },
+      "rpr": {
+        "median": 0.25,
+        "top10": 1.8,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 5,
+          "top10": 40,
+          "range": [
+            4,
+            8
+          ]
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.5,
+          "top10": 6
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Very high RPR due to extremely high AOV. Conversion rates are low but valuable.",
+      "Engagement is high on visually rich content and personalized wish-list/reminder emails.",
+      "Highly segmented campaigns perform 2x better than unsegmented",
+      "Top performers target less than 1% of email list",
+      "Strong SMS performance for high-intent buyers",
+      "Segment on customer behavior with 2+ conditions"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_home_garden",
+    "display_name": "E-commerce (Home and Garden)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.5,
+        "top10": 58,
+        "top25": 48,
+        "bottom25": 34
+      },
+      "clickRate": {
+        "median": 1.55,
+        "top10": 4.8,
+        "top25": 2.3,
+        "bottom25": 1
+      },
+      "conversionRate": {
+        "median": 0.15,
+        "top10": 0.6
+      },
+      "rpr": {
+        "median": 0.16,
+        "top10": 1.1,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3.8,
+          "top10": 25
+        }
+      },
+      "welcome": {
+        "rpr": {
+          "median": 2.7,
+          "top10": 9.5
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "High seasonal variation. Content focused on projects, inspiration, and how-to guides drives high engagement (OR/CR).",
+      "RPR is strong due to a mix of high-ticket items and recurring small purchases (e.g., plants, seeds, tools).",
+      "Highest open rate (41.6%) among tracked e-commerce sectors",
+      "High AOV leads to strong abandoned cart RPR",
+      "Seasonal content performs well"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_hardware_home_improvement",
+    "display_name": "E-commerce (Hardware and Home Improvement)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 38.5,
+        "top10": 53,
+        "top25": 45,
+        "bottom25": 31
+      },
+      "clickRate": {
+        "median": 1.6,
+        "top10": 5,
+        "top25": 2.4,
+        "bottom25": 1
+      },
+      "conversionRate": {
+        "median": 0.14,
+        "top10": 0.55
+      },
+      "rpr": {
+        "median": 0.13,
+        "top10": 0.95,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3.6,
+          "top10": 23
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Highly specific product needs. Clear, segmented emails based on professional vs. DIY customers are key.",
+      "Post-purchase should focus on complementary tools and maintenance/care products.",
+      "Highest abandoned cart flow RPR ($75.66) across all industries",
+      "Very high average order values",
+      "Educational content about projects drives engagement"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_health_beauty_beauty_&_cosmetics",
+    "display_name": "Beauty & Cosmetics",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39
+      },
+      "clickRate": {
+        "median": 1.25
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3.1
+        }
+      }
+    },
+    "sms": {
+      "clickRate": {
+        "median": 4,
+        "top10": 12
+      },
+      "rpr": {
+        "median": 0.12,
+        "top10": 0.84
+      }
+    },
+    "insights": [
+      "Conversion is driven by visual, trust-building content (tutorials, testimonials).",
+      "High engagement on automated flows, especially replenishment and education sequences.",
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models",
+      "Strong performance on highly-visual, trend-focused content (e.g., UGC, tutorials)."
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_health_beauty_supplements_&_wellness",
+    "display_name": "Supplements & Wellness",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41
+      },
+      "clickRate": {
+        "median": 1.45
+      }
+    },
+    "flows": {
+      "postPurchase": {
+        "rpr": {
+          "median": 1.8
+        }
+      }
+    },
+    "sms": {
+      "clickRate": {
+        "median": 4,
+        "top10": 12
+      },
+      "rpr": {
+        "median": 0.12,
+        "top10": 0.84
+      }
+    },
+    "insights": [
+      "Conversion is driven by visual, trust-building content (tutorials, testimonials).",
+      "High engagement on automated flows, especially replenishment and education sequences.",
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models",
+      "Highest Post-Purchase RPR due to subscription and replenishment models."
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_health_beauty",
+    "display_name": "E-commerce (Health and Beauty)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 38,
+        "top10": 55,
+        "top25": 44,
+        "bottom25": 31
+      },
+      "clickRate": {
+        "median": 1.05,
+        "top10": 3.6,
+        "top25": 1.6,
+        "bottom25": 0.7
+      },
+      "conversionRate": {
+        "median": 0.12,
+        "top10": 0.56
+      },
+      "rpr": {
+        "median": 0.09,
+        "top10": 0.6,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "top10": 66
+        },
+        "clickRate": {
+          "median": 4.6,
+          "top10": 11.5
+        },
+        "conversionRate": {
+          "median": 1.6,
+          "top10": 5.4
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 18,
+          "range": [
+            2,
+            4
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51,
+          "top10": 67
+        },
+        "rpr": {
+          "median": 2.5,
+          "top10": 8
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.1,
+          "top10": 3.8
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.75,
+          "top10": 2.3
+        }
+      }
+    },
+    "sms": {
+      "clickRate": {
+        "median": 4,
+        "top10": 12
+      },
+      "rpr": {
+        "median": 0.12,
+        "top10": 0.84
+      }
+    },
+    "insights": [
+      "Conversion is driven by visual, trust-building content (tutorials, testimonials).",
+      "High engagement on automated flows, especially replenishment and education sequences.",
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_mass_merchant",
+    "display_name": "E-commerce (Mass Merchant)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39,
+        "top10": 55,
+        "top25": 46,
+        "bottom25": 32
+      },
+      "clickRate": {
+        "median": 1.15,
+        "top10": 4.2,
+        "top25": 1.8,
+        "bottom25": 0.7
+      },
+      "conversionRate": {
+        "median": 0.1,
+        "top10": 0.4
+      },
+      "rpr": {
+        "median": 0.1,
+        "top10": 0.75,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3,
+          "top10": 20
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Broad product selection requires aggressive segmentation; general batch-and-blast emails underperform significantly.",
+      "Conversion is driven heavily by price-focused campaigns.",
+      "Wide product variety requires strong segmentation",
+      "Price-driven promotions perform well",
+      "High email frequency tolerance"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_office_supplies",
+    "display_name": "E-commerce (Office Supplies)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 38,
+        "top10": 53,
+        "top25": 44,
+        "bottom25": 31
+      },
+      "clickRate": {
+        "median": 1.3,
+        "top10": 4.5,
+        "top25": 2,
+        "bottom25": 0.8
+      },
+      "conversionRate": {
+        "median": 0.18,
+        "top10": 0.7
+      },
+      "rpr": {
+        "median": 0.11,
+        "top10": 0.85,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3.2,
+          "top10": 21
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "High repeat purchase rate for consumables. Re-order reminders perform well.",
+      "Often a blend of B2C and B2B customers; segmentation by customer type is crucial.",
+      "B2B focus requires different messaging than B2C",
+      "Bulk order promotions drive conversions",
+      "Reorder reminders perform well"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_specialty",
+    "display_name": "E-commerce (Specialty)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 45,
+        "top10": 60,
+        "top25": 52,
+        "bottom25": 38
+      },
+      "clickRate": {
+        "median": 1.9,
+        "top10": 6,
+        "top25": 2.8,
+        "bottom25": 1.2
+      },
+      "conversionRate": {
+        "median": 0.15,
+        "top10": 0.65
+      },
+      "rpr": {
+        "median": 0.15,
+        "top10": 1.1,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3.9,
+          "top10": 26
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Highest Open Rate and Click Rate due to highly engaged, niche audience.",
+      "Content-driven engagement (tips, niche news, community features) is key.",
+      "Niche audiences often have higher engagement",
+      "Expertise-driven content performs well",
+      "Community building is key"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_sporting_goods",
+    "display_name": "E-commerce (Sporting Goods)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41,
+        "top10": 56,
+        "top25": 47,
+        "bottom25": 34
+      },
+      "clickRate": {
+        "median": 1.8,
+        "top10": 5.8,
+        "top25": 2.6,
+        "bottom25": 1.1
+      },
+      "conversionRate": {
+        "median": 0.13,
+        "top10": 0.5
+      },
+      "rpr": {
+        "median": 0.14,
+        "top10": 1.05,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3.7,
+          "top10": 24
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Seasonal and event-driven. Timing campaigns to sport seasons and events is essential.",
+      "High Click Rate driven by product reviews and gear guides.",
+      "Zero unsubscribe rate indicates high audience engagement",
+      "Above-average metrics across the board",
+      "Seasonal sports content drives engagement"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce_toys_hobbies",
+    "display_name": "E-commerce (Toys and Hobbies)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "top10": 55,
+        "top25": 46,
+        "bottom25": 32
+      },
+      "clickRate": {
+        "median": 1.55,
+        "top10": 4.8,
+        "top25": 2.3,
+        "bottom25": 1
+      },
+      "conversionRate": {
+        "median": 0.12,
+        "top10": 0.45
+      },
+      "rpr": {
+        "median": 0.09,
+        "top10": 0.65,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 2.8,
+          "top10": 18
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Open Rate for campaigns is lower, but peak-season (Q4) conversion is extremely high.",
+      "Segmentation by child age and hobby interest is the main driver of top-performer success.",
+      "Hobbies category has exceptionally high click rate (4.36%)",
+      "Strong SMS performance potential",
+      "Passionate audiences drive above-average engagement",
+      "Content-rich emails with links to resources perform well"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "e-commerce",
+    "display_name": "E-commerce",
+    "category": "other",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.7,
+        "top10": 56.3,
+        "top25": 46,
+        "bottom25": 33
+      },
+      "clickRate": {
+        "median": 1.47,
+        "top10": 5,
+        "top25": 2.2,
+        "bottom25": 0.9
+      },
+      "conversionRate": {
+        "median": 0.09,
+        "top10": 0.47
+      },
+      "rpr": {
+        "median": 0.11,
+        "top10": 0.7,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6,
+          "top10": 12
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "top10": 6
+        },
+        "rpr": {
+          "median": 3.65,
+          "top10": 25,
+          "range": [
+            3,
+            6
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51.5,
+          "top10": 68
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 8.5
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.07,
+          "top10": 3.5
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.2,
+          "top10": 4
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.84,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {
+      "clickRate": {
+        "median": 4,
+        "top10": 12
+      },
+      "rpr": {
+        "median": 0.12,
+        "top10": 0.84
+      }
+    },
+    "insights": [
+      "Automated flows generate 30x higher RPR than one-time campaigns.",
+      "SMS RPR is often comparable or slightly higher than email RPR due to high intent and immediacy.",
+      "General e-commerce category for unspecified verticals",
+      "Performance varies widely by specific product type",
+      "Segmentation and personalization critical for success"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "agency_marketing_consulting",
+    "display_name": "Agency, Marketing, and Consulting",
+    "category": "b2b",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "top10": 55,
+        "top25": 46,
+        "bottom25": 32
+      },
+      "clickRate": {
+        "median": 1.5,
+        "top10": 4.5,
+        "top25": 2.2,
+        "bottom25": 0.9
+      },
+      "conversionRate": {
+        "median": 0.5,
+        "top10": 2
+      },
+      "rpr": {
+        "median": 0.02,
+        "top10": 0.1,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 55,
+          "top10": 70
+        },
+        "rpr": {
+          "median": 0.1,
+          "top10": 0.5
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "High OR/CR is achieved through valuable, educational, and high-quality content.",
+      "RPR is low as success is measured in lead generation (demo sign-ups, whitepaper downloads), not direct purchase.",
+      "Creative services/agency has highest open rate (50%) in this category",
+      "Marketing and advertising has lowest click rate (1.11%) - content fatigue",
+      "Consulting performs well with engaged B2B audiences",
+      "Case studies and results-driven content performs best"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "banking_finance_insurance",
+    "display_name": "Banking, Finance, and Insurance",
+    "category": "finance",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 40.5,
+        "top10": 56,
+        "top25": 47,
+        "bottom25": 33
+      },
+      "clickRate": {
+        "median": 1.7,
+        "top10": 5,
+        "top25": 2.5,
+        "bottom25": 1
+      },
+      "conversionRate": {
+        "median": 0.3,
+        "top10": 1.5
+      },
+      "rpr": {
+        "median": 0.01,
+        "top10": 0.05,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 60,
+          "top10": 75
+        },
+        "rpr": {
+          "median": 0.05,
+          "top10": 0.25
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Trust and security-focused messaging yields high Open Rates.",
+      "Regulatory constraints mean content often focuses on education and financial advice/news.",
+      "Insurance has 0% unsubscribe rate - indicates high list quality",
+      "Financial content requires trust and compliance",
+      "Educational content about financial planning performs well",
+      "Personalized rate/quote information drives engagement"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "education",
+    "display_name": "Education",
+    "category": "education",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 43,
+        "top10": 58,
+        "top25": 50,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 2.2,
+        "top10": 6.5,
+        "top25": 3.5,
+        "bottom25": 1.5
+      },
+      "conversionRate": {
+        "median": 0.8,
+        "top10": 3
+      },
+      "rpr": {
+        "median": 0.03,
+        "top10": 0.15,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 58,
+          "top10": 72
+        },
+        "rpr": {
+          "median": 0.15,
+          "top10": 0.75
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Excellent Open and Click Rates due to high relevance (course information, enrollment deadlines).",
+      "Conversion is high for lead-to-application/enrollment.",
+      "Education sector sees highest open rates across industries",
+      "Higher education has strongest performance with 6.97% CTOR",
+      "Course updates and learning materials drive high engagement",
+      "Value of content (promotions, materials) drives opens"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "events_entertainment",
+    "display_name": "Events and Entertainment",
+    "category": "hospitality",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 44,
+        "top10": 58,
+        "top25": 51,
+        "bottom25": 36
+      },
+      "clickRate": {
+        "median": 1.7,
+        "top10": 5,
+        "top25": 2.5,
+        "bottom25": 1
+      },
+      "conversionRate": {
+        "median": 0.7,
+        "top10": 2.5
+      },
+      "rpr": {
+        "median": 0.05,
+        "top10": 0.3,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 3,
+          "top10": 15
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Urgency and scarcity (ticket-based) drives strong performance.",
+      "Abandoned Cart RPR is high, reflecting high-intent behavior for limited seating/time events.",
+      "Urgency and scarcity tactics perform well",
+      "Event reminders and countdowns drive clicks",
+      "Visual content and performer information critical"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "non-profit",
+    "display_name": "Non-profit",
+    "category": "nonprofit",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 54,
+        "top10": 70,
+        "top25": 62,
+        "bottom25": 45
+      },
+      "clickRate": {
+        "median": 3.3,
+        "top10": 9,
+        "top25": 5,
+        "bottom25": 2
+      },
+      "conversionRate": {
+        "median": 0.9,
+        "top10": 3.5
+      },
+      "rpr": {
+        "median": 0.06,
+        "top10": 0.3,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 80,
+          "top10": 90
+        },
+        "rpr": {
+          "median": 0.15,
+          "top10": 0.75
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Highest Open Rate and Click Rate overall due to strong mission alignment and engaged subscriber base.",
+      "RPR for campaigns is in terms of online fundraising success ($58 raised per 1000 emails sent is a common benchmark, which translates to $0.058 RPR).",
+      "High engagement due to loyal, mission-driven audiences",
+      "Zero unsubscribe rate - highest audience loyalty",
+      "Storytelling and impact stories drive high clicks",
+      "Third highest open rate (53.21%) across all industries",
+      "Donation appeals and volunteer opportunities perform well"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "politics_government",
+    "display_name": "Politics and Government",
+    "category": "government",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 45,
+        "top10": 60,
+        "top25": 52,
+        "bottom25": 38
+      },
+      "clickRate": {
+        "median": 1.6,
+        "top10": 4.5,
+        "top25": 2.4,
+        "bottom25": 1
+      },
+      "conversionRate": {
+        "median": 0.2,
+        "top10": 1
+      },
+      "rpr": {
+        "median": 0.01,
+        "top10": 0.08,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 58,
+          "top10": 75
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Emotionally charged or time-sensitive messaging (e.g., voting deadlines) drives high engagement.",
+      "RPR is low and primarily related to small-dollar campaign donations.",
+      "Government has highest CTOR (10%) across all industries",
+      "Government emails likely contain critical civic information",
+      "Politics sees lower engagement than government communications",
+      "Cleanest email lists with lowest bounce rates",
+      "Urgent/actionable content drives exceptional government engagement"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "real_estate_construction",
+    "display_name": "Real Estate and Construction",
+    "category": "real_estate",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41,
+        "top10": 56,
+        "top25": 47,
+        "bottom25": 34
+      },
+      "clickRate": {
+        "median": 1.85,
+        "top10": 5.5,
+        "top25": 2.8,
+        "bottom25": 1.2
+      },
+      "conversionRate": {
+        "median": 1.5,
+        "top10": 5
+      },
+      "rpr": {
+        "median": 0.03,
+        "top10": 0.15,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 55,
+          "top10": 70
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "High Click Rate on market reports and personalized property listings.",
+      "Conversion is measured by lead-to-inquiry or lead-to-tour/showing (high conversion rate on a smaller scale).",
+      "Real estate has lower CTOR (3.47%) - may need stronger CTAs",
+      "High-value content drives higher opens in real estate",
+      "Construction/architecture shows better engagement than general real estate",
+      "Property listings and market updates perform well"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "restaurants",
+    "display_name": "Restaurants",
+    "category": "hospitality",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 43.5,
+        "top10": 58,
+        "top25": 50,
+        "bottom25": 36
+      },
+      "clickRate": {
+        "median": 1.1,
+        "top10": 3.8,
+        "top25": 1.7,
+        "bottom25": 0.7
+      },
+      "conversionRate": {
+        "median": 0.9,
+        "top10": 3.5
+      },
+      "rpr": {
+        "median": 0.07,
+        "top10": 0.4,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 2.5,
+          "top10": 12
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "High Open Rate on localized, time-sensitive offers.",
+      "Abandoned Cart (for online ordering) RPR is strong, but overall RPR is limited by AOV.",
+      "Lowest CTOR (2.93%) across all industries",
+      "High open rate but low click rate - weak CTAs or relevancy issues",
+      "Best for limited-time offers, discounts, and special events",
+      "Mobile optimization critical - people browse menus on phones",
+      "Visual content (food imagery) essential but not driving clicks effectively"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "software_saas",
+    "display_name": "Software and SaaS",
+    "category": "b2b",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 38,
+        "top10": 52,
+        "top25": 44,
+        "bottom25": 31
+      },
+      "clickRate": {
+        "median": 2,
+        "top10": 6,
+        "top25": 3,
+        "bottom25": 1.2
+      },
+      "conversionRate": {
+        "median": 1.2,
+        "top10": 4
+      },
+      "rpr": {
+        "median": 0.01,
+        "top10": 0.05,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 54,
+          "top10": 70
+        },
+        "rpr": {
+          "median": 0.1,
+          "top10": 0.5
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Conversion is measured in high-value actions like 'Trial Signup' or 'Demo Request'.",
+      "Welcome and Onboarding flows (post-signup) are the most critical automations for retention and upsell.",
+      "Segmentation by user activity (frequent vs. infrequent) critical",
+      "Product update emails drive high engagement",
+      "Free trial and feature highlight content performs well",
+      "Educational content about features drives clicks",
+      "Behavioral triggers (usage patterns) improve performance"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "telecommunications",
+    "display_name": "Telecommunications",
+    "category": "services",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 35,
+        "top10": 50,
+        "top25": 41,
+        "bottom25": 28
+      },
+      "clickRate": {
+        "median": 1.8,
+        "top10": 5.5,
+        "top25": 2.6,
+        "bottom25": 1.1
+      },
+      "conversionRate": {
+        "median": 0.4,
+        "top10": 1.8
+      },
+      "rpr": {
+        "median": 0.05,
+        "top10": 0.25,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "postPurchase": {
+        "rpr": {
+          "median": 0.8,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Lower Open Rate due to high volume, but high Click Rate on promotions/upgrade offers.",
+      "Post-purchase flows focus on upsell (e.g., faster broadband, premium channels) and managing customer service issues.",
+      "Maintains cleanest email lists with lowest bounce rates",
+      "Very low unsubscribe rate (0.01%) despite low opens",
+      "Service-related emails (billing, upgrades) drive engagement",
+      "Account management content performs better than promotional"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "travel",
+    "display_name": "Travel",
+    "category": "hospitality",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 37,
+        "top10": 52,
+        "top25": 43,
+        "bottom25": 30
+      },
+      "clickRate": {
+        "median": 0.75,
+        "top10": 2.5,
+        "top25": 1.3,
+        "bottom25": 0.4
+      },
+      "conversionRate": {
+        "median": 0.6,
+        "top10": 2.2
+      },
+      "rpr": {
+        "median": 0.04,
+        "top10": 0.2,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 5,
+          "top10": 30
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Lowest Click Rate due to high browsing/low commitment behavior, but Abandoned Cart RPR is very high due to high AOV (e.g., flight/hotel booking).",
+      "Segmentation by past travel history and destination interest is critical.",
+      "Lowest open rate (22.57%) AND click rate (0.77%) across ALL industries",
+      "Zero unsubscribe rate suggests list quality issues, not content rejection",
+      "High competition in inboxes from multiple travel brands",
+      "Testing various offers and incentives critical to improve performance",
+      "Personalized destination recommendations may improve engagement"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "wellness_fitness_services",
+    "display_name": "Wellness and Fitness Services",
+    "category": "health_wellness",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 49,
+        "top10": 65,
+        "top25": 56,
+        "bottom25": 40
+      },
+      "clickRate": {
+        "median": 1.75,
+        "top10": 5.5,
+        "top25": 2.5,
+        "bottom25": 1.1
+      },
+      "conversionRate": {
+        "median": 1,
+        "top10": 3.8
+      },
+      "rpr": {
+        "median": 0.04,
+        "top10": 0.2,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 62,
+          "top10": 78
+        },
+        "rpr": {
+          "median": 0.12,
+          "top10": 0.6
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "High Open Rate due to local relevance and focus on personal health/goals.",
+      "Conversion is on trial sign-ups, class bookings, or subscription sign-ups (high LTV).",
+      "SMS is highly effective for class reminders and booking confirmations.",
+      "High open rates but also higher unsubscribe rates",
+      "Relevancy is critical - irrelevant or frequent emails cause unsubscribes",
+      "Health/fitness content requires careful frequency management",
+      "Educational health content performs well",
+      "Appointment reminders and health tips drive engagement"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "other",
+    "display_name": "Other",
+    "category": "other",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 45,
+        "top10": 60,
+        "top25": 52,
+        "bottom25": 38
+      },
+      "clickRate": {
+        "median": 2.15,
+        "top10": 6.5,
+        "top25": 3.2,
+        "bottom25": 1.4
+      },
+      "conversionRate": {
+        "median": 0.6,
+        "top10": 2.5
+      },
+      "rpr": {
+        "median": 0.05,
+        "top10": 0.25,
+        "currency": "USD"
+      }
+    },
+    "flows": {
+      "welcome": {
+        "openRate": {
+          "median": 58,
+          "top10": 74
+        },
+        "rpr": {
+          "median": 0.1,
+          "top10": 0.4
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "This vertical is highly variable. High OR/CR is achieved by extreme relevance for small, niche audiences.",
+      "Metrics are a general average of non-categorized businesses.",
+      "Catch-all category for industries not otherwise specified",
+      "Performance sits near overall industry averages",
+      "Use as baseline when specific vertical not available"
+    ],
+    "data_source": "Gemini Analysis",
+    "is_active": true,
+    "created_at": "2025-01-15",
+    "updated_at": "2025-10-25"
+  },
+  {
+    "vertical": "ecommerce_activewear",
+    "display_name": "Activewear",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.3,
+        "range": [
+          41,
+          42
+        ],
+        "top10": 54.78,
+        "top25": 48,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.74,
+        "top25": 2.5,
+        "bottom25": 0.8
+      },
+      "ctor": {
+        "median": 4.75,
+        "range": [
+          4.5,
+          5
+        ],
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 2.85,
+        "range": [
+          2.5,
+          3.2
+        ],
+        "top10": 6
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [
+          0.1,
+          0.14
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 51.43,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6.25,
+          "top10": 12
+        },
+        "conversionRate": {
+          "median": 3.42,
+          "top10": 6.5
+        },
+        "rpr": {
+          "median": 4,
+          "range": [
+            3,
+            5
+          ],
+          "top10": 20,
+          "top10Range": [
+            15,
+            25
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51.5,
+          "top10": 68
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 8.5
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.07,
+          "top10": 3.5
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.2,
+          "top10": 4
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.84,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {},
+    "segmentedCampaigns": {
+      "openRate": {
+        "median": 54.21
+      },
+      "clickRate": {
+        "median": 6.77
+      },
+      "rpr": {
+        "median": 91.81,
+        "currency": "USD"
+      }
+    },
+    "insights": [
+      "Segmentation Impact: Highly segmented campaigns (< 5% of list) perform 2-3x better than batch-and-blast",
+      "Top performing campaigns target under 5% of list with 2+ conditions",
+      "60% of top performing campaigns are sent to segmented lists",
+      "Visual content and trend-driven promotions drive higher engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers, 325B+ emails",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_fast_fashion",
+    "display_name": "Fast Fashion",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.3,
+        "range": [
+          41,
+          42
+        ],
+        "top10": 54.78,
+        "top25": 48,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.74,
+        "top25": 2.5,
+        "bottom25": 0.8
+      },
+      "ctor": {
+        "median": 4.75,
+        "range": [
+          4.5,
+          5
+        ],
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 2.85,
+        "range": [
+          2.5,
+          3.2
+        ],
+        "top10": 6
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [
+          0.1,
+          0.14
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 51.43,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6.25,
+          "top10": 12
+        },
+        "conversionRate": {
+          "median": 3.42,
+          "top10": 6.5
+        },
+        "rpr": {
+          "median": 4,
+          "range": [
+            3,
+            5
+          ],
+          "top10": 20,
+          "top10Range": [
+            15,
+            25
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51.5,
+          "top10": 68
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 8.5
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.07,
+          "top10": 3.5
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.2,
+          "top10": 4
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.84,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {},
+    "segmentedCampaigns": {
+      "openRate": {
+        "median": 54.21
+      },
+      "clickRate": {
+        "median": 6.77
+      },
+      "rpr": {
+        "median": 91.81,
+        "currency": "USD"
+      }
+    },
+    "insights": [
+      "Segmentation Impact: Highly segmented campaigns (< 5% of list) perform 2-3x better than batch-and-blast",
+      "Top performing campaigns target under 5% of list with 2+ conditions",
+      "60% of top performing campaigns are sent to segmented lists",
+      "Visual content and trend-driven promotions drive higher engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers, 325B+ emails",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_hats",
+    "display_name": "Hats",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.3,
+        "range": [
+          41,
+          42
+        ],
+        "top10": 54.78,
+        "top25": 48,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.74,
+        "top25": 2.5,
+        "bottom25": 0.8
+      },
+      "ctor": {
+        "median": 4.75,
+        "range": [
+          4.5,
+          5
+        ],
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 2.85,
+        "range": [
+          2.5,
+          3.2
+        ],
+        "top10": 6
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [
+          0.1,
+          0.14
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 51.43,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6.25,
+          "top10": 12
+        },
+        "conversionRate": {
+          "median": 3.42,
+          "top10": 6.5
+        },
+        "rpr": {
+          "median": 4,
+          "range": [
+            3,
+            5
+          ],
+          "top10": 20,
+          "top10Range": [
+            15,
+            25
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51.5,
+          "top10": 68
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 8.5
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.07,
+          "top10": 3.5
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.2,
+          "top10": 4
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.84,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {},
+    "segmentedCampaigns": {
+      "openRate": {
+        "median": 54.21
+      },
+      "clickRate": {
+        "median": 6.77
+      },
+      "rpr": {
+        "median": 91.81,
+        "currency": "USD"
+      }
+    },
+    "insights": [
+      "Segmentation Impact: Highly segmented campaigns (< 5% of list) perform 2-3x better than batch-and-blast",
+      "Top performing campaigns target under 5% of list with 2+ conditions",
+      "60% of top performing campaigns are sent to segmented lists",
+      "Visual content and trend-driven promotions drive higher engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers, 325B+ emails",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_footwear",
+    "display_name": "Footwear",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.3,
+        "range": [
+          41,
+          42
+        ],
+        "top10": 54.78,
+        "top25": 48,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.74,
+        "top25": 2.5,
+        "bottom25": 0.8
+      },
+      "ctor": {
+        "median": 4.75,
+        "range": [
+          4.5,
+          5
+        ],
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 2.85,
+        "range": [
+          2.5,
+          3.2
+        ],
+        "top10": 6
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [
+          0.1,
+          0.14
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 51.43,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6.25,
+          "top10": 12
+        },
+        "conversionRate": {
+          "median": 3.42,
+          "top10": 6.5
+        },
+        "rpr": {
+          "median": 4,
+          "range": [
+            3,
+            5
+          ],
+          "top10": 20,
+          "top10Range": [
+            15,
+            25
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51.5,
+          "top10": 68
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 8.5
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.07,
+          "top10": 3.5
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.2,
+          "top10": 4
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.84,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {},
+    "segmentedCampaigns": {
+      "openRate": {
+        "median": 54.21
+      },
+      "clickRate": {
+        "median": 6.77
+      },
+      "rpr": {
+        "median": 91.81,
+        "currency": "USD"
+      }
+    },
+    "insights": [
+      "Segmentation Impact: Highly segmented campaigns (< 5% of list) perform 2-3x better than batch-and-blast",
+      "Top performing campaigns target under 5% of list with 2+ conditions",
+      "60% of top performing campaigns are sent to segmented lists",
+      "Visual content and trend-driven promotions drive higher engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers, 325B+ emails",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_maternity_children's_clothes",
+    "display_name": "Maternity and Children's clothes",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.3,
+        "range": [
+          41,
+          42
+        ],
+        "top10": 54.78,
+        "top25": 48,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.74,
+        "top25": 2.5,
+        "bottom25": 0.8
+      },
+      "ctor": {
+        "median": 4.75,
+        "range": [
+          4.5,
+          5
+        ],
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 2.85,
+        "range": [
+          2.5,
+          3.2
+        ],
+        "top10": 6
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [
+          0.1,
+          0.14
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 51.43,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6.25,
+          "top10": 12
+        },
+        "conversionRate": {
+          "median": 3.42,
+          "top10": 6.5
+        },
+        "rpr": {
+          "median": 4,
+          "range": [
+            3,
+            5
+          ],
+          "top10": 20,
+          "top10Range": [
+            15,
+            25
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51.5,
+          "top10": 68
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 8.5
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.07,
+          "top10": 3.5
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.2,
+          "top10": 4
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.84,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {},
+    "segmentedCampaigns": {
+      "openRate": {
+        "median": 54.21
+      },
+      "clickRate": {
+        "median": 6.77
+      },
+      "rpr": {
+        "median": 91.81,
+        "currency": "USD"
+      }
+    },
+    "insights": [
+      "Segmentation Impact: Highly segmented campaigns (< 5% of list) perform 2-3x better than batch-and-blast",
+      "Top performing campaigns target under 5% of list with 2+ conditions",
+      "60% of top performing campaigns are sent to segmented lists",
+      "Visual content and trend-driven promotions drive higher engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers, 325B+ emails",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_swimwear",
+    "display_name": "Swimwear",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.3,
+        "range": [
+          41,
+          42
+        ],
+        "top10": 54.78,
+        "top25": 48,
+        "bottom25": 35
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.74,
+        "top25": 2.5,
+        "bottom25": 0.8
+      },
+      "ctor": {
+        "median": 4.75,
+        "range": [
+          4.5,
+          5
+        ],
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 2.85,
+        "range": [
+          2.5,
+          3.2
+        ],
+        "top10": 6
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [
+          0.1,
+          0.14
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 51.43,
+          "top10": 68
+        },
+        "clickRate": {
+          "median": 6.25,
+          "top10": 12
+        },
+        "conversionRate": {
+          "median": 3.42,
+          "top10": 6.5
+        },
+        "rpr": {
+          "median": 4,
+          "range": [
+            3,
+            5
+          ],
+          "top10": 20,
+          "top10Range": [
+            15,
+            25
+          ]
+        }
+      },
+      "welcome": {
+        "openRate": {
+          "median": 51.5,
+          "top10": 68
+        },
+        "rpr": {
+          "median": 2.65,
+          "top10": 8.5
+        }
+      },
+      "browseAbandonment": {
+        "rpr": {
+          "median": 1.07,
+          "top10": 3.5
+        }
+      },
+      "postPurchase": {
+        "rpr": {
+          "median": 1.2,
+          "top10": 4
+        }
+      },
+      "winback": {
+        "rpr": {
+          "median": 0.84,
+          "top10": 2.5
+        }
+      }
+    },
+    "sms": {},
+    "segmentedCampaigns": {
+      "openRate": {
+        "median": 54.21
+      },
+      "clickRate": {
+        "median": 6.77
+      },
+      "rpr": {
+        "median": 91.81,
+        "currency": "USD"
+      }
+    },
+    "insights": [
+      "Segmentation Impact: Highly segmented campaigns (< 5% of list) perform 2-3x better than batch-and-blast",
+      "Top performing campaigns target under 5% of list with 2+ conditions",
+      "60% of top performing campaigns are sent to segmented lists",
+      "Visual content and trend-driven promotions drive higher engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers, 325B+ emails",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_automotive",
+    "display_name": "E-commerce (Automotive)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.5
+      },
+      "ctor": {
+        "median": 4.5,
+        "range": [
+          4,
+          5
+        ]
+      },
+      "unsubscribeRate": {
+        "median": 0.1,
+        "range": [
+          0.08,
+          0.12
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 10,
+          "note": "Very high AOV",
+          "top10": 62.5,
+          "top10Range": [
+            50,
+            75
+          ]
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "High-value items lead to significant abandoned cart RPR",
+      "Community building around enthusiasts drives engagement",
+      "Educational content about products performs well"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_electronics",
+    "display_name": "E-commerce (Electronics)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 34.72,
+        "range": [
+          31.43,
+          38
+        ],
+        "top10": 52
+      },
+      "clickRate": {
+        "median": 1.55,
+        "range": [
+          1.4,
+          1.71
+        ],
+        "top10": 4.6
+      },
+      "ctor": {
+        "median": 5.72,
+        "top10": 11
+      },
+      "conversionRate": {
+        "median": 2.75,
+        "range": [
+          2.5,
+          3
+        ]
+      },
+      "unsubscribeRate": {
+        "median": 0.03
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 6,
+          "note": "High AOV products",
+          "top10": 42.5,
+          "top10Range": [
+            35,
+            50
+          ]
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Educational content about product features drives engagement",
+      "Technical terminology should be balanced with accessibility",
+      "Product comparison content performs well"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers, 155K+ accounts",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_food_beverage",
+    "display_name": "E-commerce (Food and Beverage)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 43,
+        "range": [
+          40.9,
+          45.15
+        ],
+        "top10": 56
+      },
+      "clickRate": {
+        "median": 1.92,
+        "range": [
+          1.5,
+          2.34
+        ],
+        "top10": 5
+      },
+      "ctor": {
+        "median": 5.95,
+        "top10": 12
+      },
+      "conversionRate": {
+        "median": 6.82,
+        "note": "Highest among all verticals",
+        "top10": 12
+      },
+      "unsubscribeRate": {
+        "median": 0.09
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 52.16,
+          "note": "Highest among all industries"
+        },
+        "clickRate": {
+          "median": 6.63
+        },
+        "conversionRate": {
+          "median": 3.66
+        },
+        "rpr": {
+          "median": 3,
+          "range": [
+            2,
+            4
+          ],
+          "top10": 10
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Highest conversion rate (6.82%) across all verticals",
+      "Higher Q4 performance due to seasonal gifting",
+      "Strong repeat purchase patterns",
+      "Recipe content and food imagery drive high click rates"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_jewelry",
+    "display_name": "E-commerce (Jewelry)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 40.2,
+        "top10": 55
+      },
+      "clickRate": {
+        "median": 1.6,
+        "range": [
+          1.4,
+          1.8
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 5,
+        "range": [
+          4.5,
+          5.5
+        ]
+      },
+      "conversionRate": {
+        "median": 1.24,
+        "range": [
+          0.98,
+          1.5
+        ],
+        "note": "Luxury items = lower conversion",
+        "top10": 3.5
+      },
+      "unsubscribeRate": {
+        "median": 0.14,
+        "range": [
+          0.12,
+          0.16
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 49,
+          "range": [
+            48,
+            50
+          ]
+        },
+        "clickRate": {
+          "median": 6.5,
+          "range": [
+            6,
+            7
+          ]
+        },
+        "conversionRate": {
+          "median": 3.25,
+          "range": [
+            3,
+            3.5
+          ]
+        },
+        "rpr": {
+          "median": 6,
+          "range": [
+            4,
+            8
+          ],
+          "note": "High AOV items",
+          "top10": 22
+        }
+      }
+    },
+    "sms": {},
+    "segmentedCampaigns": {
+      "openRate": {
+        "median": 59.23
+      },
+      "clickRate": {
+        "median": 25.84
+      },
+      "rpr": {
+        "median": 32.03,
+        "currency": "USD"
+      },
+      "note": "Highly segmented campaigns perform 2x better"
+    },
+    "insights": [
+      "Highly segmented campaigns perform 2x better than unsegmented",
+      "Top performers target less than 1% of email list",
+      "Strong SMS performance for high-intent buyers",
+      "Segment on customer behavior with 2+ conditions"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, Klaviyo Segmentation Report",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_home_garden",
+    "display_name": "E-commerce (Home and Garden)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 41.37,
+        "range": [
+          41.13,
+          41.6
+        ],
+        "note": "Highest among tracked sectors",
+        "top10": 56
+      },
+      "clickRate": {
+        "median": 1.62,
+        "range": [
+          1.3,
+          1.93
+        ],
+        "top10": 4.7
+      },
+      "ctor": {
+        "median": 5.65,
+        "top10": 11.5
+      },
+      "conversionRate": {
+        "median": 3.15,
+        "range": [
+          2.8,
+          3.5
+        ]
+      },
+      "unsubscribeRate": {
+        "median": 0.19
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 6,
+          "note": "High AOV products",
+          "top10": 50,
+          "top10Range": [
+            40,
+            60
+          ]
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Highest open rate (41.6%) among tracked e-commerce sectors",
+      "High AOV leads to strong abandoned cart RPR",
+      "Seasonal content performs well"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_hardware_home_improvement",
+    "display_name": "E-commerce (Hardware and Home Improvement)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.5
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [
+          0.1,
+          0.13
+        ]
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "rpr": {
+          "median": 10,
+          "note": "Very high AOV",
+          "top10": 75.66,
+          "note2": "Highest abandoned cart RPR across all industries"
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Highest abandoned cart flow RPR ($75.66) across all industries",
+      "Very high average order values",
+      "Educational content about projects drives engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_fragrance",
+    "display_name": "Fragrance",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_haircare",
+    "display_name": "Haircare",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_makeup",
+    "display_name": "Makeup",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_skincare",
+    "display_name": "Skincare",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_dental_products",
+    "display_name": "Dental Products",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_eyewear",
+    "display_name": "Eyewear",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_fitness_wellness",
+    "display_name": "Fitness and Wellness",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_supplements",
+    "display_name": "Supplements",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_other",
+    "display_name": "Other",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39.5,
+        "range": [
+          39,
+          40
+        ],
+        "top10": 54,
+        "note": "Beauty/cosmetics saw 20.5% → 23.8% YoY improvement"
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.3,
+        "top10": 10
+      },
+      "conversionRate": {
+        "median": 4.18,
+        "range": [
+          3.5,
+          4.84
+        ],
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.16
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 50,
+          "range": [
+            48,
+            52
+          ]
+        },
+        "clickRate": {
+          "median": 6,
+          "range": [
+            5.5,
+            6.5
+          ]
+        },
+        "conversionRate": {
+          "median": 3.5,
+          "range": [
+            3.2,
+            3.8
+          ]
+        },
+        "rpr": {
+          "median": 4.5,
+          "range": [
+            3,
+            6
+          ],
+          "top10": 18
+        }
+      }
+    },
+    "sms": {
+      "performance": "Strong SMS performance in this vertical",
+      "note": "SMS particularly effective for high-intent buyers"
+    },
+    "insights": [
+      "Strong SMS performance in this vertical",
+      "Beauty/cosmetics saw 20.5% → 23.8% YoY open rate improvement",
+      "Visual content and before/after imagery drives engagement",
+      "Strong repeat purchase potential through subscription models"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_mass_merchant",
+    "display_name": "E-commerce (Mass Merchant)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 38,
+        "range": [
+          37,
+          39
+        ],
+        "top10": 52
+      },
+      "clickRate": {
+        "median": 1.35,
+        "range": [
+          1.2,
+          1.5
+        ],
+        "top10": 4.5
+      },
+      "ctor": {
+        "median": 4.75,
+        "range": [
+          4.5,
+          5
+        ]
+      },
+      "unsubscribeRate": {
+        "median": 0.13,
+        "range": [
+          0.1,
+          0.15
+        ]
+      }
+    },
+    "flows": {},
+    "sms": {},
+    "insights": [
+      "Wide product variety requires strong segmentation",
+      "Price-driven promotions perform well",
+      "High email frequency tolerance"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report (retail category)",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_office_supplies",
+    "display_name": "E-commerce (Office Supplies)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 39,
+        "range": [
+          38,
+          40
+        ],
+        "top10": 53
+      },
+      "clickRate": {
+        "median": 1.45,
+        "range": [
+          1.3,
+          1.6
+        ],
+        "top10": 4.6
+      },
+      "ctor": {
+        "median": 5,
+        "range": [
+          4.5,
+          5.5
+        ]
+      },
+      "unsubscribeRate": {
+        "median": 0.1,
+        "range": [
+          0.08,
+          0.12
+        ]
+      }
+    },
+    "flows": {},
+    "sms": {},
+    "insights": [
+      "B2B focus requires different messaging than B2C",
+      "Bulk order promotions drive conversions",
+      "Reorder reminders perform well"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_specialty",
+    "display_name": "E-commerce (Specialty)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 40,
+        "range": [
+          38,
+          42
+        ],
+        "top10": 54
+      },
+      "clickRate": {
+        "median": 1.6,
+        "range": [
+          1.4,
+          1.8
+        ],
+        "top10": 4.7
+      },
+      "ctor": {
+        "median": 5.25,
+        "range": [
+          5,
+          5.5
+        ]
+      },
+      "unsubscribeRate": {
+        "median": 0.1,
+        "range": [
+          0.08,
+          0.12
+        ]
+      }
+    },
+    "flows": {},
+    "sms": {},
+    "insights": [
+      "Niche audiences often have higher engagement",
+      "Expertise-driven content performs well",
+      "Community building is key"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_sporting_goods",
+    "display_name": "E-commerce (Sporting Goods)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 45.57,
+        "range": [
+          41.3,
+          49.83
+        ],
+        "top10": 57
+      },
+      "clickRate": {
+        "median": 1.55,
+        "range": [
+          1.4,
+          1.79
+        ],
+        "top10": 4.8
+      },
+      "ctor": {
+        "median": 4.03,
+        "top10": 9.5
+      },
+      "unsubscribeRate": {
+        "median": 0
+      }
+    },
+    "flows": {
+      "abandonedCart": {
+        "openRate": {
+          "median": 51.69
+        },
+        "clickRate": {
+          "median": 6.95
+        },
+        "conversionRate": {
+          "median": 3.5
+        },
+        "rpr": {
+          "median": 5.5,
+          "range": [
+            4,
+            7
+          ],
+          "top10": 20
+        }
+      }
+    },
+    "sms": {},
+    "insights": [
+      "Zero unsubscribe rate indicates high audience engagement",
+      "Above-average metrics across the board",
+      "Seasonal sports content drives engagement"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_toys_hobbies",
+    "display_name": "E-commerce (Toys and Hobbies)",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 46.92,
+        "range": [
+          40.5,
+          53.33
+        ],
+        "note": "Hobbies category performs exceptionally well",
+        "top10": 58
+      },
+      "clickRate": {
+        "median": 2.92,
+        "range": [
+          1.47,
+          4.36
+        ],
+        "note": "Wide range due to hobbyist engagement",
+        "top10": 7.5
+      },
+      "ctor": {
+        "median": 9.18,
+        "note": "Exceptionally high CTOR",
+        "top10": 15
+      },
+      "unsubscribeRate": {
+        "median": 0.1
+      }
+    },
+    "flows": {},
+    "sms": {
+      "performance": "Strong SMS performance potential",
+      "note": "High engagement with hobbyist audiences"
+    },
+    "insights": [
+      "Hobbies category has exceptionally high click rate (4.36%)",
+      "Strong SMS performance potential",
+      "Passionate audiences drive above-average engagement",
+      "Content-rich emails with links to resources perform well"
+    ],
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ customers",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "ecommerce_general",
+    "display_name": "E-commerce",
+    "category": "ecommerce",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 31.08,
+        "top10": 48
+      },
+      "clickRate": {
+        "median": 1.19,
+        "top10": 4.3
+      },
+      "ctor": {
+        "median": 4.55,
+        "top10": 10
+      },
+      "unsubscribeRate": {
+        "median": 0.13
+      }
+    },
+    "flows": {},
+    "sms": {},
+    "insights": [
+      "General e-commerce category for unspecified verticals",
+      "Performance varies widely by specific product type",
+      "Segmentation and personalization critical for success"
+    ],
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "nonprofit",
+    "display_name": "Non-profit",
+    "category": "nonprofit",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 53.21,
+        "note": "Third highest across all industries",
+        "top10": 62
+      },
+      "clickRate": {
+        "median": 3.25,
+        "note": "Above average engagement",
+        "top10": 6.5
+      },
+      "ctor": {
+        "median": 7.14,
+        "note": "Strong content engagement",
+        "top10": 13
+      },
+      "unsubscribeRate": {
+        "median": 0,
+        "note": "Zero unsubscribe rate indicates mission-driven loyalty"
+      }
+    },
+    "flows": {},
+    "sms": {},
+    "insights": [
+      "High engagement due to loyal, mission-driven audiences",
+      "Zero unsubscribe rate - highest audience loyalty",
+      "Storytelling and impact stories drive high clicks",
+      "Third highest open rate (53.21%) across all industries",
+      "Donation appeals and volunteer opportunities perform well"
+    ],
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "wellness_health_fitness",
+    "display_name": "Health Fitness",
+    "category": "health_wellness",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 48.9,
+        "top10": null
+      },
+      "clickRate": {
+        "median": 1.74,
+        "top10": null
+      },
+      "ctor": {
+        "median": 4.27,
+        "top10": null
+      },
+      "unsubscribeRate": {
+        "median": 0.12
+      }
+    },
+    "flows": {},
+    "sms": {},
+    "insights": [
+      "High open rates but also higher unsubscribe rates",
+      "Relevancy is critical - irrelevant or frequent emails cause unsubscribes",
+      "Health/fitness content requires careful frequency management",
+      "Educational health content performs well",
+      "Appointment reminders and health tips drive engagement"
+    ],
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  },
+  {
+    "vertical": "wellness_medical_dental_healthcare",
+    "display_name": "Medical Dental Healthcare",
+    "category": "health_wellness",
+    "year": 2025,
+    "version": "2025-Q1",
+    "campaigns": {
+      "openRate": {
+        "median": 44.6,
+        "top10": null
+      },
+      "clickRate": {
+        "median": 1.75,
+        "top10": null
+      },
+      "ctor": {
+        "median": 4.64,
+        "top10": null
+      },
+      "unsubscribeRate": {
+        "median": 0.11
+      }
+    },
+    "flows": {},
+    "sms": {},
+    "insights": [
+      "High open rates but also higher unsubscribe rates",
+      "Relevancy is critical - irrelevant or frequent emails cause unsubscribes",
+      "Health/fitness content requires careful frequency management",
+      "Educational health content performs well",
+      "Appointment reminders and health tips drive engagement"
+    ],
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts",
+    "is_active": true,
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z"
+  }
+]

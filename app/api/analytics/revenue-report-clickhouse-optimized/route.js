@@ -61,7 +61,7 @@ export async function GET(request) {
         sum(campaign_email_revenue) as campaign_email_revenue,
         sum(campaign_sms_revenue) as campaign_sms_revenue,
         sum(campaign_push_revenue) as campaign_push_revenue
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id = {klaviyo_public_id:String}
         AND date BETWEEN {start_date:Date} AND {end_date:Date}
     `;
@@ -71,13 +71,13 @@ export async function GET(request) {
       WITH latest_campaigns AS (
         SELECT
           campaign_id,
-          argMax(recipients, updated_at) as recipients,
-          argMax(opens_unique, updated_at) as opens_unique,
-          argMax(clicks_unique, updated_at) as clicks_unique,
-          argMax(conversions, updated_at) as conversions,
-          argMax(conversion_value, updated_at) as conversion_value,
-          argMax(send_channel, updated_at) as send_channel
-        FROM campaign_statistics
+          argMax(recipients, last_updated) as recipients,
+          argMax(opens_unique, last_updated) as opens_unique,
+          argMax(clicks_unique, last_updated) as clicks_unique,
+          argMax(conversions, last_updated) as conversions,
+          argMax(conversion_value, last_updated) as conversion_value,
+          argMax(send_channel, last_updated) as send_channel
+        FROM campaign_statistics_latest
         WHERE klaviyo_public_id = {klaviyo_public_id:String}
           AND date BETWEEN {start_date:Date} AND {end_date:Date}
         GROUP BY campaign_id
@@ -96,10 +96,10 @@ export async function GET(request) {
       WITH latest_flows AS (
         SELECT
           flow_id,
-          argMax(recipients, updated_at) as recipients,
-          argMax(conversion_value, updated_at) as conversion_value,
-          argMax(conversions, updated_at) as conversions
-        FROM flow_statistics
+          argMax(recipients, last_updated) as recipients,
+          argMax(conversion_value, last_updated) as conversion_value,
+          argMax(conversions, last_updated) as conversions
+        FROM flow_statistics_latest
         WHERE klaviyo_public_id = {klaviyo_public_id:String}
           AND date BETWEEN {start_date:Date} AND {end_date:Date}
         GROUP BY flow_id
@@ -122,7 +122,7 @@ export async function GET(request) {
         max(unique_customers) as unique_customers,
         sum(campaign_revenue) as campaign_revenue,
         sum(flow_revenue) as flow_revenue
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id = {klaviyo_public_id:String}
         AND date BETWEEN {prev_start_date:Date} AND {prev_end_date:Date}
     `;
@@ -132,8 +132,8 @@ export async function GET(request) {
       WITH latest_forms AS (
         SELECT
           form_id,
-          argMax(submits, updated_at) as submits
-        FROM form_statistics
+          argMax(submits, last_updated) as submits
+        FROM form_statistics_latest
         WHERE klaviyo_public_id = {klaviyo_public_id:String}
           AND date BETWEEN {start_date:Date} AND {end_date:Date}
         GROUP BY form_id
@@ -149,12 +149,12 @@ export async function GET(request) {
       WITH latest_segments AS (
         SELECT
           segment_id,
-          argMax(total_members, updated_at) as total_members
-        FROM segment_statistics
+          argMax(total_members, last_updated) as total_members
+        FROM segment_statistics_latest
         WHERE klaviyo_public_id = {klaviyo_public_id:String}
           AND date = (
             SELECT max(date)
-            FROM segment_statistics
+            FROM segment_statistics_latest
             WHERE klaviyo_public_id = {klaviyo_public_id:String}
           )
         GROUP BY segment_id
@@ -170,13 +170,13 @@ export async function GET(request) {
       WITH latest_campaigns AS (
         SELECT
           campaign_id,
-          argMax(send_channel, updated_at) as channel,
-          argMax(recipients, updated_at) as recipients,
-          argMax(opens_unique, updated_at) as opens_unique,
-          argMax(clicks_unique, updated_at) as clicks_unique,
-          argMax(open_rate, updated_at) as open_rate,
-          argMax(click_rate, updated_at) as click_rate
-        FROM campaign_statistics
+          argMax(send_channel, last_updated) as channel,
+          argMax(recipients, last_updated) as recipients,
+          argMax(opens_unique, last_updated) as opens_unique,
+          argMax(clicks_unique, last_updated) as clicks_unique,
+          argMax(open_rate, last_updated) as open_rate,
+          argMax(click_rate, last_updated) as click_rate
+        FROM campaign_statistics_latest
         WHERE klaviyo_public_id = {klaviyo_public_id:String}
           AND date BETWEEN {start_date:Date} AND {end_date:Date}
         GROUP BY campaign_id
@@ -204,7 +204,7 @@ export async function GET(request) {
         campaign_sms_revenue as sms_campaign_revenue,
         flow_revenue as flow_revenue,
         GREATEST(0, total_revenue - campaign_revenue - flow_revenue) as other_revenue
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id = {klaviyo_public_id:String}
         AND date BETWEEN {start_date:Date} AND {end_date:Date}
       ORDER BY date ASC

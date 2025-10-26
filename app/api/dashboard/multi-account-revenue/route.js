@@ -254,7 +254,7 @@ export async function GET(request) {
     const currentPeriodQuery = `
       WITH latest_metrics AS (
         SELECT *
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${mainDateFilter}
         ORDER BY date DESC, updated_at DESC
@@ -297,7 +297,7 @@ export async function GET(request) {
         MAX(date) as latest_date,
         AVG(email_recipients) as avg_daily_email,
         AVG(sms_recipients) as avg_daily_sms
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
         ${mainDateFilter}
       GROUP BY klaviyo_public_id
@@ -311,7 +311,7 @@ export async function GET(request) {
     const comparisonPeriodQuery = `
       WITH previous_metrics AS (
         SELECT *
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${comparisonDateFilter}
         ORDER BY date DESC, updated_at DESC
@@ -334,7 +334,7 @@ export async function GET(request) {
     const revenueTrendQuery = `
       WITH latest_daily_metrics AS (
         SELECT *
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${mainDateFilter}
         ORDER BY date DESC, updated_at DESC
@@ -357,7 +357,7 @@ export async function GET(request) {
     const accountComparisonQuery = `
       WITH account_latest_metrics AS (
         SELECT *
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${mainDateFilter}
         ORDER BY date DESC, updated_at DESC
@@ -390,7 +390,7 @@ export async function GET(request) {
     const emailChannelQuery = `
       WITH email_metrics AS (
         SELECT *
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${mainDateFilter}
         ORDER BY date DESC, updated_at DESC
@@ -408,7 +408,7 @@ export async function GET(request) {
     const smsChannelQuery = `
       WITH sms_metrics AS (
         SELECT *
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${mainDateFilter}
         ORDER BY date DESC, updated_at DESC
@@ -426,7 +426,7 @@ export async function GET(request) {
     const pushChannelQuery = `
       WITH push_metrics AS (
         SELECT *
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoPublicIds.map(id => `'${id}'`).join(',')})
           ${mainDateFilter}
         ORDER BY date DESC, updated_at DESC

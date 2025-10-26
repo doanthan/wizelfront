@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { Filter, Mail, MessageSquare, Bell, Clock, CheckCircle, FileText, RefreshCw } from 'lucide-react';
+import { Filter, Mail, MessageSquare, Bell, Clock, CheckCircle, FileText, RefreshCw, Calendar, Table } from 'lucide-react';
 import { MultiSelect } from '@/app/components/ui/multi-select';
 import { Button } from '@/app/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,8 @@ export const FilterCard = ({
   setSelectedTags,
   selectedStatuses,
   setSelectedStatuses,
+  displayMode,
+  setDisplayMode,
   className
 }) => {
 
@@ -157,6 +159,43 @@ export const FilterCard = ({
 
       {/* Filter content - always visible */}
       <div className="p-3 space-y-3 bg-white dark:bg-gray-900">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              View Mode
+            </label>
+            <div className="flex gap-1">
+              <Button
+                variant={displayMode === 'calendar' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDisplayMode('calendar')}
+                className={cn(
+                  "h-7 px-3 text-xs gap-1.5",
+                  displayMode === 'calendar'
+                    ? "bg-sky-blue hover:bg-royal-blue text-white"
+                    : "text-gray-600 dark:text-gray-400"
+                )}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                Calendar
+              </Button>
+              <Button
+                variant={displayMode === 'table' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDisplayMode('table')}
+                className={cn(
+                  "h-7 px-3 text-xs gap-1.5",
+                  displayMode === 'table'
+                    ? "bg-sky-blue hover:bg-royal-blue text-white"
+                    : "text-gray-600 dark:text-gray-400"
+                )}
+              >
+                <Table className="h-3.5 w-3.5" />
+                Performance Table
+              </Button>
+            </div>
+          </div>
+
           {/* Filter dropdowns in a grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Stores dropdown */}

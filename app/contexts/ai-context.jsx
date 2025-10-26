@@ -4,8 +4,55 @@ import { createContext, useContext, useState, useCallback, useRef } from 'react'
 
 const AIContext = createContext({});
 
+// ===================================================================
+// CRITICAL: AI CONTEXT DESIGN PHILOSOPHY v4.0 - Smart Summarization
+// ===================================================================
+//
+// **GUIDING PRINCIPLE**: Smart context, not data dumping
+//
+// **STRATEGY** (Following Shopify/Google Analytics patterns):
+// 1. Send summary statistics, NOT raw arrays
+// 2. Sample time-series to max 20-30 points
+// 3. Pre-calculate insights and trends
+// 4. Target 3,000-5,000 tokens per request (not 150k!)
+// 5. Use query-specific data fetching
+//
+// **WHY THIS WORKS BETTER**:
+// - Faster responses (better UX)
+// - Lower costs (10-50x cheaper)
+// - More focused insights (better quality)
+// - Scales to more users
+// - Follows industry best practices
+//
+// **TOKEN BUDGET**:
+// - Simple queries: 2,000 tokens
+// - Complex queries: 5,000 tokens
+// - Deep analysis: 10,000 tokens MAX
+// - Reserve 2,000 tokens for AI response
+//
+// **DATA PRIORITY** (what to send):
+// 1. Summary statistics (totals, averages, changes)
+// 2. Visible data context (what user sees on screen)
+// 3. Sampled time-series (max 20 points per account)
+// 4. Pre-calculated insights
+// 5. User filters and selections
+//
+// **NEVER SEND**:
+// - Complete campaign/flow arrays (hundreds of items)
+// - Full time-series data (90+ days)
+// - Duplicate information
+// - Display formatting info
+//
+// ===================================================================
+
+// Rough token estimation: 1 token ≈ 4 characters
+const CHAR_TO_TOKEN_RATIO = 4;
+const TARGET_CONTEXT_TOKENS = 5000; // Target for most queries
+const MAX_CONTEXT_TOKENS = 10000; // Absolute maximum
+const MAX_TIME_SERIES_POINTS = 20; // Max points per account
+
 export function AIProvider({ children }) {
-  // Core AI state with comprehensive marketing context
+  // Core AI state - designed to hold MASSIVE amounts of raw data
   const [aiState, setAIState] = useState({
     // Page context
     currentPage: '',
@@ -22,46 +69,58 @@ export function AIProvider({ children }) {
       start: null,
       end: null,
       preset: '', // 'last7days' | 'last30days' | 'last90days' | 'custom'
-      comparison: null, // Previous period data for trend analysis
-      seasonalContext: '', // 'holiday' | 'back-to-school' | 'summer' | 'normal'
+      daysSpan: 0, // Number of days in range
     },
 
-    // Current view data - IMPORTANT: Only store aggregated/summarized data, NOT raw campaign lists
-    data: {
-      // DO NOT store raw campaign arrays - use aggregated summaries only
-      aggregated: {}, // Processed/aggregated data (totals, averages, etc.)
-
-      // Store only TOP performers (max 5-10 items)
-      topCampaigns: [], // Top 5-10 campaigns only
-      topFlows: [], // Top 3-5 flows only
-      topSegments: [], // Top 3-5 segments only
-
-      // Summary statistics only
-      summary: {
-        totalCampaigns: 0,
-        totalRecipients: 0,
-        dateRange: '',
-        accountsCount: 0,
+    // SUMMARY DATA - Pre-aggregated statistics for AI consumption
+    // IMPORTANT: Store summaries, NOT full arrays
+    summaryData: {
+      // Campaign summaries
+      campaigns: {
+        total: 0,
+        topPerformers: [], // Top 5-10 campaigns only
+        summaryStats: {
+          totalSent: 0,
+          avgOpenRate: 0,
+          avgClickRate: 0,
+          totalRevenue: 0,
+        },
       },
 
-      // Time-series data for charts (aggregated by day/week, not individual campaigns)
-      timeSeries: {
-        daily: [], // Max 90 data points for 90 days
-        weekly: [], // Max 13 data points for 90 days
+      // Flow summaries
+      flows: {
+        total: 0,
+        topPerformers: [], // Top 5-10 flows only
+        summaryStats: {
+          totalRevenue: 0,
+          avgConversion: 0,
+        },
       },
 
-      // Distribution data (aggregated)
-      distributions: {
-        byDay: {}, // Aggregated by day of week
-        byHour: {}, // Aggregated by hour of day
-        byChannel: {}, // Aggregated by channel
-        byType: {}, // Aggregated by campaign type
-      },
+      // Time-series data (sampled)
+      timeSeries: [], // Max 20 points, sampled from full range
 
-      audience: {}, // Audience insights (summary only)
+      // By-account breakdowns
+      byAccount: [], // Summary per account
+
+      // Metadata
+      dataFreshness: null,
+      estimatedTokens: 0,
     },
 
-    // Filters and segments
+    // RAW DATA - Only used for server-side calculations
+    // NEVER sent to AI - kept for UI display and calculations
+    rawData: {
+      campaigns: [], // Full array (used for calculations, NOT sent to AI)
+      flows: [],
+      segments: [],
+      forms: [],
+      metrics: {},
+      orders: [],
+      profiles: [],
+    },
+
+    // Filters and view state
     filters: {
       stores: [],
       channels: [], // 'email' | 'sms' | 'push' | 'whatsapp'
@@ -70,140 +129,28 @@ export function AIProvider({ children }) {
       tags: [],
       status: [], // 'draft' | 'scheduled' | 'sent' | 'paused'
       segmentType: [], // List/segment filters
+      searchQuery: '', // User's search/filter text
     },
 
-    // Comprehensive metrics for marketing intelligence
-    metrics: {
-      // Primary KPIs
-      primary: {
-        totalRevenue: null,
-        totalOrders: null,
-        avgOrderValue: null,
-        totalRecipients: null,
-        openRate: null,
-        clickRate: null,
-        conversionRate: null,
-        unsubscribeRate: null,
-        bounceRate: null,
-        spamRate: null,
-      },
-
-      // Secondary metrics
-      secondary: {
-        clickToOpenRate: null,
-        revenuePerRecipient: null,
-        costPerAcquisition: null,
-        customerLifetimeValue: null,
-        listGrowthRate: null,
-        engagementScore: null,
-      },
-
-      // Period-over-period comparisons
-      comparisons: {
-        revenue: { current: null, previous: null, change: null, trend: null },
-        openRate: { current: null, previous: null, change: null, trend: null },
-        clickRate: { current: null, previous: null, change: null, trend: null },
-        conversionRate: { current: null, previous: null, change: null, trend: null },
-      },
-
-      // Channel-specific metrics
-      byChannel: {
-        email: {},
-        sms: {},
-        push: {},
-      },
-
-      // Campaign-specific metrics
-      campaigns: {
-        totalCampaigns: null,
-        avgCampaignsPerWeek: null,
-        bestSendTime: null,
-        bestSendDay: null,
-        topPerformingCampaign: null,
-      },
-
-      // Flow metrics
-      flows: {
-        totalFlows: null,
-        activeFlows: null,
-        flowRevenue: null,
-        topPerformingFlow: null,
-      },
-
-      // Audience metrics
-      audience: {
-        totalProfiles: null,
-        activeProfiles: null,
-        growthRate: null,
-        churnRate: null,
-        topSegments: [],
-      },
-    },
-
-    // Marketing intelligence & insights
+    // Pre-calculated insights (lightweight, won't count against token limit much)
     insights: {
-      automated: [], // System-generated insights
-      anomalies: [], // Detected anomalies with severity
+      automated: [], // Quick insights from analysis
+      patterns: {}, // Detected patterns
+      recommendations: [], // Action recommendations
       opportunities: [], // Growth opportunities
-      warnings: [], // Performance warnings
-      recommendations: [], // Actionable recommendations
-      benchmarks: {}, // Industry benchmark comparisons
-      seasonalTrends: [], // Seasonal patterns detected
-      audienceInsights: [], // Audience behavior patterns
-      contentInsights: [], // Subject line/content performance
+      warnings: [], // Alerts
     },
 
-    // Campaign intelligence
-    campaigns: {
-      upcoming: [], // Scheduled campaigns
-      recent: [], // Recently sent
-      topPerformers: [], // Best performing campaigns
-      underperformers: [], // Campaigns needing attention
-      sendTimeAnalysis: {}, // Best send times by day/hour
-      subjectLineAnalysis: {}, // Subject line performance patterns
-      contentAnalysis: {}, // Content engagement patterns
-    },
-
-    // Flow intelligence
-    flows: {
-      active: [],
-      performance: [],
-      dropOffPoints: [], // Where users drop off in flows
-      optimizationOpportunities: [],
-    },
-
-    // Segment intelligence
-    segments: {
-      topPerforming: [],
-      growthSegments: [],
-      riskSegments: [], // Segments with declining engagement
-      suggestions: [], // New segment ideas
-    },
-
-    // User interaction history for personalization
+    // User interaction context
     userContext: {
-      recentQueries: [], // Chat history
-      focusAreas: [], // What user seems interested in
-      expertise: 'unknown', // 'beginner' | 'intermediate' | 'advanced' | 'expert'
-      preferences: {
-        preferredMetrics: [],
-        preferredViews: [],
-        industryType: '', // e.g., 'ecommerce', 'saas', 'media'
-      },
-      goals: [], // User's stated goals
-    },
-
-    // Competitive & benchmark context
-    benchmarks: {
-      industry: {},
-      similar: {}, // Similar-sized businesses
-      historical: {}, // Historical performance
+      recentQueries: [], // Last 5 queries
+      currentIntent: '', // What user is trying to do
+      focusArea: '', // What user is looking at
     },
 
     // Metadata
     timestamp: new Date().toISOString(),
-    dataFreshness: null, // When data was last updated
-    version: '2.0', // Context schema version
+    version: '3.0', // Context schema version
   });
 
   // History for context awareness
@@ -235,18 +182,51 @@ export function AIProvider({ children }) {
     });
   }, []);
 
-  // Smart context builder for Claude with marketing focus
+  // Smart context builder - sends SUMMARIES only, not raw data
   const getAIContext = useCallback(() => {
-    const context = {
-      ...aiState,
-      conversationHistory: conversationHistory.current.slice(0, 5), // Recent context
-      formattedContext: formatAIContextForClaude(aiState),
-      enrichedContext: enrichContextWithInsights(aiState),
-      suggestedActions: generateSuggestedActions(aiState),
-      marketingIntelligence: generateMarketingIntelligence(aiState),
-    };
+    // Build smart summary context
+    const context = buildSmartContext(aiState);
+    const contextSize = estimateDataSize(context);
 
-    return context;
+    // Return summary-based context (NOT raw data)
+    return {
+      routeToTier: 1, // On-screen context tier
+
+      // Page metadata
+      currentPage: aiState.currentPage,
+      pageTitle: aiState.pageTitle,
+      pageType: aiState.pageType,
+
+      // Account/Store context
+      selectedStores: aiState.selectedStores,
+      selectedKlaviyoIds: aiState.selectedKlaviyoIds,
+
+      // Time context
+      dateRange: aiState.dateRange,
+
+      // SUMMARY DATA (not raw arrays!)
+      summaryData: aiState.summaryData,
+
+      // Filters
+      filters: aiState.filters,
+
+      // Pre-calculated insights
+      insights: aiState.insights,
+
+      // User context
+      userContext: aiState.userContext,
+
+      // Conversation history
+      conversationHistory: conversationHistory.current.slice(0, 5),
+
+      // Formatted text summary for AI
+      formattedContext: formatSummaryForHaiku(aiState),
+
+      // Metadata
+      dataSize: contextSize,
+      timestamp: aiState.timestamp,
+      version: aiState.version,
+    };
   }, [aiState]);
 
   // Track user queries for better responses
@@ -257,58 +237,25 @@ export function AIProvider({ children }) {
         ...prev.userContext,
         recentQueries: [
           { query, response, timestamp: new Date().toISOString() },
-          ...prev.userContext.recentQueries.slice(0, 9)
+          ...prev.userContext.recentQueries.slice(0, 4)
         ]
       }
     }));
-  }, []);
-
-  // Analyze user expertise level based on queries
-  const updateUserExpertise = useCallback((interactions) => {
-    const expertiseLevel = analyzeExpertiseLevel(interactions);
-    setAIState(prev => ({
-      ...prev,
-      userContext: {
-        ...prev.userContext,
-        expertise: expertiseLevel
-      }
-    }));
-  }, []);
-
-  // Generate comprehensive marketing insights
-  const generateInsights = useCallback((data, metrics) => {
-    const insights = {
-      automated: generateAutomatedInsights(data, metrics),
-      anomalies: detectAnomalies(data, metrics),
-      opportunities: findOpportunities(data, metrics),
-      warnings: generateWarnings(data, metrics),
-      recommendations: generateRecommendations(data, metrics),
-    };
-
-    setAIState(prev => ({
-      ...prev,
-      insights
-    }));
-
-    return insights;
   }, []);
 
   return (
     <AIContext.Provider value={{
       aiState,
       updateAIState,
+      setAIState, // Direct setter for compatibility
       getAIContext,
       trackUserQuery,
-      updateUserExpertise,
-      generateInsights,
-      // Utility functions for common operations
+      // Utility functions
       utils: {
+        estimateDataSize,
         formatCurrency: (value) => formatCurrency(value),
         formatPercentage: (value) => formatPercentage(value),
         formatNumber: (value) => formatNumber(value),
-        calculateTrend: (current, previous) => calculateTrend(current, previous),
-        calculateGrowthRate: (current, previous) => calculateGrowthRate(current, previous),
-        categorizePerformance: (metric, value) => categorizePerformance(metric, value),
       }
     }}>
       {children}
@@ -324,345 +271,509 @@ export function useAI() {
   return context;
 }
 
-// Enhanced context formatter for Claude with marketing intelligence
-function formatAIContextForClaude(state) {
+// ===================================================================
+// SMART CONTEXT BUILDER
+// Builds summary-based context from raw data
+// ===================================================================
+
+function buildSmartContext(state) {
+  // If summaryData is already populated, return it
+  if (state.summaryData && state.summaryData.estimatedTokens > 0) {
+    return state.summaryData;
+  }
+
+  // Otherwise, build summaries from rawData
+  const summaryData = {
+    campaigns: buildCampaignSummary(state.rawData.campaigns),
+    flows: buildFlowSummary(state.rawData.flows),
+    timeSeries: sampleTimeSeries(state.rawData.timeSeries, MAX_TIME_SERIES_POINTS),
+    byAccount: buildAccountSummaries(state.rawData, state.selectedStores),
+    dataFreshness: new Date().toISOString(),
+    estimatedTokens: 0, // Will be calculated
+  };
+
+  // Estimate token count for this summary
+  summaryData.estimatedTokens = Math.ceil(JSON.stringify(summaryData).length / CHAR_TO_TOKEN_RATIO);
+
+  return summaryData;
+}
+
+function buildCampaignSummary(campaigns) {
+  if (!campaigns || campaigns.length === 0) {
+    return { total: 0, topPerformers: [], summaryStats: {} };
+  }
+
+  // Sort by revenue and take top 10
+  const topPerformers = [...campaigns]
+    .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+    .slice(0, 10)
+    .map(c => ({
+      name: c.campaign_name || c.name,
+      sentAt: c.send_time,
+      recipients: c.recipients,
+      openRate: c.recipients > 0 ? ((c.opens_unique || 0) / c.recipients * 100).toFixed(1) : 0,
+      clickRate: c.recipients > 0 ? ((c.clicks_unique || 0) / c.recipients * 100).toFixed(2) : 0,
+      revenue: c.revenue || 0,
+    }));
+
+  // Calculate summary stats
+  const totalRecipients = campaigns.reduce((sum, c) => sum + (c.recipients || 0), 0);
+  const totalOpens = campaigns.reduce((sum, c) => sum + (c.opens_unique || 0), 0);
+  const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks_unique || 0), 0);
+  const totalRevenue = campaigns.reduce((sum, c) => sum + (c.revenue || 0), 0);
+
+  return {
+    total: campaigns.length,
+    topPerformers,
+    summaryStats: {
+      totalSent: totalRecipients,
+      avgOpenRate: totalRecipients > 0 ? (totalOpens / totalRecipients * 100).toFixed(1) : 0,
+      avgClickRate: totalRecipients > 0 ? (totalClicks / totalRecipients * 100).toFixed(2) : 0,
+      totalRevenue,
+    },
+  };
+}
+
+function buildFlowSummary(flows) {
+  if (!flows || flows.length === 0) {
+    return { total: 0, topPerformers: [], summaryStats: {} };
+  }
+
+  // Sort by revenue and take top 10
+  const topPerformers = [...flows]
+    .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+    .slice(0, 10)
+    .map(f => ({
+      name: f.flow_name || f.name,
+      status: f.status,
+      triggers: f.trigger_count || f.triggers || 0,
+      revenue: f.revenue || 0,
+      conversionRate: (f.trigger_count || f.triggers || 0) > 0
+        ? ((f.conversions || 0) / (f.trigger_count || f.triggers || 0) * 100).toFixed(2)
+        : 0,
+    }));
+
+  const totalRevenue = flows.reduce((sum, f) => sum + (f.revenue || 0), 0);
+  const totalConversions = flows.reduce((sum, f) => sum + (f.conversions || 0), 0);
+  const totalTriggers = flows.reduce((sum, f) => sum + (f.trigger_count || f.triggers || 0), 0);
+
+  return {
+    total: flows.length,
+    topPerformers,
+    summaryStats: {
+      totalRevenue,
+      avgConversion: totalTriggers > 0 ? (totalConversions / totalTriggers * 100).toFixed(2) : 0,
+    },
+  };
+}
+
+function sampleTimeSeries(data, maxPoints) {
+  if (!data || !Array.isArray(data) || data.length === 0) return [];
+  if (data.length <= maxPoints) return data;
+
+  // Sample evenly across the range
+  const step = Math.floor(data.length / maxPoints);
+  const sampled = [];
+
+  for (let i = 0; i < data.length; i += step) {
+    sampled.push(data[i]);
+  }
+
+  // Always include the last data point
+  if (sampled[sampled.length - 1] !== data[data.length - 1]) {
+    sampled.push(data[data.length - 1]);
+  }
+
+  return sampled.slice(0, maxPoints);
+}
+
+function buildAccountSummaries(rawData, selectedStores) {
+  if (!selectedStores || selectedStores.length === 0) return [];
+
+  return selectedStores.map(store => {
+    // Filter data for this store
+    const storeCampaigns = (rawData.campaigns || []).filter(c =>
+      c.store_public_ids?.includes(store.value) || c.klaviyo_public_id === store.klaviyo_id
+    );
+
+    const storeFlows = (rawData.flows || []).filter(f =>
+      f.store_public_ids?.includes(store.value) || f.klaviyo_public_id === store.klaviyo_id
+    );
+
+    // Calculate totals
+    const campaignRevenue = storeCampaigns.reduce((sum, c) => sum + (c.revenue || 0), 0);
+    const flowRevenue = storeFlows.reduce((sum, f) => sum + (f.revenue || 0), 0);
+    const totalRevenue = campaignRevenue + flowRevenue;
+
+    const totalRecipients = storeCampaigns.reduce((sum, c) => sum + (c.recipients || 0), 0);
+
+    return {
+      name: store.label,
+      id: store.value,
+      campaigns: storeCampaigns.length,
+      flows: storeFlows.length,
+      revenue: totalRevenue,
+      recipients: totalRecipients,
+    };
+  });
+}
+
+// ===================================================================
+// SUMMARY FORMATTER FOR HAIKU
+// Converts summary data into concise, structured text
+// ===================================================================
+
+function formatSummaryForHaiku(state) {
   const {
     currentPage,
     pageTitle,
     pageType,
     selectedStores,
     dateRange,
-    data,
+    summaryData,
     filters,
-    metrics,
     insights,
-    campaigns,
-    flows,
-    segments,
     userContext,
-    benchmarks,
   } = state;
 
-  let context = `# Wizel AI Marketing Intelligence Context\n\n`;
+  let context = `# Wizel AI - Page Context Summary\n\n`;
 
-  // Page and account context
+  // Page identification
   context += `## Current View\n`;
   context += `**Page:** ${pageTitle || currentPage} (${pageType})\n`;
   if (selectedStores.length > 0) {
-    context += `**Selected Accounts:** ${selectedStores.map(s => s.label).join(', ')}\n`;
+    context += `**Accounts:** ${selectedStores.map(s => s.label).join(', ')}\n`;
   }
+  context += `**Date Range:** ${formatDateRange(dateRange)} (${dateRange.daysSpan} days)\n`;
   context += '\n';
 
-  // Time context with seasonal awareness
-  if (dateRange.start && dateRange.end) {
-    context += `## Time Period\n`;
-    context += `**Date Range:** ${formatDateRange(dateRange)}\n`;
-    if (dateRange.comparison) {
-      context += `**Comparing to:** Previous period\n`;
-    }
-    if (dateRange.seasonalContext) {
-      context += `**Seasonal Context:** ${dateRange.seasonalContext}\n`;
-    }
-    context += '\n';
-  }
-
-  // Active filters
-  const activeFilters = Object.entries(filters).filter(([_, value]) =>
-    value && (Array.isArray(value) ? value.length > 0 : true)
-  );
+  // Active filters (if any)
+  const activeFilters = Object.entries(filters || {}).filter(([key, value]) => {
+    if (key === 'searchQuery' && value) return true;
+    return value && (Array.isArray(value) ? value.length > 0 : true);
+  });
 
   if (activeFilters.length > 0) {
     context += `## Active Filters\n`;
     activeFilters.forEach(([key, value]) => {
-      context += `- **${formatMetricName(key)}:** ${formatFilterValue(value)}\n`;
+      if (key === 'searchQuery') {
+        context += `- **Search:** "${value}"\n`;
+      } else {
+        context += `- **${formatMetricName(key)}:** ${formatFilterValue(value)}\n`;
+      }
     });
     context += '\n';
   }
 
-  // Primary KPIs with trends
-  if (metrics.primary && Object.keys(metrics.primary).length > 0) {
-    context += `## Key Performance Indicators\n`;
-    Object.entries(metrics.primary).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        const comparison = metrics.comparisons?.[key];
-        context += `- **${formatMetricName(key)}:** ${formatMetricValue(key, value)}`;
-        if (comparison?.change !== null) {
-          const trendIcon = comparison.change > 0 ? '📈' : comparison.change < 0 ? '📉' : '➡️';
-          context += ` ${trendIcon} ${formatPercentage(comparison.change)} vs previous period`;
-        }
+  // SUMMARY DATA - Pre-aggregated stats
+  if (summaryData) {
+    // Campaign summary
+    if (summaryData.campaigns && summaryData.campaigns.total > 0) {
+      const c = summaryData.campaigns;
+      context += `## Campaign Summary (${c.total} total campaigns)\n\n`;
+      context += `**Overall Stats:**\n`;
+      context += `- Total Recipients: ${formatNumber(c.summaryStats.totalSent)}\n`;
+      context += `- Avg Open Rate: ${c.summaryStats.avgOpenRate}%\n`;
+      context += `- Avg Click Rate: ${c.summaryStats.avgClickRate}%\n`;
+      context += `- Total Revenue: ${formatCurrency(c.summaryStats.totalRevenue)}\n\n`;
+
+      if (c.topPerformers && c.topPerformers.length > 0) {
+        context += `**Top ${c.topPerformers.length} Campaigns by Revenue:**\n`;
+        c.topPerformers.forEach((campaign, i) => {
+          context += `${i + 1}. ${campaign.name?.substring(0, 50) || 'Unnamed'}\n`;
+          context += `   - Recipients: ${formatNumber(campaign.recipients)}, Open: ${campaign.openRate}%, Click: ${campaign.clickRate}%, Revenue: ${formatCurrency(campaign.revenue)}\n`;
+        });
         context += '\n';
       }
-    });
-    context += '\n';
-  }
+    }
 
-  // Channel performance
-  if (metrics.byChannel && Object.keys(metrics.byChannel).length > 0) {
-    context += `## Channel Performance\n`;
-    Object.entries(metrics.byChannel).forEach(([channel, channelMetrics]) => {
-      if (channelMetrics && Object.keys(channelMetrics).length > 0) {
-        context += `### ${channel.toUpperCase()}\n`;
-        Object.entries(channelMetrics).forEach(([metric, value]) => {
-          context += `- ${formatMetricName(metric)}: ${formatMetricValue(metric, value)}\n`;
+    // Flow summary
+    if (summaryData.flows && summaryData.flows.total > 0) {
+      const f = summaryData.flows;
+      context += `## Flow Summary (${f.total} total flows)\n\n`;
+      context += `**Overall Stats:**\n`;
+      context += `- Total Revenue: ${formatCurrency(f.summaryStats.totalRevenue)}\n`;
+      context += `- Avg Conversion: ${f.summaryStats.avgConversion}%\n\n`;
+
+      if (f.topPerformers && f.topPerformers.length > 0) {
+        context += `**Top ${f.topPerformers.length} Flows by Revenue:**\n`;
+        f.topPerformers.forEach((flow, i) => {
+          context += `${i + 1}. ${flow.name?.substring(0, 50) || 'Unnamed'} (${flow.status})\n`;
+          context += `   - Triggers: ${formatNumber(flow.triggers)}, Conv: ${flow.conversionRate}%, Revenue: ${formatCurrency(flow.revenue)}\n`;
         });
+        context += '\n';
       }
-    });
-    context += '\n';
-  }
+    }
 
-  // Campaign intelligence
-  if (campaigns.topPerformers?.length > 0 || campaigns.recent?.length > 0) {
-    context += `## Campaign Intelligence\n`;
-
-    if (campaigns.topPerformers?.length > 0) {
-      context += `### Top Performing Campaigns\n`;
-      campaigns.topPerformers.slice(0, 3).forEach((campaign, i) => {
-        context += `${i + 1}. **${campaign.name}**\n`;
-        context += `   - Revenue: ${formatCurrency(campaign.revenue || 0)}\n`;
-        context += `   - Open Rate: ${formatPercentage(campaign.openRate || 0)}\n`;
-        context += `   - Click Rate: ${formatPercentage(campaign.clickRate || 0)}\n`;
+    // Account breakdowns
+    if (summaryData.byAccount && summaryData.byAccount.length > 0) {
+      context += `## Performance by Account\n\n`;
+      summaryData.byAccount.forEach(account => {
+        context += `**${account.name}:**\n`;
+        context += `- Campaigns: ${account.campaigns}, Flows: ${account.flows}\n`;
+        context += `- Recipients: ${formatNumber(account.recipients)}, Revenue: ${formatCurrency(account.revenue)}\n\n`;
       });
-      context += '\n';
     }
 
-    if (campaigns.sendTimeAnalysis && Object.keys(campaigns.sendTimeAnalysis).length > 0) {
-      context += `### Send Time Analysis\n`;
-      context += `- **Best Day:** ${campaigns.sendTimeAnalysis.bestDay || 'N/A'}\n`;
-      context += `- **Best Time:** ${campaigns.sendTimeAnalysis.bestTime || 'N/A'}\n`;
-      context += '\n';
+    // Time series (sampled)
+    if (summaryData.timeSeries && summaryData.timeSeries.length > 0) {
+      context += `## Trend Data (sampled to ${summaryData.timeSeries.length} points)\n\n`;
+      context += `Recent data points available for trend analysis.\n\n`;
     }
   }
 
-  // Flow intelligence
-  if (flows.active?.length > 0 || flows.performance?.length > 0) {
-    context += `## Flow Intelligence\n`;
-    context += `- **Active Flows:** ${flows.active?.length || 0}\n`;
-    if (flows.performance?.length > 0) {
-      context += `- **Top Flow:** ${flows.performance[0]?.name || 'N/A'} (${formatCurrency(flows.performance[0]?.revenue || 0)})\n`;
-    }
-    if (flows.dropOffPoints?.length > 0) {
-      context += `- **Optimization Opportunities:** ${flows.dropOffPoints.length} drop-off points detected\n`;
-    }
-    context += '\n';
-  }
-
-  // Audience insights
-  if (metrics.audience && Object.keys(metrics.audience).length > 0) {
-    context += `## Audience Insights\n`;
-    if (metrics.audience.totalProfiles) {
-      context += `- **Total Profiles:** ${formatNumber(metrics.audience.totalProfiles)}\n`;
-    }
-    if (metrics.audience.growthRate) {
-      context += `- **List Growth Rate:** ${formatPercentage(metrics.audience.growthRate)}\n`;
-    }
-    if (metrics.audience.topSegments?.length > 0) {
-      context += `- **Top Segments:** ${metrics.audience.topSegments.slice(0, 3).map(s => s.name).join(', ')}\n`;
-    }
-    context += '\n';
-  }
-
-  // AI-generated insights
-  if (insights.automated?.length > 0) {
-    context += `## AI-Generated Insights\n`;
-    insights.automated.slice(0, 5).forEach((insight, i) => {
+  // Quick insights (if pre-calculated)
+  if (insights && insights.automated && insights.automated.length > 0) {
+    context += `## Quick Insights\n`;
+    insights.automated.forEach((insight, i) => {
       context += `${i + 1}. ${insight}\n`;
     });
     context += '\n';
   }
 
-  // Opportunities
-  if (insights.opportunities?.length > 0) {
-    context += `## Growth Opportunities\n`;
-    insights.opportunities.slice(0, 3).forEach((opp, i) => {
-      context += `${i + 1}. ${opp}\n`;
+  // Patterns detected
+  if (insights && insights.patterns && Object.keys(insights.patterns).length > 0) {
+    context += `## Detected Patterns\n`;
+    Object.entries(insights.patterns).forEach(([pattern, value]) => {
+      context += `- **${formatMetricName(pattern)}:** ${JSON.stringify(value)}\n`;
     });
     context += '\n';
   }
 
-  // Warnings and anomalies
-  if (insights.warnings?.length > 0 || insights.anomalies?.length > 0) {
-    context += `## Alerts & Anomalies\n`;
-    insights.warnings?.forEach((warning) => {
-      context += `⚠️ **WARNING:** ${warning}\n`;
-    });
-    insights.anomalies?.forEach((anomaly) => {
-      context += `🔍 **ANOMALY:** ${anomaly}\n`;
-    });
-    context += '\n';
-  }
-
-  // Recommendations
-  if (insights.recommendations?.length > 0) {
-    context += `## Actionable Recommendations\n`;
-    insights.recommendations.forEach((rec, i) => {
-      context += `${i + 1}. ${rec.action} - *${rec.impact}*\n`;
-    });
-    context += '\n';
-  }
-
-  // Benchmark comparisons
-  if (benchmarks.industry && Object.keys(benchmarks.industry).length > 0) {
-    context += `## Industry Benchmarks\n`;
-    Object.entries(benchmarks.industry).forEach(([metric, bench]) => {
-      const userValue = metrics.primary?.[metric];
-      if (userValue !== null && userValue !== undefined) {
-        const comparison = userValue > bench.value ? 'above' : 'below';
-        context += `- **${formatMetricName(metric)}:** You're ${comparison} industry average (${formatMetricValue(metric, bench.value)})\n`;
-      }
-    });
-    context += '\n';
-  }
-
-  // User context for personalization
-  if (userContext.expertise !== 'unknown') {
-    context += `## User Profile\n`;
-    context += `- **Expertise Level:** ${userContext.expertise}\n`;
-    if (userContext.focusAreas?.length > 0) {
-      context += `- **Focus Areas:** ${userContext.focusAreas.join(', ')}\n`;
-    }
-    if (userContext.goals?.length > 0) {
-      context += `- **Goals:** ${userContext.goals.join(', ')}\n`;
-    }
+  // Data quality metadata
+  if (summaryData) {
+    context += `## Data Info\n`;
+    context += `- Est. tokens: ~${summaryData.estimatedTokens || 'calculating...'}\n`;
+    context += `- Freshness: ${summaryData.dataFreshness || 'just fetched'}\n`;
     context += '\n';
   }
 
   return context;
 }
 
-// Generate marketing-specific intelligence
-function generateMarketingIntelligence(state) {
-  const intelligence = {
-    performanceCategory: categorizeOverallPerformance(state.metrics),
-    trendDirection: analyzeTrendDirection(state.metrics.comparisons),
-    urgentActions: identifyUrgentActions(state.insights),
-    quickWins: identifyQuickWins(state.metrics, state.insights),
-    contentStrategy: analyzeContentStrategy(state.campaigns),
-    audienceHealth: analyzeAudienceHealth(state.metrics.audience),
-    channelMix: analyzeChannelMix(state.metrics.byChannel),
-  };
+// ===================================================================
+// RAW DATA FORMATTERS - Dense, structured data for AI consumption
+// ===================================================================
 
-  return intelligence;
-}
+function formatCampaignsRaw(campaigns) {
+  if (!campaigns || campaigns.length === 0) return 'No campaigns';
 
-// Enrich context with business insights
-function enrichContextWithInsights(state) {
-  const { metrics, data } = state;
-  const enriched = {
-    performance: categorizeOverallPerformance(metrics),
-    trends: identifyTrends(data),
-    benchmarks: compareToBenchmarks(metrics),
-    seasonality: detectSeasonality(data),
-    channelRecommendations: generateChannelRecommendations(metrics.byChannel),
-    segmentationOpportunities: findSegmentationOpportunities(state.segments),
-  };
+  let output = '';
 
-  return enriched;
-}
+  // Table header
+  output += `| Campaign | Send Date | Recipients | Opens | Clicks | Revenue | Open% | Click% | Conv% |\n`;
+  output += `|----------|-----------|-----------|-------|--------|---------|-------|--------|-------|\n`;
 
-// Generate suggested actions based on context
-function generateSuggestedActions(state) {
-  const suggestions = [];
-  const { metrics, insights, pageType, campaigns, flows } = state;
+  // All campaigns (no truncation unless absolutely necessary)
+  campaigns.forEach(c => {
+    const name = (c.campaign_name || c.name || 'Unnamed').substring(0, 40);
+    const sendDate = c.send_time ? new Date(c.send_time).toLocaleDateString() : 'N/A';
+    const recipients = formatNumber(c.recipients || 0);
+    const opens = formatNumber(c.opens_unique || 0);
+    const clicks = formatNumber(c.clicks_unique || 0);
+    const revenue = formatCurrency(c.revenue || 0);
+    const openRate = c.recipients > 0 ? ((c.opens_unique || 0) / c.recipients * 100).toFixed(1) : '0.0';
+    const clickRate = c.recipients > 0 ? ((c.clicks_unique || 0) / c.recipients * 100).toFixed(2) : '0.00';
+    const convRate = c.recipients > 0 ? ((c.conversions || 0) / c.recipients * 100).toFixed(2) : '0.00';
 
-  // Campaign-specific suggestions
-  if (pageType === 'campaigns') {
-    if (metrics.primary?.clickRate < 0.02) {
-      suggestions.push({
-        type: 'improvement',
-        action: 'A/B test subject lines and preview text',
-        message: 'Click rates are below industry average (2.62%). Consider A/B testing subject lines.',
-        priority: 'high',
-        estimatedImpact: '15-30% improvement in click rate'
-      });
-    }
-
-    if (metrics.campaigns?.avgCampaignsPerWeek < 2) {
-      suggestions.push({
-        type: 'opportunity',
-        action: 'Increase email frequency',
-        message: 'You\'re sending fewer campaigns than optimal. Consider increasing to 2-3 per week.',
-        priority: 'medium',
-        estimatedImpact: '20-40% revenue increase'
-      });
-    }
-  }
-
-  // Deliverability suggestions
-  if (pageType === 'deliverability') {
-    if (metrics.primary?.bounceRate > 0.05) {
-      suggestions.push({
-        type: 'warning',
-        action: 'Clean email list immediately',
-        message: 'High bounce rate detected (>5%). This can damage sender reputation.',
-        priority: 'critical',
-        estimatedImpact: 'Prevent deliverability issues'
-      });
-    }
-
-    if (metrics.primary?.spamRate > 0.001) {
-      suggestions.push({
-        type: 'warning',
-        action: 'Review content and list quality',
-        message: 'Spam complaint rate is elevated. Review unsubscribe process and content relevance.',
-        priority: 'high',
-        estimatedImpact: 'Protect sender reputation'
-      });
-    }
-  }
-
-  // Flow optimization suggestions
-  if (pageType === 'flows' && flows.dropOffPoints?.length > 0) {
-    suggestions.push({
-      type: 'optimization',
-      action: 'Optimize flow timing and content',
-      message: `${flows.dropOffPoints.length} drop-off points detected in your flows. Review timing and messaging.`,
-      priority: 'medium',
-      estimatedImpact: '10-25% improvement in flow revenue'
-    });
-  }
-
-  // Revenue suggestions
-  if (pageType === 'revenue') {
-    if (metrics.primary?.avgOrderValue && metrics.comparisons?.avgOrderValue?.change < 0) {
-      suggestions.push({
-        type: 'opportunity',
-        action: 'Implement upsell/cross-sell campaigns',
-        message: 'AOV is declining. Consider product bundling or post-purchase upsell flows.',
-        priority: 'high',
-        estimatedImpact: '15-30% AOV increase'
-      });
-    }
-  }
-
-  // General audience health
-  if (metrics.audience?.churnRate > 0.05) {
-    suggestions.push({
-      type: 'retention',
-      action: 'Create re-engagement campaign',
-      message: 'Churn rate is above 5%. Launch a win-back campaign for inactive subscribers.',
-      priority: 'high',
-      estimatedImpact: 'Reduce churn by 20-40%'
-    });
-  }
-
-  // Anomaly-based suggestions
-  insights.anomalies?.forEach(anomaly => {
-    suggestions.push({
-      type: 'investigate',
-      action: 'Investigate anomaly',
-      message: anomaly,
-      priority: 'medium',
-      estimatedImpact: 'Identify root cause'
-    });
+    output += `| ${name} | ${sendDate} | ${recipients} | ${opens} | ${clicks} | ${revenue} | ${openRate}% | ${clickRate}% | ${convRate}% |\n`;
   });
 
-  return suggestions.sort((a, b) => {
-    const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
-  });
+  // Summary row
+  const totalRecipients = campaigns.reduce((sum, c) => sum + (c.recipients || 0), 0);
+  const totalOpens = campaigns.reduce((sum, c) => sum + (c.opens_unique || 0), 0);
+  const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks_unique || 0), 0);
+  const totalRevenue = campaigns.reduce((sum, c) => sum + (c.revenue || 0), 0);
+  const totalConversions = campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0);
+
+  output += `| **TOTAL** | - | ${formatNumber(totalRecipients)} | ${formatNumber(totalOpens)} | ${formatNumber(totalClicks)} | ${formatCurrency(totalRevenue)} | ${(totalOpens / totalRecipients * 100).toFixed(1)}% | ${(totalClicks / totalRecipients * 100).toFixed(2)}% | ${(totalConversions / totalRecipients * 100).toFixed(2)}% |\n`;
+
+  return output;
 }
 
-// Helper functions for formatting and analysis
+function formatFlowsRaw(flows) {
+  if (!flows || flows.length === 0) return 'No flows';
+
+  let output = '';
+
+  output += `| Flow Name | Status | Triggers | Conversions | Revenue | Conv% |\n`;
+  output += `|-----------|--------|----------|-------------|---------|-------|\n`;
+
+  flows.forEach(f => {
+    const name = (f.flow_name || f.name || 'Unnamed').substring(0, 50);
+    const status = f.status || 'unknown';
+    const triggers = formatNumber(f.trigger_count || f.triggers || 0);
+    const conversions = formatNumber(f.conversions || 0);
+    const revenue = formatCurrency(f.revenue || 0);
+    const convRate = (f.trigger_count || f.triggers || 0) > 0
+      ? ((f.conversions || 0) / (f.trigger_count || f.triggers || 0) * 100).toFixed(2)
+      : '0.00';
+
+    output += `| ${name} | ${status} | ${triggers} | ${conversions} | ${revenue} | ${convRate}% |\n`;
+  });
+
+  return output;
+}
+
+function formatSegmentsRaw(segments) {
+  if (!segments || segments.length === 0) return 'No segments';
+
+  let output = '';
+
+  output += `| Segment Name | Profile Count | Growth Rate |\n`;
+  output += `|--------------|---------------|-------------|\n`;
+
+  segments.forEach(s => {
+    const name = (s.segment_name || s.name || 'Unnamed').substring(0, 50);
+    const profileCount = formatNumber(s.profile_count || 0);
+    const growthRate = s.growth_rate ? `${(s.growth_rate * 100).toFixed(1)}%` : 'N/A';
+
+    output += `| ${name} | ${profileCount} | ${growthRate} |\n`;
+  });
+
+  return output;
+}
+
+function formatFormsRaw(forms) {
+  if (!forms || forms.length === 0) return 'No forms';
+
+  let output = '';
+
+  output += `| Form Name | Views | Submissions | Conversion Rate |\n`;
+  output += `|-----------|-------|-------------|------------------|\n`;
+
+  forms.forEach(f => {
+    const name = (f.form_name || f.name || 'Unnamed').substring(0, 50);
+    const views = formatNumber(f.views || 0);
+    const submissions = formatNumber(f.submissions || 0);
+    const convRate = (f.views || 0) > 0
+      ? ((f.submissions || 0) / (f.views || 0) * 100).toFixed(2)
+      : '0.00';
+
+    output += `| ${name} | ${views} | ${submissions} | ${convRate}% |\n`;
+  });
+
+  return output;
+}
+
+// ===================================================================
+// DATA SIZE ESTIMATION
+// ===================================================================
+
+function estimateDataSize(rawData) {
+  if (!rawData) {
+    return { estimatedChars: 0, estimatedTokens: 0, breakdown: {} };
+  }
+
+  const breakdown = {
+    campaigns: estimateArraySize(rawData.campaigns),
+    flows: estimateArraySize(rawData.flows),
+    segments: estimateArraySize(rawData.segments),
+    forms: estimateArraySize(rawData.forms),
+    metrics: estimateObjectSize(rawData.metrics),
+    orders: estimateArraySize(rawData.orders),
+    profiles: estimateArraySize(rawData.profiles),
+  };
+
+  const totalChars = Object.values(breakdown).reduce((sum, size) => sum + size, 0);
+  const estimatedTokens = Math.ceil(totalChars / CHAR_TO_TOKEN_RATIO);
+
+  return {
+    estimatedChars: totalChars,
+    estimatedTokens: estimatedTokens,
+    breakdown: breakdown,
+    fitsInContext: estimatedTokens < MAX_CONTEXT_TOKENS,
+    utilizationPercent: (estimatedTokens / MAX_CONTEXT_TOKENS * 100).toFixed(1),
+  };
+}
+
+function estimateArraySize(arr) {
+  if (!arr || !Array.isArray(arr) || arr.length === 0) return 0;
+
+  // Estimate size of first item, multiply by array length
+  const sampleSize = JSON.stringify(arr[0] || {}).length;
+  return sampleSize * arr.length;
+}
+
+function estimateObjectSize(obj) {
+  if (!obj || typeof obj !== 'object') return 0;
+  return JSON.stringify(obj).length;
+}
+
+// ===================================================================
+// SQL FALLBACK SUGGESTION
+// When data is too large, suggest SQL query structure
+// ===================================================================
+
+function generateSQLQuerySuggestion(state) {
+  const { pageType, selectedKlaviyoIds, dateRange, filters } = state;
+
+  let suggestion = {
+    table: '',
+    filters: [],
+    aggregations: [],
+    reasoning: '',
+  };
+
+  switch (pageType) {
+    case 'campaigns':
+      suggestion.table = 'campaign_statistics';
+      suggestion.filters = [
+        `klaviyo_public_id IN (${selectedKlaviyoIds.map(id => `'${id}'`).join(',')})`,
+        `date >= '${dateRange.start}'`,
+        `date <= '${dateRange.end}'`,
+      ];
+      suggestion.aggregations = [
+        'SUM(recipients_count) as total_recipients',
+        'SUM(opens_unique) as total_opens',
+        'SUM(clicks_unique) as total_clicks',
+        'SUM(attributed_revenue) as total_revenue',
+      ];
+      suggestion.reasoning = `Dataset too large for on-screen context. Use SQL to aggregate ${selectedKlaviyoIds.length} accounts over ${dateRange.daysSpan} days.`;
+      break;
+
+    case 'flows':
+      suggestion.table = 'flow_statistics';
+      suggestion.filters = [
+        `klaviyo_public_id IN (${selectedKlaviyoIds.map(id => `'${id}'`).join(',')})`,
+        `date >= '${dateRange.start}'`,
+        `date <= '${dateRange.end}'`,
+      ];
+      suggestion.aggregations = [
+        'COUNT(DISTINCT flow_id) as total_flows',
+        'SUM(trigger_count) as total_triggers',
+        'SUM(conversions) as total_conversions',
+        'SUM(revenue) as total_revenue',
+      ];
+      suggestion.reasoning = `Flow data spans multiple accounts and long time range. SQL aggregation recommended.`;
+      break;
+
+    case 'revenue':
+      suggestion.table = 'klaviyo_orders';
+      suggestion.filters = [
+        `klaviyo_public_id IN (${selectedKlaviyoIds.map(id => `'${id}'`).join(',')})`,
+        `order_timestamp >= '${dateRange.start}'`,
+        `order_timestamp <= '${dateRange.end}'`,
+      ];
+      suggestion.aggregations = [
+        'COUNT(*) as total_orders',
+        'SUM(value) as total_revenue',
+        'AVG(value) as avg_order_value',
+        'COUNT(DISTINCT profile_id) as unique_customers',
+      ];
+      suggestion.reasoning = `Revenue analysis across ${dateRange.daysSpan} days requires SQL for accurate aggregation.`;
+      break;
+
+    default:
+      suggestion.reasoning = 'Data size exceeds context limit. Route to SQL tier for aggregation.';
+  }
+
+  return suggestion;
+}
+
+// ===================================================================
+// HELPER FUNCTIONS
+// ===================================================================
 
 function formatDateRange(dateRange) {
   if (dateRange.preset) {
@@ -688,31 +799,10 @@ function formatMetricName(key) {
     .trim();
 }
 
-function formatMetricValue(metricType, value) {
-  if (value === null || value === undefined) return 'N/A';
-
-  // Currency metrics
-  if (metricType.toLowerCase().includes('revenue') ||
-      metricType.toLowerCase().includes('value') ||
-      metricType.toLowerCase().includes('aov')) {
-    return formatCurrency(value);
-  }
-
-  // Rate/percentage metrics
-  if (metricType.toLowerCase().includes('rate') ||
-      metricType.toLowerCase().includes('percentage')) {
-    return formatPercentage(value);
-  }
-
-  // Count metrics
-  return formatNumber(value);
-}
-
 function formatPercentage(value) {
   if (value === null || value === undefined) return 'N/A';
-  const percentage = value < 1 ? value * 100 : value; // Handle both decimal and percentage
-  const formatted = percentage.toFixed(1);
-  return value > 0 ? `+${formatted}%` : `${formatted}%`;
+  const percentage = value < 1 ? value * 100 : value;
+  return `${percentage.toFixed(1)}%`;
 }
 
 function formatCurrency(value) {
@@ -734,1059 +824,92 @@ function formatNumber(value) {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
-function calculateTrend(current, previous) {
-  if (!previous || previous === 0) return 'new';
-  const change = ((current - previous) / previous);
-  if (change > 0.05) return 'up';
-  if (change < -0.05) return 'down';
-  return 'flat';
-}
-
-function calculateGrowthRate(current, previous) {
-  if (!previous || previous === 0) return null;
-  return ((current - previous) / previous);
-}
-
-function categorizePerformance(metric, value) {
-  // Benchmark-based categorization
-  const benchmarks = {
-    openRate: { excellent: 0.25, good: 0.20, average: 0.15 },
-    clickRate: { excellent: 0.03, good: 0.02, average: 0.01 },
-    conversionRate: { excellent: 0.03, good: 0.02, average: 0.01 },
-    bounceRate: { excellent: 0.02, good: 0.03, average: 0.05 },
-  };
-
-  const bench = benchmarks[metric];
-  if (!bench || value === null) return 'unknown';
-
-  // Inverse for negative metrics
-  const isNegativeMetric = metric.includes('bounce') || metric.includes('unsubscribe') || metric.includes('spam');
-
-  if (isNegativeMetric) {
-    if (value <= bench.excellent) return 'excellent';
-    if (value <= bench.good) return 'good';
-    if (value <= bench.average) return 'average';
-    return 'needs improvement';
-  } else {
-    if (value >= bench.excellent) return 'excellent';
-    if (value >= bench.good) return 'good';
-    if (value >= bench.average) return 'average';
-    return 'needs improvement';
-  }
-}
-
-function categorizeOverallPerformance(metrics) {
-  if (!metrics.primary) return 'unknown';
-
-  const openRate = metrics.primary.openRate || 0;
-  const clickRate = metrics.primary.clickRate || 0;
-
-  if (openRate > 0.25 && clickRate > 0.03) return 'excellent';
-  if (openRate > 0.20 && clickRate > 0.02) return 'good';
-  if (openRate > 0.15 && clickRate > 0.01) return 'average';
-  return 'needs improvement';
-}
-
-function analyzeTrendDirection(comparisons) {
-  if (!comparisons || Object.keys(comparisons).length === 0) return 'unknown';
-
-  const trends = Object.values(comparisons)
-    .filter(comp => comp.change !== null)
-    .map(comp => comp.change > 0 ? 1 : comp.change < 0 ? -1 : 0);
-
-  const avgTrend = trends.reduce((sum, t) => sum + t, 0) / trends.length;
-
-  if (avgTrend > 0.1) return 'strongly positive';
-  if (avgTrend > 0) return 'positive';
-  if (avgTrend < -0.1) return 'strongly negative';
-  if (avgTrend < 0) return 'negative';
-  return 'stable';
-}
-
-function identifyTrends(data) {
-  const trends = [];
-
-  if (data.aggregated?.revenueGrowth > 0.1) {
-    trends.push('Strong revenue growth detected');
-  }
-  if (data.aggregated?.engagementTrend === 'increasing') {
-    trends.push('Improving engagement rates');
-  }
-
-  return trends;
-}
-
-function compareToBenchmarks(metrics) {
-  // Industry benchmarks (email marketing averages)
-  const benchmarks = {
-    openRate: 0.2133, // 21.33%
-    clickRate: 0.0262, // 2.62%
-    conversionRate: 0.0148, // 1.48%
-    bounceRate: 0.0096, // 0.96%
-    unsubscribeRate: 0.001, // 0.1%
-  };
-
-  const comparison = {};
-
-  if (metrics.primary) {
-    Object.entries(benchmarks).forEach(([metric, benchmark]) => {
-      const userValue = metrics.primary[metric];
-      if (userValue !== null && userValue !== undefined) {
-        comparison[metric] = {
-          value: benchmark,
-          userValue: userValue,
-          status: userValue > benchmark ? 'above' : 'below',
-          difference: userValue - benchmark,
-        };
-      }
-    });
-  }
-
-  return comparison;
-}
-
-function detectSeasonality(data) {
-  // Placeholder for seasonality detection
-  return {
-    detected: false,
-    pattern: null
-  };
-}
-
-function generateAutomatedInsights(data, metrics) {
-  const insights = [];
-
-  if (metrics.comparisons?.openRate?.change > 0.2) {
-    insights.push(`Open rates have increased by ${formatPercentage(metrics.comparisons.openRate.change)} compared to the previous period - great job!`);
-  }
-
-  if (metrics.comparisons?.revenue?.change < -0.1) {
-    insights.push(`Revenue has declined by ${formatPercentage(Math.abs(metrics.comparisons.revenue.change))}. Consider reviewing campaign frequency and targeting.`);
-  }
-
-  if (data.aggregated?.topPerformer) {
-    insights.push(`"${data.aggregated.topPerformer.name}" is your top performing campaign with ${formatCurrency(data.aggregated.topPerformer.revenue)} in revenue`);
-  }
-
-  if (metrics.campaigns?.bestSendTime) {
-    insights.push(`Your campaigns perform best when sent on ${metrics.campaigns.bestSendDay} at ${metrics.campaigns.bestSendTime}`);
-  }
-
-  return insights;
-}
-
-function detectAnomalies(data, metrics) {
-  const anomalies = [];
-
-  if (metrics.primary?.bounceRate > 0.05) {
-    anomalies.push(`Unusually high bounce rate (${formatPercentage(metrics.primary.bounceRate)}) - Review list quality`);
-  }
-
-  if (metrics.primary?.unsubscribeRate > 0.01) {
-    anomalies.push(`Elevated unsubscribe rate (${formatPercentage(metrics.primary.unsubscribeRate)}) - Review content relevance`);
-  }
-
-  if (metrics.comparisons?.clickRate?.change < -0.3) {
-    anomalies.push('Significant drop in click rates detected - Investigate recent campaign changes');
-  }
-
-  return anomalies;
-}
-
-function findOpportunities(data, metrics) {
-  const opportunities = [];
-
-  if (metrics.primary?.clickToOpenRate && metrics.primary.clickToOpenRate < 0.10) {
-    opportunities.push('Low click-to-open rate suggests content relevance can be improved. Consider better segmentation and personalization.');
-  }
-
-  if (metrics.audience?.growthRate < 0.05) {
-    opportunities.push('Slow list growth detected. Consider adding lead magnets, exit-intent popups, or social media lead ads.');
-  }
-
-  if (!metrics.flows?.activeFlows || metrics.flows.activeFlows < 5) {
-    opportunities.push('Limited automation detected. Consider implementing welcome series, abandoned cart, and post-purchase flows.');
-  }
-
-  if (metrics.byChannel?.email && !metrics.byChannel?.sms) {
-    opportunities.push('SMS channel not utilized. Consider adding SMS for time-sensitive promotions and cart abandonment.');
-  }
-
-  return opportunities;
-}
-
-function generateWarnings(data, metrics) {
-  const warnings = [];
-
-  if (metrics.primary?.bounceRate > 0.05) {
-    warnings.push('CRITICAL: Bounce rate exceeds 5% - immediate list cleaning required');
-  }
-
-  if (metrics.primary?.spamRate > 0.001) {
-    warnings.push('WARNING: Elevated spam complaints detected - review unsubscribe process and content');
-  }
-
-  if (metrics.audience?.churnRate > 0.10) {
-    warnings.push('HIGH CHURN: More than 10% of audience is disengaging - implement re-engagement campaign');
-  }
-
-  return warnings;
-}
-
-function generateRecommendations(data, metrics) {
-  const recommendations = [];
-
-  // Subject line optimization
-  if (metrics.primary?.openRate < 0.20) {
-    recommendations.push({
-      action: 'Optimize subject lines with A/B testing',
-      impact: 'Could increase open rates by 15-30%',
-      effort: 'Low',
-      priority: 'High'
-    });
-  }
-
-  // Send time optimization
-  if (!metrics.campaigns?.bestSendTime) {
-    recommendations.push({
-      action: 'Run send time optimization tests',
-      impact: 'Could improve engagement by 10-20%',
-      effort: 'Medium',
-      priority: 'Medium'
-    });
-  }
-
-  // Segmentation
-  if (data.aggregated?.totalCampaigns > 10 && (!data.segments || data.segments.length < 3)) {
-    recommendations.push({
-      action: 'Implement advanced segmentation strategy',
-      impact: 'Could increase revenue by 20-40%',
-      effort: 'High',
-      priority: 'High'
-    });
-  }
-
-  return recommendations;
-}
-
-function identifyUrgentActions(insights) {
-  const urgent = [];
-
-  insights.warnings?.forEach(warning => {
-    if (warning.includes('CRITICAL')) {
-      urgent.push(warning);
-    }
-  });
-
-  return urgent;
-}
-
-function identifyQuickWins(metrics, insights) {
-  const quickWins = [];
-
-  if (metrics.primary?.openRate > 0.20 && metrics.primary?.clickRate < 0.02) {
-    quickWins.push('Strong open rates but low clicks - improve CTA placement and copy');
-  }
-
-  if (metrics.campaigns?.avgCampaignsPerWeek < 1) {
-    quickWins.push('Low send frequency - increase to 2-3 campaigns per week for quick revenue boost');
-  }
-
-  return quickWins;
-}
-
-function analyzeContentStrategy(campaigns) {
-  const strategy = {
-    frequency: 'unknown',
-    consistency: 'unknown',
-    topPerformingTypes: [],
-  };
-
-  if (campaigns.avgCampaignsPerWeek) {
-    if (campaigns.avgCampaignsPerWeek < 1) strategy.frequency = 'low';
-    else if (campaigns.avgCampaignsPerWeek < 3) strategy.frequency = 'moderate';
-    else strategy.frequency = 'high';
-  }
-
-  return strategy;
-}
-
-function analyzeAudienceHealth(audienceMetrics) {
-  const health = {
-    overall: 'unknown',
-    listGrowth: 'unknown',
-    engagement: 'unknown',
-  };
-
-  if (audienceMetrics?.growthRate) {
-    if (audienceMetrics.growthRate > 0.10) health.listGrowth = 'excellent';
-    else if (audienceMetrics.growthRate > 0.05) health.listGrowth = 'good';
-    else if (audienceMetrics.growthRate > 0) health.listGrowth = 'slow';
-    else health.listGrowth = 'declining';
-  }
-
-  return health;
-}
-
-function analyzeChannelMix(byChannel) {
-  const analysis = {
-    activeChannels: [],
-    recommendations: [],
-  };
-
-  if (byChannel) {
-    analysis.activeChannels = Object.keys(byChannel).filter(
-      channel => byChannel[channel] && Object.keys(byChannel[channel]).length > 0
-    );
-
-    if (analysis.activeChannels.length === 1) {
-      analysis.recommendations.push('Diversify with additional channels for better reach');
-    }
-  }
-
-  return analysis;
-}
-
-function generateChannelRecommendations(byChannel) {
-  const recommendations = [];
-
-  if (!byChannel?.sms) {
-    recommendations.push('Add SMS for time-sensitive offers and abandoned cart recovery');
-  }
-
-  if (!byChannel?.push) {
-    recommendations.push('Implement push notifications for browse abandonment and back-in-stock alerts');
-  }
-
-  return recommendations;
-}
-
-function findSegmentationOpportunities(segments) {
-  const opportunities = [];
-
-  if (!segments || !segments.topPerforming || segments.topPerforming.length < 3) {
-    opportunities.push('Create RFM (Recency, Frequency, Monetary) segments for targeted campaigns');
-  }
-
-  opportunities.push('Build VIP customer segment for exclusive offers');
-  opportunities.push('Create at-risk customer segment for win-back campaigns');
-
-  return opportunities;
-}
-
-function analyzeExpertiseLevel(interactions) {
-  if (!interactions || interactions.length === 0) return 'unknown';
-
-  const complexQueries = interactions.filter(i => {
-    const query = i.query.toLowerCase();
-    return query.includes('segmentation') ||
-           query.includes('attribution') ||
-           query.includes('cohort') ||
-           query.includes('ltv') ||
-           query.includes('predictive');
-  }).length;
-
-  const totalQueries = interactions.length;
-  const complexityRatio = complexQueries / totalQueries;
-
-  if (complexityRatio > 0.4) return 'expert';
-  if (complexityRatio > 0.2) return 'advanced';
-  if (totalQueries > 5) return 'intermediate';
-  return 'beginner';
-}
-
 // ===================================================================
-// SMART DATA AGGREGATION HELPERS
-// Use these functions to prepare data BEFORE sending to AI context
+// USAGE EXAMPLE FOR PAGES (Updated for Smart Summarization)
 // ===================================================================
 
 /**
- * Aggregate large campaign dataset into AI-friendly summary
- * Handles 100s-1000s of campaigns by creating smart summaries
+ * Example: Campaign Report Page with Smart Summarization
  *
- * @param {Array} campaigns - Full campaign array (can be 900+ items)
- * @returns {Object} - Compact, AI-friendly summary
- */
-export function aggregateCampaignsForAI(campaigns) {
-  if (!campaigns || campaigns.length === 0) {
-    return {
-      topCampaigns: [],
-      aggregated: {},
-      summary: { totalCampaigns: 0 },
-      distributions: {},
-      timeSeries: { daily: [], weekly: [] },
-    };
-  }
-
-  // 1. Calculate overall aggregates
-  const aggregated = {
-    totalCampaigns: campaigns.length,
-    totalRecipients: campaigns.reduce((sum, c) => sum + (c.recipients || 0), 0),
-    totalRevenue: campaigns.reduce((sum, c) => sum + (c.revenue || 0), 0),
-    totalOpens: campaigns.reduce((sum, c) => sum + (c.opens_unique || 0), 0),
-    totalClicks: campaigns.reduce((sum, c) => sum + (c.clicks_unique || 0), 0),
-    totalConversions: campaigns.reduce((sum, c) => sum + (c.conversions || 0), 0),
-  };
-
-  // Calculate weighted averages
-  aggregated.avgOpenRate = aggregated.totalRecipients > 0
-    ? aggregated.totalOpens / aggregated.totalRecipients
-    : 0;
-  aggregated.avgClickRate = aggregated.totalRecipients > 0
-    ? aggregated.totalClicks / aggregated.totalRecipients
-    : 0;
-  aggregated.avgConversionRate = aggregated.totalRecipients > 0
-    ? aggregated.totalConversions / aggregated.totalRecipients
-    : 0;
-  aggregated.revenuePerRecipient = aggregated.totalRecipients > 0
-    ? aggregated.totalRevenue / aggregated.totalRecipients
-    : 0;
-
-  // 2. Get TOP 10 campaigns by revenue WITH strategic context
-  const topCampaigns = campaigns
-    .map(c => {
-      // Extract strategic context from campaign data
-      const name = c.campaign_name || c.name || 'Unnamed Campaign';
-
-      return {
-        name,
-        revenue: c.revenue || 0,
-        recipients: c.recipients || 0,
-        openRate: c.recipients > 0 ? (c.opens_unique || 0) / c.recipients : 0,
-        clickRate: c.recipients > 0 ? (c.clicks_unique || 0) / c.recipients : 0,
-        conversionRate: c.recipients > 0 ? (c.conversions || 0) / c.recipients : 0,
-        sendTime: c.send_time || c.sent_at,
-
-        // Strategic context for AI analysis
-        subjectLine: c.subject_line || extractSubjectFromName(name),
-        campaignType: detectCampaignType(name, c),
-        segment: c.segment_name || c.audience_name || 'All Subscribers',
-        tags: c.tags || [],
-        channel: c.channel || 'email',
-
-        // Content insights (if available)
-        hasDiscount: detectDiscount(name, c.subject_line),
-        discountAmount: extractDiscountAmount(name, c.subject_line),
-        isUrgent: detectUrgency(name, c.subject_line),
-        isPersonalized: c.is_personalized || false,
-        hasEmoji: detectEmoji(c.subject_line || name),
-
-        // Timing context
-        sendDay: c.send_time ? new Date(c.send_time).toLocaleDateString('en-US', { weekday: 'long' }) : null,
-        sendHour: c.send_time ? new Date(c.send_time).getHours() : null,
-      };
-    })
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 10); // Only top 10
-
-  // 3. Aggregate by day of week
-  const byDay = {};
-  campaigns.forEach(campaign => {
-    const sendTime = campaign.send_time || campaign.sent_at;
-    if (!sendTime) return;
-
-    const day = new Date(sendTime).toLocaleDateString('en-US', { weekday: 'long' });
-    if (!byDay[day]) {
-      byDay[day] = { campaigns: 0, recipients: 0, opens: 0, clicks: 0, revenue: 0 };
-    }
-
-    byDay[day].campaigns += 1;
-    byDay[day].recipients += campaign.recipients || 0;
-    byDay[day].opens += campaign.opens_unique || 0;
-    byDay[day].clicks += campaign.clicks_unique || 0;
-    byDay[day].revenue += campaign.revenue || 0;
-  });
-
-  // Calculate averages for each day
-  Object.keys(byDay).forEach(day => {
-    const data = byDay[day];
-    data.avgOpenRate = data.recipients > 0 ? data.opens / data.recipients : 0;
-    data.avgClickRate = data.recipients > 0 ? data.clicks / data.recipients : 0;
-  });
-
-  // 4. Aggregate by hour of day
-  const byHour = {};
-  campaigns.forEach(campaign => {
-    const sendTime = campaign.send_time || campaign.sent_at;
-    if (!sendTime) return;
-
-    const hour = new Date(sendTime).getHours();
-    if (!byHour[hour]) {
-      byHour[hour] = { campaigns: 0, recipients: 0, revenue: 0, opens: 0 };
-    }
-
-    byHour[hour].campaigns += 1;
-    byHour[hour].recipients += campaign.recipients || 0;
-    byHour[hour].revenue += campaign.revenue || 0;
-    byHour[hour].opens += campaign.opens_unique || 0;
-  });
-
-  // 5. Create daily time series (aggregated by date)
-  const dailyMap = {};
-  campaigns.forEach(campaign => {
-    const sendTime = campaign.send_time || campaign.sent_at;
-    if (!sendTime) return;
-
-    const date = new Date(sendTime).toISOString().split('T')[0];
-    if (!dailyMap[date]) {
-      dailyMap[date] = { date, campaigns: 0, revenue: 0, recipients: 0, opens: 0, clicks: 0 };
-    }
-
-    dailyMap[date].campaigns += 1;
-    dailyMap[date].revenue += campaign.revenue || 0;
-    dailyMap[date].recipients += campaign.recipients || 0;
-    dailyMap[date].opens += campaign.opens_unique || 0;
-    dailyMap[date].clicks += campaign.clicks_unique || 0;
-  });
-
-  const daily = Object.values(dailyMap)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-90); // Max 90 days
-
-  // 6. Create weekly time series
-  const weeklyMap = {};
-  campaigns.forEach(campaign => {
-    const sendTime = campaign.send_time || campaign.sent_at;
-    if (!sendTime) return;
-
-    const date = new Date(sendTime);
-    const weekStart = new Date(date);
-    weekStart.setDate(date.getDate() - date.getDay());
-    const weekKey = weekStart.toISOString().split('T')[0];
-
-    if (!weeklyMap[weekKey]) {
-      weeklyMap[weekKey] = { week: weekKey, campaigns: 0, revenue: 0, recipients: 0 };
-    }
-
-    weeklyMap[weekKey].campaigns += 1;
-    weeklyMap[weekKey].revenue += campaign.revenue || 0;
-    weeklyMap[weekKey].recipients += campaign.recipients || 0;
-  });
-
-  const weekly = Object.values(weeklyMap)
-    .sort((a, b) => a.week.localeCompare(b.week))
-    .slice(-13); // Max 13 weeks
-
-  // 7. Find best performing day and time
-  let bestDay = null;
-  let bestDayRevenue = 0;
-  Object.entries(byDay).forEach(([day, data]) => {
-    if (data.revenue > bestDayRevenue) {
-      bestDay = day;
-      bestDayRevenue = data.revenue;
-    }
-  });
-
-  let bestHour = null;
-  let bestHourRevenue = 0;
-  Object.entries(byHour).forEach(([hour, data]) => {
-    if (data.revenue > bestHourRevenue) {
-      bestHour = hour;
-      bestHourRevenue = data.revenue;
-    }
-  });
-
-  // 8. Strategic analysis - What's working and why
-  const strategicInsights = analyzeStrategicPatterns(topCampaigns, campaigns);
-
-  return {
-    topCampaigns,
-    aggregated: {
-      ...aggregated,
-      bestSendDay: bestDay,
-      bestSendHour: bestHour ? `${bestHour}:00` : null,
-    },
-    summary: {
-      totalCampaigns: campaigns.length,
-      totalRecipients: aggregated.totalRecipients,
-      totalRevenue: aggregated.totalRevenue,
-    },
-    distributions: {
-      byDay,
-      byHour,
-    },
-    timeSeries: {
-      daily,
-      weekly,
-    },
-    strategicInsights, // NEW: What's working and why
-  };
-}
-
-/**
- * Aggregate flows data for AI context
- * @param {Array} flows - All flows
- * @returns {Object} - Compact summary
- */
-export function aggregateFlowsForAI(flows) {
-  if (!flows || flows.length === 0) {
-    return { topFlows: [], summary: {}, aggregated: {} };
-  }
-
-  const aggregated = {
-    totalFlows: flows.length,
-    activeFlows: flows.filter(f => f.status === 'active').length,
-    totalRevenue: flows.reduce((sum, f) => sum + (f.revenue || 0), 0),
-  };
-
-  const topFlows = flows
-    .map(f => ({
-      name: f.name,
-      status: f.status,
-      revenue: f.revenue || 0,
-      triggers: f.triggers || 0,
-      conversions: f.conversions || 0,
-      conversionRate: f.triggers > 0 ? (f.conversions || 0) / f.triggers : 0,
-    }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5); // Top 5 flows only
-
-  return {
-    topFlows,
-    aggregated,
-    summary: {
-      totalFlows: flows.length,
-      activeFlows: aggregated.activeFlows,
-      totalRevenue: aggregated.totalRevenue,
-    },
-  };
-}
-
-/**
- * Example usage in your component:
+ * ```jsx
+ * import { useAI } from '@/app/contexts/ai-context';
  *
- * ```javascript
- * import { useAI, aggregateCampaignsForAI } from '@/app/contexts/ai-context';
- *
- * function CampaignsPage() {
+ * export default function CampaignsPage() {
  *   const { updateAIState } = useAI();
  *   const [campaigns, setCampaigns] = useState([]);
  *
  *   useEffect(() => {
- *     // Fetch all 900 campaigns
- *     const allCampaigns = await fetchCampaigns();
- *     setCampaigns(allCampaigns);
+ *     // Fetch all campaigns for display
+ *     const fetchData = async () => {
+ *       const response = await fetch('/api/campaigns');
+ *       const allCampaigns = await response.json();
+ *       setCampaigns(allCampaigns);
  *
- *     // Aggregate into AI-friendly format
- *     const aggregatedData = aggregateCampaignsForAI(allCampaigns);
+ *       // Calculate date range span
+ *       const dateRange = {
+ *         start: startDate,
+ *         end: endDate,
+ *         preset: 'last30days',
+ *         daysSpan: 30,
+ *       };
  *
- *     // Update AI context with ONLY aggregated data
- *     updateAIState({
- *       pageType: 'campaigns',
- *       data: aggregatedData,
- *       metrics: {
- *         primary: {
- *           totalRevenue: aggregatedData.aggregated.totalRevenue,
- *           openRate: aggregatedData.aggregated.avgOpenRate,
- *           clickRate: aggregatedData.aggregated.avgClickRate,
+ *       // Store raw data (for UI display and calculations)
+ *       // AI will automatically build summaries from this
+ *       updateAIState({
+ *         pageType: 'campaigns',
+ *         pageTitle: 'Campaign Report',
+ *         currentPage: '/campaigns',
+ *         selectedStores: selectedAccounts,
+ *         selectedKlaviyoIds: selectedAccounts.map(a => a.klaviyo_id),
+ *         dateRange: dateRange,
+ *
+ *         // RAW DATA - Stored locally, NOT sent to AI
+ *         // AI context will automatically summarize this
+ *         rawData: {
+ *           campaigns: allCampaigns, // All campaigns for calculations
  *         },
- *         campaigns: {
- *           totalCampaigns: aggregatedData.summary.totalCampaigns,
- *           bestSendDay: aggregatedData.aggregated.bestSendDay,
- *           bestSendTime: aggregatedData.aggregated.bestSendHour,
+ *
+ *         // Active filters
+ *         filters: {
+ *           stores: selectedAccounts.map(a => a.value),
+ *           searchQuery: searchTerm,
  *         },
- *       },
- *     });
- *   }, [updateAIState]);
+ *
+ *         // User context
+ *         userContext: {
+ *           currentIntent: 'Analyzing campaign performance',
+ *           focusArea: 'revenue',
+ *         },
+ *       });
+ *     };
+ *
+ *     fetchData();
+ *   }, [selectedAccounts, startDate, endDate, searchTerm]);
+ *
+ *   return (
+ *     <div>
+ *       {campaigns.map(campaign => (
+ *         <CampaignCard key={campaign.id} campaign={campaign} />
+ *       ))}
+ *     </div>
+ *   );
  * }
  * ```
+ *
+ * **What gets sent to AI:**
+ * - Summary statistics (totals, averages, changes)
+ * - Top 10 campaigns only (not all 900)
+ * - Sampled time-series (max 20 points)
+ * - Account breakdowns
+ * - Pre-calculated insights
+ * - Total: ~3,000-5,000 tokens (not 150k!)
+ *
+ * **Benefits of Smart Summarization:**
+ * - 10-50x cheaper per request
+ * - 2-5x faster responses
+ * - Better focused insights
+ * - Scales to more users
+ * - Industry best practice
  */
-
-// ===================================================================
-// STRATEGIC ANALYSIS HELPERS
-// Extract WHY campaigns work, not just WHAT the numbers are
-// ===================================================================
-
-/**
- * Analyze strategic patterns across campaigns to answer:
- * - Why is this campaign performing better?
- * - What should I do next?
- * - What patterns are working?
- */
-function analyzeStrategicPatterns(topCampaigns, allCampaigns) {
-  const insights = {
-    contentPatterns: analyzeContentPatterns(topCampaigns, allCampaigns),
-    audiencePatterns: analyzeAudiencePatterns(topCampaigns, allCampaigns),
-    timingPatterns: analyzeTimingPatterns(topCampaigns, allCampaigns),
-    campaignTypePatterns: analyzeCampaignTypePatterns(topCampaigns, allCampaigns),
-    nextCampaignSuggestions: generateNextCampaignSuggestions(topCampaigns, allCampaigns),
-    whyPerformanceDiffers: explainPerformanceDifferences(topCampaigns),
-  };
-
-  return insights;
-}
-
-/**
- * Analyze what content elements drive performance
- */
-function analyzeContentPatterns(topCampaigns, allCampaigns) {
-  const patterns = {
-    discountPerformance: {},
-    urgencyImpact: {},
-    personalizationImpact: {},
-    emojiImpact: {},
-    subjectLineLength: {},
-  };
-
-  // Analyze discount performance
-  const withDiscount = topCampaigns.filter(c => c.hasDiscount);
-  const withoutDiscount = topCampaigns.filter(c => !c.hasDiscount);
-
-  if (withDiscount.length > 0 && withoutDiscount.length > 0) {
-    const avgDiscountRevenue = withDiscount.reduce((sum, c) => sum + c.revenue, 0) / withDiscount.length;
-    const avgNoDiscountRevenue = withoutDiscount.reduce((sum, c) => sum + c.revenue, 0) / withoutDiscount.length;
-
-    patterns.discountPerformance = {
-      withDiscount: { count: withDiscount.length, avgRevenue: avgDiscountRevenue },
-      withoutDiscount: { count: withoutDiscount.length, avgRevenue: avgNoDiscountRevenue },
-      winner: avgDiscountRevenue > avgNoDiscountRevenue ? 'with_discount' : 'without_discount',
-      insight: avgDiscountRevenue > avgNoDiscountRevenue
-        ? `Discount campaigns generate ${((avgDiscountRevenue / avgNoDiscountRevenue - 1) * 100).toFixed(0)}% more revenue on average`
-        : `Non-discount campaigns generate ${((avgNoDiscountRevenue / avgDiscountRevenue - 1) * 100).toFixed(0)}% more revenue - focus on value over discounts`,
-    };
-  }
-
-  // Analyze urgency impact
-  const withUrgency = topCampaigns.filter(c => c.isUrgent);
-  const withoutUrgency = topCampaigns.filter(c => !c.isUrgent);
-
-  if (withUrgency.length > 0 && withoutUrgency.length > 0) {
-    const avgUrgentOpen = withUrgency.reduce((sum, c) => sum + c.openRate, 0) / withUrgency.length;
-    const avgNormalOpen = withoutUrgency.reduce((sum, c) => sum + c.openRate, 0) / withoutUrgency.length;
-
-    patterns.urgencyImpact = {
-      withUrgency: { count: withUrgency.length, avgOpenRate: avgUrgentOpen },
-      withoutUrgency: { count: withoutUrgency.length, avgOpenRate: avgNormalOpen },
-      insight: avgUrgentOpen > avgNormalOpen
-        ? `Urgent language increases open rates by ${((avgUrgentOpen / avgNormalOpen - 1) * 100).toFixed(0)}%`
-        : 'Urgent language doesn\'t significantly improve open rates',
-    };
-  }
-
-  // Analyze emoji impact
-  const withEmoji = topCampaigns.filter(c => c.hasEmoji);
-  const withoutEmoji = topCampaigns.filter(c => !c.hasEmoji);
-
-  if (withEmoji.length > 0 && withoutEmoji.length > 0) {
-    const avgEmojiOpen = withEmoji.reduce((sum, c) => sum + c.openRate, 0) / withEmoji.length;
-    const avgNoEmojiOpen = withoutEmoji.reduce((sum, c) => sum + c.openRate, 0) / withoutEmoji.length;
-
-    patterns.emojiImpact = {
-      insight: avgEmojiOpen > avgNoEmojiOpen
-        ? `Emojis in subject lines increase open rates by ${((avgEmojiOpen / avgNoEmojiOpen - 1) * 100).toFixed(0)}%`
-        : 'Emojis don\'t significantly impact open rates for your audience',
-    };
-  }
-
-  return patterns;
-}
-
-/**
- * Analyze audience/segment patterns
- */
-function analyzeAudiencePatterns(topCampaigns, allCampaigns) {
-  // Group by segment
-  const bySegment = {};
-
-  topCampaigns.forEach(campaign => {
-    const segment = campaign.segment || 'All Subscribers';
-    if (!bySegment[segment]) {
-      bySegment[segment] = {
-        campaigns: [],
-        totalRevenue: 0,
-        avgOpenRate: 0,
-        avgClickRate: 0,
-        avgConversionRate: 0,
-      };
-    }
-
-    bySegment[segment].campaigns.push(campaign);
-    bySegment[segment].totalRevenue += campaign.revenue;
-  });
-
-  // Calculate averages
-  Object.keys(bySegment).forEach(segment => {
-    const data = bySegment[segment];
-    const count = data.campaigns.length;
-
-    data.avgOpenRate = data.campaigns.reduce((sum, c) => sum + c.openRate, 0) / count;
-    data.avgClickRate = data.campaigns.reduce((sum, c) => sum + c.clickRate, 0) / count;
-    data.avgConversionRate = data.campaigns.reduce((sum, c) => sum + c.conversionRate, 0) / count;
-    data.count = count;
-  });
-
-  // Find best segment
-  const sortedSegments = Object.entries(bySegment)
-    .sort(([, a], [, b]) => b.totalRevenue - a.totalRevenue);
-
-  const bestSegment = sortedSegments[0];
-
-  return {
-    bySegment,
-    bestSegment: bestSegment ? {
-      name: bestSegment[0],
-      ...bestSegment[1],
-      insight: `${bestSegment[0]} is your highest-value segment with $${(bestSegment[1].totalRevenue / 1000).toFixed(1)}K revenue from ${bestSegment[1].count} top campaigns`,
-    } : null,
-  };
-}
-
-/**
- * Analyze timing patterns
- */
-function analyzeTimingPatterns(topCampaigns, allCampaigns) {
-  const byDay = {};
-  const byHour = {};
-
-  topCampaigns.forEach(campaign => {
-    if (campaign.sendDay) {
-      if (!byDay[campaign.sendDay]) {
-        byDay[campaign.sendDay] = { campaigns: 0, revenue: 0 };
-      }
-      byDay[campaign.sendDay].campaigns += 1;
-      byDay[campaign.sendDay].revenue += campaign.revenue;
-    }
-
-    if (campaign.sendHour !== null && campaign.sendHour !== undefined) {
-      const hour = campaign.sendHour;
-      if (!byHour[hour]) {
-        byHour[hour] = { campaigns: 0, revenue: 0 };
-      }
-      byHour[hour].campaigns += 1;
-      byHour[hour].revenue += campaign.revenue;
-    }
-  });
-
-  return {
-    byDay,
-    byHour,
-    insight: 'Your top performers show clear timing patterns - replicate this timing for future campaigns',
-  };
-}
-
-/**
- * Analyze campaign type patterns
- */
-function analyzeCampaignTypePatterns(topCampaigns, allCampaigns) {
-  const byType = {};
-
-  topCampaigns.forEach(campaign => {
-    const type = campaign.campaignType;
-    if (!byType[type]) {
-      byType[type] = {
-        campaigns: [],
-        totalRevenue: 0,
-        avgOpenRate: 0,
-        avgClickRate: 0,
-      };
-    }
-
-    byType[type].campaigns.push(campaign);
-    byType[type].totalRevenue += campaign.revenue;
-  });
-
-  // Calculate averages
-  Object.keys(byType).forEach(type => {
-    const data = byType[type];
-    const count = data.campaigns.length;
-
-    data.avgOpenRate = data.campaigns.reduce((sum, c) => sum + c.openRate, 0) / count;
-    data.avgClickRate = data.campaigns.reduce((sum, c) => sum + c.clickRate, 0) / count;
-    data.count = count;
-  });
-
-  const sortedTypes = Object.entries(byType)
-    .sort(([, a], [, b]) => b.totalRevenue - a.totalRevenue);
-
-  return {
-    byType,
-    topType: sortedTypes[0] ? {
-      type: sortedTypes[0][0],
-      ...sortedTypes[0][1],
-      insight: `${sortedTypes[0][0]} campaigns are your strongest performers`,
-    } : null,
-  };
-}
-
-/**
- * Generate suggestions for next campaigns based on patterns
- */
-function generateNextCampaignSuggestions(topCampaigns, allCampaigns) {
-  const suggestions = [];
-
-  // Analyze top 3 campaigns
-  const top3 = topCampaigns.slice(0, 3);
-
-  // Extract common patterns
-  const hasDiscounts = top3.filter(c => c.hasDiscount).length;
-  const hasUrgency = top3.filter(c => c.isUrgent).length;
-  const hasEmoji = top3.filter(c => c.hasEmoji).length;
-  const commonSegments = [...new Set(top3.map(c => c.segment))];
-  const commonTypes = [...new Set(top3.map(c => c.campaignType))];
-  const commonDays = [...new Set(top3.map(c => c.sendDay).filter(Boolean))];
-  const commonHours = [...new Set(top3.map(c => c.sendHour).filter(h => h !== null))];
-
-  // Suggestion 1: Replicate winning formula
-  if (hasDiscounts >= 2) {
-    suggestions.push({
-      title: 'Create discount-driven campaign',
-      rationale: `${hasDiscounts} of your top 3 campaigns included discounts`,
-      action: 'Launch a limited-time offer with a clear discount (30-50% off)',
-      expectedImpact: 'High revenue potential based on historical performance',
-      priority: 'High',
-    });
-  }
-
-  // Suggestion 2: Target winning segments
-  if (commonSegments.length > 0 && commonSegments[0] !== 'All Subscribers') {
-    suggestions.push({
-      title: `Create campaign targeting ${commonSegments[0]}`,
-      rationale: `This segment appears in ${commonSegments.length} of your top campaigns`,
-      action: `Design personalized content for ${commonSegments[0]} highlighting exclusive benefits`,
-      expectedImpact: 'Higher conversion rates with targeted messaging',
-      priority: 'High',
-    });
-  }
-
-  // Suggestion 3: Replicate winning timing
-  if (commonDays.length > 0 && commonHours.length > 0) {
-    suggestions.push({
-      title: 'Schedule campaign at proven send time',
-      rationale: `Your top campaigns were sent on ${commonDays[0]} around ${commonHours[0]}:00`,
-      action: `Schedule next campaign for ${commonDays[0]} at ${commonHours[0]}:00`,
-      expectedImpact: 'Improved engagement by leveraging proven timing',
-      priority: 'Medium',
-    });
-  }
-
-  // Suggestion 4: Replicate campaign type
-  if (commonTypes.length > 0) {
-    suggestions.push({
-      title: `Create another ${commonTypes[0]} campaign`,
-      rationale: `${commonTypes[0]} campaigns dominate your top performers`,
-      action: `Develop a new ${commonTypes[0]} campaign with fresh creative`,
-      expectedImpact: 'Consistent performance with proven campaign format',
-      priority: 'Medium',
-    });
-  }
-
-  // Suggestion 5: Test variations
-  suggestions.push({
-    title: 'A/B test variations of top performer',
-    rationale: `${top3[0]?.name} was your highest revenue campaign`,
-    action: 'Test different subject lines, discounts, or CTAs with same audience',
-    expectedImpact: 'Optimize already-proven campaign formula',
-    priority: 'Medium',
-  });
-
-  return suggestions;
-}
-
-/**
- * Explain WHY one campaign performs better than another
- */
-function explainPerformanceDifferences(topCampaigns) {
-  if (topCampaigns.length < 2) return [];
-
-  const differences = [];
-  const top = topCampaigns[0];
-  const comparison = topCampaigns[1];
-
-  // Revenue difference
-  const revenueDiff = ((top.revenue - comparison.revenue) / comparison.revenue * 100).toFixed(0);
-  differences.push(`Revenue: ${top.name} earned ${revenueDiff}% more than ${comparison.name}`);
-
-  // Open rate difference
-  if (top.openRate > comparison.openRate) {
-    const openDiff = ((top.openRate - comparison.openRate) / comparison.openRate * 100).toFixed(0);
-    const reasons = [];
-
-    if (top.hasEmoji && !comparison.hasEmoji) reasons.push('uses emoji');
-    if (top.isUrgent && !comparison.isUrgent) reasons.push('creates urgency');
-    if (top.hasDiscount && !comparison.hasDiscount) reasons.push('offers discount');
-
-    differences.push(
-      `Open Rate: ${(top.openRate * 100).toFixed(1)}% vs ${(comparison.openRate * 100).toFixed(1)}% (+${openDiff}%)${reasons.length > 0 ? ` - likely because it ${reasons.join(' and ')}` : ''}`
-    );
-  }
-
-  // Click rate difference
-  if (top.clickRate > comparison.clickRate) {
-    const clickDiff = ((top.clickRate - comparison.clickRate) / comparison.clickRate * 100).toFixed(0);
-    differences.push(
-      `Click Rate: ${(top.clickRate * 100).toFixed(2)}% vs ${(comparison.clickRate * 100).toFixed(2)}% (+${clickDiff}%)`
-    );
-  }
-
-  // Conversion difference
-  if (top.conversionRate > comparison.conversionRate) {
-    const convDiff = ((top.conversionRate - comparison.conversionRate) / comparison.conversionRate * 100).toFixed(0);
-    differences.push(
-      `Conversion Rate: ${(top.conversionRate * 100).toFixed(2)}% vs ${(comparison.conversionRate * 100).toFixed(2)}% (+${convDiff}%)`
-    );
-  }
-
-  // Segment difference
-  if (top.segment !== comparison.segment) {
-    differences.push(`Audience: "${top.segment}" outperforms "${comparison.segment}" - consider focusing on higher-value segments`);
-  }
-
-  // Timing difference
-  if (top.sendDay && comparison.sendDay && top.sendDay !== comparison.sendDay) {
-    differences.push(`Timing: ${top.sendDay} sends outperform ${comparison.sendDay} sends`);
-  }
-
-  return differences;
-}
-
-// ===================================================================
-// CONTENT DETECTION HELPERS
-// ===================================================================
-
-function extractSubjectFromName(name) {
-  // Campaign names often ARE the subject line
-  return name;
-}
-
-function detectCampaignType(name, campaign) {
-  const nameLower = (name || '').toLowerCase();
-  const subject = (campaign.subject_line || name || '').toLowerCase();
-
-  if (nameLower.includes('welcome') || subject.includes('welcome')) return 'welcome';
-  if (nameLower.includes('abandoned') || nameLower.includes('cart')) return 'abandoned_cart';
-  if (nameLower.includes('newsletter') || nameLower.includes('weekly') || nameLower.includes('monthly')) return 'newsletter';
-  if (nameLower.includes('sale') || nameLower.includes('discount') || nameLower.includes('off')) return 'promotional';
-  if (nameLower.includes('new arrival') || nameLower.includes('just in') || nameLower.includes('new collection')) return 'product_launch';
-  if (nameLower.includes('vip') || nameLower.includes('exclusive') || nameLower.includes('early access')) return 'vip';
-  if (nameLower.includes('back in stock') || nameLower.includes('restock')) return 'back_in_stock';
-  if (nameLower.includes('review') || nameLower.includes('feedback')) return 'review_request';
-  if (nameLower.includes('thank you') || nameLower.includes('thanks')) return 'thank_you';
-
-  return 'other';
-}
-
-function detectDiscount(name, subjectLine) {
-  const text = `${name} ${subjectLine}`.toLowerCase();
-  return /\d+%\s*off|save\s+\d+%|discount|sale|\d+%/.test(text);
-}
-
-function extractDiscountAmount(name, subjectLine) {
-  const text = `${name} ${subjectLine}`.toLowerCase();
-  const match = text.match(/(\d+)%/);
-  return match ? parseInt(match[1]) : null;
-}
-
-function detectUrgency(name, subjectLine) {
-  const text = `${name} ${subjectLine}`.toLowerCase();
-  const urgentWords = ['now', 'today', 'tonight', 'hurry', 'last chance', 'ending', 'expires', 'limited', 'final', 'don\'t miss', 'act fast', 'urgent', '24 hour', 'flash'];
-  return urgentWords.some(word => text.includes(word));
-}
-
-function detectEmoji(text) {
-  if (!text) return false;
-  // Simple emoji detection - checks for common emoji ranges
-  const emojiRegex = /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u;
-  return emojiRegex.test(text);
-}
 
 export default AIContext;

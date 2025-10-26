@@ -147,12 +147,6 @@ export default function StoreSelectorEnhanced({ collapsed = false, currentUser }
                                 </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <a href="/permissions" className="flex items-center w-full cursor-pointer hover:bg-sky-tint dark:hover:bg-gray-800">
-                                    <Shield className="mr-2 h-4 w-4 text-neutral-gray" />
-                                    <span className="text-sm">Permissions</span>
-                                </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
                                 <a href="/help" className="flex items-center w-full cursor-pointer hover:bg-sky-tint dark:hover:bg-gray-800">
                                     <HelpCircle className="mr-2 h-4 w-4 text-neutral-gray" />
                                     <span className="text-sm">Help & Support</span>

@@ -140,12 +140,12 @@ export async function GET(request) {
       const messagesQuery = `
         SELECT
           flow_message_id,
-          argMax(flow_message_name, updated_at) as flow_message_name,
+          argMax(flow_message_name, last_updated) as flow_message_name,
           flow_id,
-          argMax(flow_name, updated_at) as flow_name,
+          argMax(flow_name, last_updated) as flow_name,
           klaviyo_public_id,
-          argMax(send_channel, updated_at) as send_channel,
-          argMax(tag_names, updated_at) as tag_names,
+          argMax(send_channel, last_updated) as send_channel,
+          argMax(tag_names, last_updated) as tag_names,
           SUM(recipients) as total_recipients,
           SUM(delivered) as total_delivered,
           SUM(opens_unique) as total_opens,
@@ -157,7 +157,7 @@ export async function GET(request) {
           MIN(date) as first_send_date,
           MAX(date) as last_send_date,
           COUNT(DISTINCT date) as active_days
-        FROM flow_statistics
+        FROM flow_statistics_latest
         WHERE ${whereClause}
           AND flow_message_id != ''
         GROUP BY flow_message_id, flow_id, klaviyo_public_id
@@ -256,15 +256,15 @@ export async function GET(request) {
     const flowsQuery = `
       SELECT
         flow_id,
-        argMax(flow_name, updated_at) as flow_name,
+        argMax(flow_name, last_updated) as flow_name,
         klaviyo_public_id,
-        argMax(send_channel, updated_at) as send_channel,
+        argMax(send_channel, last_updated) as send_channel,
         COUNT(DISTINCT date) as active_days,
         MIN(date) as first_activity,
         MAX(date) as last_activity,
         SUM(recipients) as total_recipients_all_time,
         SUM(conversion_value) as total_revenue_all_time
-      FROM flow_statistics
+      FROM flow_statistics_latest
       WHERE ${whereClause}
       GROUP BY flow_id, klaviyo_public_id
       ORDER BY total_revenue_all_time DESC
@@ -297,7 +297,7 @@ export async function GET(request) {
         conversion_rate,
         bounce_rate,
         unsubscribe_rate
-      FROM flow_statistics
+      FROM flow_statistics_latest
       WHERE ${whereClause}
       ORDER BY date DESC, flow_name
     `;
@@ -314,7 +314,7 @@ export async function GET(request) {
         SUM(conversion_value) as total_revenue,
         SUM(bounced) as total_bounced,
         SUM(unsubscribe_uniques) as total_unsubscribes
-      FROM flow_statistics
+      FROM flow_statistics_latest
       WHERE ${whereClause}
     `;
 

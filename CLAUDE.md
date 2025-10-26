@@ -99,6 +99,133 @@ export async function GET(request) {
 }
 ```
 
+## 🔐 CRITICAL: Auth.js v5 Authentication
+
+### **IMPORTANT: This project uses Auth.js v5 (NOT NextAuth v4)**
+
+**The application has been migrated to Auth.js v5. Always use the new authentication patterns:**
+
+### ✅ CORRECT - Auth.js v5 Pattern
+
+```javascript
+// ✅ CORRECT - Import from @/lib/auth
+import { auth } from '@/lib/auth';
+import connectToDatabase from '@/lib/mongoose';
+import User from '@/models/User';
+
+export async function GET(request) {
+  // Get session using auth() function
+  const session = await auth();
+
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  await connectToDatabase();
+  const user = await User.findOne({ email: session.user.email });
+
+  // Your logic here...
+}
+```
+
+### ❌ WRONG - NextAuth v4 (Deprecated)
+
+```javascript
+// ❌ WRONG - Don't use next-auth/next (deprecated)
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+
+export async function GET(request) {
+  const session = await getServerSession(authOptions);  // DEPRECATED!
+  // ...
+}
+```
+
+### Key Migration Points
+
+1. **Import Path Changed**:
+   - ❌ OLD: `import { getServerSession } from 'next-auth/next'`
+   - ✅ NEW: `import { auth } from '@/lib/auth'`
+
+2. **No authOptions Needed**:
+   - ❌ OLD: `await getServerSession(authOptions)`
+   - ✅ NEW: `await auth()`
+
+3. **Works Everywhere**:
+   - ✅ Server Components
+   - ✅ API Routes
+   - ✅ Server Actions
+   - ✅ Middleware
+
+4. **Compatibility Layer**:
+   - The `/lib/auth.js` file provides a compatibility layer
+   - Old `getServerSession` calls will show deprecation warnings
+   - Always use `auth()` directly for new code
+
+### Migration Checklist
+
+When writing new API routes or server components:
+- [ ] Import `auth` from `@/lib/auth` (NOT from `next-auth/next`)
+- [ ] Call `await auth()` to get session (NO parameters needed)
+- [ ] Do NOT import or use `authOptions`
+- [ ] Do NOT import from `next-auth/next`
+
+### Example API Route
+
+```javascript
+import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import connectToDatabase from '@/lib/mongoose';
+import User from '@/models/User';
+
+export async function POST(request) {
+  try {
+    // ✅ CORRECT - Auth.js v5
+    const session = await auth();
+
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Your API logic here...
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+```
+
+### Sign In/Sign Out
+
+```javascript
+// Server-side sign in/out (if needed)
+import { signIn, signOut } from '@/lib/auth';
+
+// Sign in programmatically
+await signIn('credentials', { email, password });
+
+// Sign out programmatically
+await signOut();
+```
+
+### Important Notes
+
+- **NEVER import from `next-auth/next`** - this is deprecated
+- **ALWAYS use `auth()` from `@/lib/auth`** for session management
+- The migration is complete across all API routes
+- All `/app/api/ai/*` routes have been updated to Auth.js v5
+- If you see deprecation warnings about NextAuth v4, update the code immediately
+
 ## Project Overview
 This is a modern web application built with Next.js, React, and Tailwind CSS. The project follows a specific design system and coding standards that must be maintained.
 
@@ -530,27 +657,28 @@ klaviyo_integration: {
 **All superuser functionality should use `/api/superuser/*` endpoints with simplified authentication:**
 
 ```javascript
-// ✅ CORRECT - Superuser API pattern
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import connectToDatabase from "@/lib/mongoose";
-import User from "@/models/User";
+// ✅ CORRECT - Superuser API pattern (Auth.js v5)
+import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import connectToDatabase from '@/lib/mongoose';
+import User from '@/models/User';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    // ✅ CORRECT - Use auth() from Auth.js v5
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToDatabase();
-    
+
     // Simple superuser check - ignore complex roles/permissions
     const user = await User.findOne({ email: session.user.email });
-    
+
     if (!user?.is_super_user) {
-      return NextResponse.json({ 
-        error: "Superuser access required" 
+      return NextResponse.json({
+        error: "Superuser access required"
       }, { status: 403 });
     }
 
@@ -560,7 +688,7 @@ export async function GET(request) {
   } catch (error) {
     console.error('Superuser API error:', error);
     return NextResponse.json(
-      { error: "Internal server error" }, 
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

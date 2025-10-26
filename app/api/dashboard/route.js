@@ -205,10 +205,36 @@ export async function GET(request) {
   } catch (error) {
     console.error('Dashboard API Error:', {
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      code: error.code
     });
+
+    // Provide more specific error messages
+    let errorMessage = 'Failed to fetch dashboard data';
+    let errorDetails = error.message;
+
+    // Check for ClickHouse-specific errors
+    if (error.message?.includes('Table') && error.message?.includes('not exist')) {
+      errorMessage = 'ClickHouse tables missing';
+      errorDetails = 'The required ClickHouse tables (account_metrics_daily) do not exist. Please run the table creation scripts or sync your data.';
+    } else if (error.message?.includes('UNKNOWN_TABLE')) {
+      errorMessage = 'ClickHouse table not found';
+      errorDetails = 'The account_metrics_daily table was not found in ClickHouse. You may need to recreate the tables.';
+    } else if (error.message?.includes('Connection') || error.code === 'ECONNREFUSED') {
+      errorMessage = 'ClickHouse connection failed';
+      errorDetails = 'Cannot connect to ClickHouse database. Please check if ClickHouse is running.';
+    } else if (error.message?.includes('Syntax error')) {
+      errorMessage = 'ClickHouse query error';
+      errorDetails = `SQL syntax error in ClickHouse query: ${error.message}`;
+    }
+
     return NextResponse.json(
-      { error: 'Failed to fetch dashboard data', details: error.message },
+      {
+        error: errorMessage,
+        details: errorDetails,
+        technicalDetails: error.message,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }
@@ -245,7 +271,7 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
           sum(new_customers) as new_customers,
           sum(returning_customers) as returning_customers,
           avg(avg_order_value) as avg_order_value
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoIdList})
           AND date >= '${currentStart}'
           AND date <= '${currentEnd}'
@@ -259,7 +285,7 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
           sum(new_customers) as new_customers,
           sum(returning_customers) as returning_customers,
           avg(avg_order_value) as avg_order_value
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id IN (${klaviyoIdList})
           ${compareStart && compareEnd ? `AND date >= '${compareStart}' AND date <= '${compareEnd}'` : 'AND 0=1'}
       )
@@ -296,9 +322,12 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
            ((c.new_customers - p.new_customers) * 100.0 / p.new_customers),
            if(c.new_customers > 0, 999999, 0)) as new_customers_change,
 
-        -- Debug: Return comparison period values to verify
+        -- Previous period values for accurate UI display
         p.total_revenue as prev_total_revenue,
-        p.attributed_revenue as prev_attributed_revenue
+        p.attributed_revenue as prev_attributed_revenue,
+        p.total_orders as prev_total_orders,
+        p.unique_customers as prev_unique_customers,
+        p.avg_order_value as prev_avg_order_value
       FROM current_period c
       LEFT JOIN comparison_period p ON 1=1
     `;
@@ -326,7 +355,7 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
         if(sum(email_delivered) > 0, (sum(email_opens) * 100.0 / sum(email_delivered)), 0) as openRate,
         if(sum(email_delivered) > 0, (sum(email_clicks) * 100.0 / sum(email_delivered)), 0) as clickRate,
         0 as conversionRate
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id IN (${klaviyoIdList})
         AND date >= '${currentStart}'
         AND date <= '${currentEnd}'
@@ -358,7 +387,7 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
         if(sum(email_delivered) > 0, (sum(email_opens) * 100.0 / sum(email_delivered)), 0) as openRate,
         if(sum(email_delivered) > 0, (sum(email_clicks) * 100.0 / sum(email_delivered)), 0) as clickRate,
         0 as conversionRate
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id IN (${klaviyoIdList})
         AND date >= '${currentStart}'
         AND date <= '${currentEnd}'
@@ -377,7 +406,7 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
         avg(avg_order_value) as avgOrderValue,
         if(sum(email_delivered) > 0, (sum(email_opens) * 100.0 / sum(email_delivered)), 0) as openRate,
         if(sum(email_delivered) > 0, (sum(email_clicks) * 100.0 / sum(email_delivered)), 0) as clickRate
-      FROM account_metrics_daily
+      FROM account_metrics_daily_latest
       WHERE klaviyo_public_id IN (${klaviyoIdList})
         AND date >= '${currentStart}'
         AND date <= '${currentEnd}'
@@ -389,10 +418,22 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
     // Execute all queries in parallel
     console.log('🚀 Executing ClickHouse queries...');
     const [summaryResult, timeSeriesResult, timeSeriesByAccountResult, byAccountResult] = await Promise.all([
-      client.query({ query: summaryQuery, format: 'JSONEachRow' }),
-      client.query({ query: timeSeriesQuery, format: 'JSONEachRow' }),
-      client.query({ query: timeSeriesByAccountQuery, format: 'JSONEachRow' }),
-      client.query({ query: byAccountQuery, format: 'JSONEachRow' })
+      client.query({ query: summaryQuery, format: 'JSONEachRow' }).catch(err => {
+        console.error('❌ Summary query failed:', err.message);
+        throw new Error(`Summary query failed: ${err.message}`);
+      }),
+      client.query({ query: timeSeriesQuery, format: 'JSONEachRow' }).catch(err => {
+        console.error('❌ Time series query failed:', err.message);
+        throw new Error(`Time series query failed: ${err.message}`);
+      }),
+      client.query({ query: timeSeriesByAccountQuery, format: 'JSONEachRow' }).catch(err => {
+        console.error('❌ Time series by account query failed:', err.message);
+        throw new Error(`Time series by account query failed: ${err.message}`);
+      }),
+      client.query({ query: byAccountQuery, format: 'JSONEachRow' }).catch(err => {
+        console.error('❌ By account query failed:', err.message);
+        throw new Error(`By account query failed: ${err.message}`);
+      })
     ]);
 
     // Parse results
@@ -483,7 +524,13 @@ async function fetchDashboardData(klaviyoPublicIds, stores, dateRange, compariso
         ordersChange: parseFloat(summary.orders_change) || 0,
         customersChange: parseFloat(summary.customers_change) || 0,
         aovChange: parseFloat(summary.aov_change) || 0,
-        newCustomersChange: parseFloat(summary.new_customers_change) || 0
+        newCustomersChange: parseFloat(summary.new_customers_change) || 0,
+        // Previous period values (for accurate display)
+        prevTotalRevenue: parseFloat(summary.prev_total_revenue) || 0,
+        prevAttributedRevenue: parseFloat(summary.prev_attributed_revenue) || 0,
+        prevTotalOrders: parseInt(summary.prev_total_orders) || 0,
+        prevUniqueCustomers: parseInt(summary.prev_unique_customers) || 0,
+        prevAvgOrderValue: parseFloat(summary.prev_avg_order_value) || 0
       },
       timeSeries: timeSeries.map(row => ({
         date: row.date,

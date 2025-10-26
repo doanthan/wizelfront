@@ -100,7 +100,7 @@ export const GET = withStoreAccess(async (request, context) => {
       // Test query to check if data exists
       const testQuery = `
         SELECT count() as row_count
-        FROM account_metrics_daily
+        FROM account_metrics_daily_latest
         WHERE klaviyo_public_id = {klaviyoId:String}
       `;
 
@@ -127,8 +127,8 @@ export const GET = withStoreAccess(async (request, context) => {
         WITH latest_daily_metrics AS (
           SELECT
             date,
-            argMax(total_revenue, updated_at) as total_revenue
-          FROM account_metrics_daily
+            argMax(total_revenue, last_updated) as total_revenue
+          FROM account_metrics_daily_latest
           WHERE klaviyo_public_id = {klaviyoId:String}
             AND date >= {startDate:String}
             AND date <= {endDate:String}
@@ -364,8 +364,8 @@ async function generateAttributedRevenueTimeSeries(collection, klaviyoPublicId, 
   const dailyRevenueQuery = `
     SELECT
       date,
-      argMax(total_revenue, updated_at) as total_revenue
-    FROM account_metrics_daily
+      argMax(total_revenue, last_updated) as total_revenue
+    FROM account_metrics_daily_latest
     WHERE klaviyo_public_id = {klaviyoId:String}
       AND date >= {startDate:String}
       AND date <= {endDate:String}

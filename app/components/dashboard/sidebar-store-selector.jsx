@@ -88,70 +88,10 @@ export default function SidebarStoreSelector({
   
   return (
     <div className="border-b border-gray-200 dark:border-gray-700">
-      {/* Header */}
-      <div className="px-3 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Store className="h-3.5 w-3.5 text-gray-500" />
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-            Quick Access
-          </span>
-        </div>
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-          {stores.length}
-        </Badge>
-      </div>
-      
-      {/* Recent/Top 4 Stores - Always Visible */}
-      <div className="px-2 pb-1">
-        {displayStores.length > 0 ? displayStores.map((store) => {
-          const storeId = store.public_id || store._id;
-          const isSelected = effectiveSelectedId === storeId;
-          
-          return (
-            <div
-              key={storeId}
-              className={cn(
-                "px-2 py-1.5 mb-1 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group",
-                isSelected && "bg-sky-50 dark:bg-sky-900/20"
-              )}
-              onClick={() => handleStoreClick(storeId)}
-            >
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center flex-shrink-0",
-                  isSelected 
-                    ? "bg-gradient-to-r from-sky-blue to-vivid-violet text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-500"
-                )}>
-                  {store.name?.substring(0, 2).toUpperCase() || 'ST'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    "text-xs font-medium truncate",
-                    isSelected ? "text-sky-blue" : "text-gray-700 dark:text-gray-200"
-                  )}>
-                    {store.name}
-                  </p>
-                </div>
-                {isSelected ? (
-                  <CheckCircle className="h-3 w-3 text-sky-blue flex-shrink-0" />
-                ) : (
-                  <ChevronRight className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                )}
-              </div>
-            </div>
-          );
-        }) : (
-          <p className="text-xs text-gray-500 text-center py-2">
-            No stores available
-          </p>
-        )}
-      </div>
-      
-      {/* Search & Browse All - For more than 4 stores */}
-      {stores.length > 4 && (
+      {/* Search & Browse All */}
+      {stores.length > 0 && (
         <>
-          <div className="px-2 pb-2 border-t border-gray-100 dark:border-gray-800">
+          <div className="px-2 pb-2 pt-2">
             <div className="relative mt-1.5">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
               <Input

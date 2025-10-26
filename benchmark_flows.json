@@ -1,0 +1,401 @@
+[
+  {
+    "vertical": "overall_baseline",
+    "display_name": "Overall Baseline (All Industries)",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "baseline",
+    "campaigns": {
+      "openRate": {
+        "median": 40.14,
+        "range": [37.93, 42.35],
+        "top10": 54.78,
+        "note": "Average across all industries"
+      },
+      "clickRate": {
+        "median": 1.65,
+        "range": [1.29, 2.00],
+        "top10": 4.74,
+        "note": "Most accurate engagement metric (not affected by Apple MPP)"
+      },
+      "ctor": {
+        "median": 5.63,
+        "top10": 12.0,
+        "note": "Click-to-open rate shows content engagement"
+      },
+      "conversionRate": {
+        "median": 1.75,
+        "range": [1.5, 2.0],
+        "top10": 4.5
+      },
+      "unsubscribeRate": {
+        "median": 0.08,
+        "note": "Very low - indicates healthy email marketing practices"
+      }
+    },
+    "flows": {
+      "overall": {
+        "openRate": {
+          "median": 48.57,
+          "top10": 65.74,
+          "note": "Flows have 20-25% higher open rates than campaigns"
+        },
+        "clickRate": {
+          "median": 4.67,
+          "top10": 12.21,
+          "note": "Flows have 3-4x higher click rates than campaigns"
+        }
+      }
+    },
+    "sms": {
+      "clickRate": {
+        "median": 4.0,
+        "range": [3, 5],
+        "top10": 12.0
+      },
+      "rpr": {
+        "median": 0.12,
+        "note": "Slightly higher than email campaigns ($0.10-$0.11)",
+        "top10": 0.84
+      },
+      "top10_multiplier": "7x average RPR for top 10%"
+    },
+    "key_insights": [
+      "Flows generate 30x more RPR than campaigns ($3.07 vs $0.10)",
+      "Top 10% campaigns achieve 5x better order rates and 7x better RPR",
+      "Highly segmented campaigns (< 5% of list) perform 2-3x better",
+      "Mobile accounts for 55% of email opens in 2025",
+      "Personalization can increase CTR by up to 39%",
+      "Apple Mail Privacy Protection inflates open rates - focus on click metrics"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "Klaviyo 2025 Benchmark Report, MailerLite 2025 Benchmarks",
+    "sample_size": "167,000+ Klaviyo customers, 155,000+ MailerLite accounts"
+  },
+  {
+    "vertical": "flow_abandoned_cart",
+    "display_name": "Abandoned Cart Flow (Cross-Industry)",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "automated_flows",
+    "flow_type": "abandoned_cart",
+    "metrics": {
+      "openRate": {
+        "median": 50.0,
+        "range": [48, 52],
+        "top10": 68.0,
+        "industryLeader": {
+          "vertical": "Food & Beverage",
+          "value": 52.16
+        }
+      },
+      "clickRate": {
+        "median": 6.5,
+        "range": [6, 7],
+        "top10": 12.0
+      },
+      "conversionRate": {
+        "median": 3.4,
+        "range": [3.0, 3.7],
+        "top10": 6.5
+      },
+      "rpr": {
+        "median": 3.65,
+        "top10": 28.89,
+        "currency": "USD",
+        "note": "RPR scales with AOV",
+        "byAOVRange": {
+          "under_50": {
+            "median": 1.5,
+            "top10": 8.0
+          },
+          "50_to_100": {
+            "median": 3.5,
+            "top10": 15.0
+          },
+          "100_to_200": {
+            "median": 7.01,
+            "top10": 25.0
+          },
+          "over_200": {
+            "median": 14.14,
+            "top10": 50.0
+          }
+        },
+        "industryLeaders": {
+          "hardware_home_improvement": {
+            "median": 10.0,
+            "top10": 75.66,
+            "note": "Highest across all industries"
+          },
+          "automotive": {
+            "median": 10.0,
+            "top10": 62.5
+          },
+          "home_garden": {
+            "median": 6.0,
+            "top10": 50.0
+          },
+          "electronics": {
+            "median": 6.0,
+            "top10": 42.5
+          }
+        }
+      }
+    },
+    "bestPractices": {
+      "emailSequence": {
+        "standard": "3 emails",
+        "timing": [
+          {
+            "email": 1,
+            "delay": "2-4 hours",
+            "purpose": "Simple reminder while interest is fresh"
+          },
+          {
+            "email": 2,
+            "delay": "24 hours",
+            "purpose": "Different subject line, product info/reviews"
+          },
+          {
+            "email": 3,
+            "delay": "48-72 hours",
+            "purpose": "Last chance with time-sensitive incentive (for first-time customers)"
+          }
+        ]
+      },
+      "industryStats": {
+        "cartAbandonmentRate": 0.70,
+        "note": "~70% of shopping carts are abandoned"
+      },
+      "recoveryPotential": {
+        "aov_100_to_500": {
+          "recoveryRate": 0.05,
+          "note": "Can recover up to 5% of abandoned carts"
+        }
+      }
+    },
+    "insights": [
+      "Highest-performing flow type by RPR",
+      "Least disparity between average and top 10% performers",
+      "Intent is highest - customers added items to cart",
+      "RPR directly linked to average order value (AOV)",
+      "Social proof (reviews) in emails increases conversion",
+      "Conditional splits for high-value carts can trigger personal outreach"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "Klaviyo 2025 Benchmark Report, Klaviyo Abandoned Cart Benchmark Report",
+    "sample_size": "167,000+ customers"
+  },
+  {
+    "vertical": "flow_welcome_series",
+    "display_name": "Welcome Series Flow (Cross-Industry)",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "automated_flows",
+    "flow_type": "welcome",
+    "metrics": {
+      "openRate": {
+        "median": 51.5,
+        "range": [48, 55],
+        "top10": 68.0,
+        "b2c": {
+          "median": 60.0,
+          "note": "B2C welcome emails boast 60%+ open rates"
+        }
+      },
+      "rpr": {
+        "median": 2.65,
+        "top10": 8.5,
+        "currency": "USD",
+        "byAOVRange": {
+          "100_to_200": {
+            "median": 3.34
+          }
+        }
+      }
+    },
+    "bestPractices": {
+      "emailSequence": {
+        "standard": "2-4 emails",
+        "purpose": "Brand introduction, education, first purchase incentive"
+      },
+      "timing": "Highest engagement opportunity - send immediately after signup"
+    },
+    "insights": [
+      "Second highest RPR after abandoned cart ($2.65)",
+      "First opportunity to connect with subscribers",
+      "Storytelling about brand mission performs well",
+      "Break into series (2-4 emails) vs single welcome email",
+      "Discount on first purchase vs educational content - test both approaches",
+      "Set expectations for email frequency"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers"
+  },
+  {
+    "vertical": "flow_browse_abandonment",
+    "display_name": "Browse Abandonment Flow (Cross-Industry)",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "automated_flows",
+    "flow_type": "browse_abandonment",
+    "metrics": {
+      "rpr": {
+        "median": 1.07,
+        "top10": 3.5,
+        "currency": "USD",
+        "byAOVRange": {
+          "100_to_200": {
+            "median": 1.95
+          }
+        }
+      }
+    },
+    "bestPractices": {
+      "trigger": "Viewed product but did not add to cart",
+      "intent": "Lower than abandoned cart but valuable touchpoint"
+    },
+    "insights": [
+      "Third highest RPR among flows ($1.07)",
+      "Lower customer intent than cart abandonment",
+      "Lighter touchpoint for early-stage interest",
+      "Product FAQs and information can nudge toward purchase",
+      "Works well for high-margin products"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers"
+  },
+  {
+    "vertical": "flow_post_purchase",
+    "display_name": "Post-Purchase Flow (Cross-Industry)",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "automated_flows",
+    "flow_type": "post_purchase",
+    "metrics": {
+      "rpr": {
+        "median": 1.2,
+        "top10": 4.0,
+        "currency": "USD",
+        "note": "Varies significantly by AOV and vertical"
+      }
+    },
+    "bestPractices": {
+      "purpose": "Order updates, cross-sells, replenishment reminders, loyalty building",
+      "critical_for": "retention and repeat purchase"
+    },
+    "insights": [
+      "Critical for customer lifecycle and retention",
+      "Keeping customers informed builds trust",
+      "Replenishment reminders work well for consumables",
+      "Cross-sell related products based on purchase",
+      "Request reviews after product received"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers"
+  },
+  {
+    "vertical": "flow_winback",
+    "display_name": "Winback Flow (Cross-Industry)",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "automated_flows",
+    "flow_type": "winback",
+    "metrics": {
+      "rpr": {
+        "median": 0.84,
+        "top10": 2.5,
+        "currency": "USD",
+        "byAOVRange": {
+          "100_to_200": {
+            "median": 0.84
+          }
+        }
+      }
+    },
+    "bestPractices": {
+      "trigger": "Customer hasn't purchased in X months",
+      "purpose": "Re-engage dormant customers",
+      "timing": "Varies by business - typically 3-6 months for most verticals"
+    },
+    "insights": [
+      "Lower RPR but cost-effective re-engagement",
+      "Special offers and 'we miss you' messaging",
+      "Survey about why they stopped buying can provide insights",
+      "Timing varies significantly by product repurchase cycle"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "Klaviyo 2025 Benchmark Report",
+    "sample_size": "167,000+ customers"
+  },
+  {
+    "vertical": "overall_regional_benchmarks",
+    "display_name": "Regional Benchmarks",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "regional",
+    "regions": {
+      "australia": {
+        "openRate": 46.34,
+        "clickRate": 2.35,
+        "ctor": 5.77,
+        "unsubscribeRate": 0.13,
+        "note": "Highest open and click rates globally"
+      },
+      "north_america": {
+        "openRate": 42.0,
+        "clickRate": 2.1,
+        "ctor": 5.5,
+        "note": "High campaign performance overall"
+      },
+      "europe": {
+        "openRate": 43.5,
+        "clickRate": 2.0,
+        "ctor": 5.8,
+        "note": "Strong email performance continent"
+      },
+      "poland": {
+        "ctor": 6.90,
+        "note": "Highest CTOR globally"
+      },
+      "latam": {
+        "openRate": 30.67,
+        "clickRate": 1.09,
+        "ctor": 4.5,
+        "note": "Lowest performance globally"
+      },
+      "africa": {
+        "ctor": 4.06,
+        "unsubscribeRate": 0.00,
+        "note": "Lowest CTOR, lowest unsubscribe rate"
+      }
+    },
+    "insights": [
+      "Australia leads in both open rates (46.34%) and click rates (2.35%)",
+      "Europe and North America show consistently strong performance",
+      "LATAM has lowest engagement - may indicate infrastructure or inbox competition issues",
+      "Regional optimization critical for global brands"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts, 3.3M+ campaigns"
+  }
+]

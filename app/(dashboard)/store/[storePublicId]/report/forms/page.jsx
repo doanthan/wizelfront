@@ -40,7 +40,7 @@ const COLORS = ['#60A5FA', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4'
 export default function StoreFormsReportPage() {
   const router = useRouter();
   const params = useParams();
-  const { stores } = useStores();
+  const { stores, selectStore } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -104,6 +104,9 @@ export default function StoreFormsReportPage() {
   // Handle store selection change
   const handleStoreChange = (newStoreId) => {
     if (newStoreId && newStoreId !== storePublicId) {
+      // Update the store context to synchronize with sidebar
+      selectStore(newStoreId);
+      // Navigate to the new store's report page
       router.push(`/store/${newStoreId}/report/forms`);
     }
   };

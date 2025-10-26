@@ -85,12 +85,14 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
           try {
             const syncPayload = {
               klaviyo_public_id: store.klaviyo_integration.public_id,
-              force_full:true,
               do_not_order_sync: !isShopifyPlacedOrder,
               env: process.env.NODE_ENV
             };
 
             console.log("Triggering report server sync:", syncPayload);
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
             await fetch(`${reportServerUrl}/api/v2/reports/full_sync`, {
               method: 'POST',
@@ -98,10 +100,15 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${reportServerKey}`
               },
-              body: JSON.stringify(syncPayload)
-            });
+              body: JSON.stringify(syncPayload),
+              signal: controller.signal
+            }).finally(() => clearTimeout(timeoutId));
           } catch (error) {
-            console.error("Report server sync error (non-blocking):", error);
+            if (error.name === 'AbortError') {
+              console.warn("Report server sync timed out after 10 seconds (non-blocking, sync will continue in background)");
+            } else {
+              console.error("Report server sync error (non-blocking):", error);
+            }
           }
         })();
       }
@@ -400,14 +407,18 @@ export const POST = withStoreAccess(async (request, context) => {
               ...syncPayload
             });
             
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
             const response = await fetch(`${reportServerUrl}/api/v2/reports/full_sync`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${reportServerKey}`
               },
-              body: JSON.stringify(syncPayload)
-            });
+              body: JSON.stringify(syncPayload),
+              signal: controller.signal
+            }).finally(() => clearTimeout(timeoutId));
             
             if (!response.ok) {
               const errorText = await response.text();
@@ -417,7 +428,11 @@ export const POST = withStoreAccess(async (request, context) => {
               console.log("Report server sync initiated successfully:", result);
             }
           } catch (error) {
-            console.error("Error triggering report server sync:", error.message, error.stack);
+            if (error.name === 'AbortError') {
+              console.warn("Report server sync timed out after 10 seconds (non-blocking, sync will continue in background)");
+            } else {
+              console.error("Error triggering report server sync:", error.message, error.stack);
+            }
           }
         })();
       }

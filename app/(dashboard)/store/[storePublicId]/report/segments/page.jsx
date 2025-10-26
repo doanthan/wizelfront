@@ -6,7 +6,8 @@ import { useStores } from "@/app/contexts/store-context";
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
 import { useTheme } from "@/app/contexts/theme-context";
 import { Button } from "@/app/components/ui/button";
-import { Sun, Moon, Store, ArrowUpDown } from "lucide-react";
+import { Input } from "@/app/components/ui/input";
+import { Sun, Moon, Store, ArrowUpDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils';
 import MorphingLoader from '@/app/components/ui/loading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -51,7 +52,7 @@ const COLORS = [
 export default function StoreSegmentsReportPage() {
   const router = useRouter();
   const params = useParams();
-  const { stores, isLoadingStores } = useStores();
+  const { stores, isLoadingStores, selectStore } = useStores();
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,9 @@ export default function StoreSegmentsReportPage() {
   const [storePublicId, setStorePublicId] = useState(null);
   const [sortColumn, setSortColumn] = useState('current_members');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   // Get storePublicId from params
   useEffect(() => {
@@ -114,6 +118,9 @@ export default function StoreSegmentsReportPage() {
   // Handle store selection change
   const handleStoreChange = (newStoreId) => {
     if (newStoreId && newStoreId !== storePublicId) {
+      // Update the store context to synchronize with sidebar
+      selectStore(newStoreId);
+      // Navigate to the new store's report page
       router.push(`/store/${newStoreId}/report/segments`);
     }
   };
@@ -161,11 +168,21 @@ export default function StoreSegmentsReportPage() {
     }
   };
 
-  // Sort segments
-  const sortedSegments = useMemo(() => {
+  // Filter and sort segments
+  const filteredAndSortedSegments = useMemo(() => {
     if (!segmentsData?.segments) return [];
 
-    return [...segmentsData.segments].sort((a, b) => {
+    // Filter by search term
+    let filtered = segmentsData.segments;
+    if (searchTerm.trim()) {
+      const lowerSearch = searchTerm.toLowerCase().trim();
+      filtered = segmentsData.segments.filter(segment =>
+        segment.segment_name?.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    // Sort
+    return [...filtered].sort((a, b) => {
       let aVal = a[sortColumn];
       let bVal = b[sortColumn];
 
@@ -183,7 +200,24 @@ export default function StoreSegmentsReportPage() {
       bVal = bVal || 0;
       return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
     });
-  }, [segmentsData, sortColumn, sortDirection]);
+  }, [segmentsData, sortColumn, sortDirection, searchTerm]);
+
+  // Paginate segments
+  const paginatedSegments = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedSegments.slice(startIndex, endIndex);
+  }, [filteredAndSortedSegments, currentPage]);
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(filteredAndSortedSegments.length / itemsPerPage);
+  const startItem = filteredAndSortedSegments.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, filteredAndSortedSegments.length);
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Calculate metric changes
   const getPercentageChange = (current, previous) => {
@@ -305,8 +339,22 @@ export default function StoreSegmentsReportPage() {
           {/* Segment Details Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Segment Details</CardTitle>
-              <CardDescription>Click column headers to sort</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Segment Details</CardTitle>
+                  <CardDescription>Click column headers to sort</CardDescription>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search segments..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 h-9 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="w-full overflow-x-auto">
@@ -321,31 +369,100 @@ export default function StoreSegmentsReportPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedSegments.map((segment, idx) => (
-                      <TableRow key={idx} className="text-sm">
-                        <TableCell className="font-medium text-gray-900 dark:text-white py-2">
-                          {segment.segment_name}
-                        </TableCell>
-                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
-                          {formatNumber(segment.current_members)}
-                        </TableCell>
-                        <TableCell className="text-right py-2">
-                          <div className={`flex items-center justify-end ${segment.growth > 0 ? 'text-green-600 dark:text-green-500' : segment.growth < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600'}`}>
-                            {segment.growth > 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : segment.growth < 0 ? <ArrowDown className="h-3 w-3 mr-1" /> : null}
-                            {formatPercentage(Math.abs(segment.growth))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
-                          {formatNumber(segment.new_members)}
-                        </TableCell>
-                        <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
-                          {formatNumber(segment.removed_members)}
+                    {paginatedSegments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                          {searchTerm ? `No segments found matching "${searchTerm}"` : 'No segments available'}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      paginatedSegments.map((segment, idx) => (
+                        <TableRow key={idx} className="text-sm">
+                          <TableCell className="font-medium text-gray-900 dark:text-white py-2">
+                            {segment.segment_name}
+                          </TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                            {formatNumber(segment.current_members)}
+                          </TableCell>
+                          <TableCell className="text-right py-2">
+                            <div className={`flex items-center justify-end ${segment.growth > 0 ? 'text-green-600 dark:text-green-500' : segment.growth < 0 ? 'text-red-600 dark:text-red-500' : 'text-gray-600'}`}>
+                              {segment.growth > 0 ? <ArrowUp className="h-3 w-3 mr-1" /> : segment.growth < 0 ? <ArrowDown className="h-3 w-3 mr-1" /> : null}
+                              {formatPercentage(Math.abs(segment.growth))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                            {formatNumber(segment.new_members)}
+                          </TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100 py-2">
+                            {formatNumber(segment.removed_members)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Pagination Controls */}
+              {filteredAndSortedSegments.length > 0 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Showing {startItem}-{endItem} of {filteredAndSortedSegments.length} segments
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="h-8"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // Show first page, last page, current page, and pages around current
+                          return page === 1 ||
+                                 page === totalPages ||
+                                 Math.abs(page - currentPage) <= 1;
+                        })
+                        .map((page, idx, arr) => {
+                          // Add ellipsis if there's a gap
+                          const prevPage = arr[idx - 1];
+                          const showEllipsis = prevPage && page - prevPage > 1;
+
+                          return (
+                            <div key={page} className="flex items-center">
+                              {showEllipsis && (
+                                <span className="px-2 text-gray-400">...</span>
+                              )}
+                              <Button
+                                variant={currentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCurrentPage(page)}
+                                className="h-8 w-8 p-0"
+                              >
+                                {page}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="h-8"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -382,7 +499,7 @@ export default function StoreSegmentsReportPage() {
                       wrapperClassName="[&_*]:dark:!bg-gray-900 [&_*]:dark:!border-gray-700 [&_*]:dark:!text-gray-100"
                     />
                     <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                    {segmentsData.segments.slice(0, 10).map((segment, idx) => (
+                    {filteredAndSortedSegments.slice(0, 10).map((segment, idx) => (
                       <Line
                         key={segment.segment_id}
                         type="monotone"
@@ -407,7 +524,7 @@ export default function StoreSegmentsReportPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={sortedSegments.slice(0, 15)}>
+                <BarChart data={filteredAndSortedSegments.slice(0, 15)}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                   <XAxis
                     dataKey="segment_name"
@@ -436,7 +553,7 @@ export default function StoreSegmentsReportPage() {
                     name="Current Members"
                     radius={[8, 8, 0, 0]}
                   >
-                    {sortedSegments.slice(0, 15).map((entry, index) => (
+                    {filteredAndSortedSegments.slice(0, 15).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Bar>

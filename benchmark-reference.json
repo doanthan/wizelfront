@@ -1,0 +1,738 @@
+{
+  "total": 59,
+  "updated": "2025-10-24T20:20:09.886Z",
+  "categories": {
+    "b2b": [
+      {
+        "_id": "68fbddc2fb1414dc051f8671",
+        "vertical": "agency_marketing_consulting",
+        "category": "b2b",
+        "display_name": "Agency, Marketing, and Consulting"
+      },
+      {
+        "_id": "68fbddc4fb1414dc051f8679",
+        "vertical": "software_saas",
+        "category": "b2b",
+        "display_name": "Software and SaaS"
+      }
+    ],
+    "ecommerce": [
+      {
+        "_id": "68fbddc6fb1414dc051f867f",
+        "vertical": "ecommerce_activewear",
+        "category": "ecommerce",
+        "display_name": "Activewear"
+      },
+      {
+        "_id": "68fbddbffb1414dc051f8666",
+        "vertical": "e-commerce_health_beauty_beauty_&_cosmetics",
+        "category": "ecommerce",
+        "display_name": "Beauty & Cosmetics"
+      },
+      {
+        "_id": "68fbddcbfb1414dc051f8691",
+        "vertical": "ecommerce_dental_products",
+        "category": "ecommerce",
+        "display_name": "Dental Products"
+      },
+      {
+        "_id": "68fbddcefb1414dc051f869e",
+        "vertical": "ecommerce_general",
+        "category": "ecommerce",
+        "display_name": "E-commerce"
+      },
+      {
+        "_id": "68fbddbdfb1414dc051f865e",
+        "vertical": "e-commerce_apparel_accessories",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Apparel and Accessories)"
+      },
+      {
+        "_id": "68fbddbdfb1414dc051f865f",
+        "vertical": "e-commerce_automotive",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Automotive)"
+      },
+      {
+        "_id": "68fbddc8fb1414dc051f8686",
+        "vertical": "ecommerce_automotive",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Automotive)"
+      },
+      {
+        "_id": "68fbddc8fb1414dc051f8687",
+        "vertical": "ecommerce_electronics",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Electronics)"
+      },
+      {
+        "_id": "68fbddbdfb1414dc051f8660",
+        "vertical": "e-commerce_electronics",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Electronics)"
+      },
+      {
+        "_id": "68fbddbefb1414dc051f8661",
+        "vertical": "e-commerce_food_beverage",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Food and Beverage)"
+      },
+      {
+        "_id": "68fbddc8fb1414dc051f8688",
+        "vertical": "ecommerce_food_beverage",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Food and Beverage)"
+      },
+      {
+        "_id": "68fbddc9fb1414dc051f868b",
+        "vertical": "ecommerce_hardware_home_improvement",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Hardware and Home Improvement)"
+      },
+      {
+        "_id": "68fbddbffb1414dc051f8664",
+        "vertical": "e-commerce_hardware_home_improvement",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Hardware and Home Improvement)"
+      },
+      {
+        "_id": "68fbddbffb1414dc051f8669",
+        "vertical": "e-commerce_health_beauty",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Health and Beauty)"
+      },
+      {
+        "_id": "68fbddbefb1414dc051f8663",
+        "vertical": "e-commerce_home_garden",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Home and Garden)"
+      },
+      {
+        "_id": "68fbddc9fb1414dc051f868a",
+        "vertical": "ecommerce_home_garden",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Home and Garden)"
+      },
+      {
+        "_id": "68fbddbefb1414dc051f8662",
+        "vertical": "e-commerce_jewelry",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Jewelry)"
+      },
+      {
+        "_id": "68fbddc9fb1414dc051f8689",
+        "vertical": "ecommerce_jewelry",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Jewelry)"
+      },
+      {
+        "_id": "68fbddc0fb1414dc051f866a",
+        "vertical": "e-commerce_mass_merchant",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Mass Merchant)"
+      },
+      {
+        "_id": "68fbddcdfb1414dc051f8698",
+        "vertical": "ecommerce_mass_merchant",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Mass Merchant)"
+      },
+      {
+        "_id": "68fbddcdfb1414dc051f8699",
+        "vertical": "ecommerce_office_supplies",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Office Supplies)"
+      },
+      {
+        "_id": "68fbddc0fb1414dc051f866b",
+        "vertical": "e-commerce_office_supplies",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Office Supplies)"
+      },
+      {
+        "_id": "68fbddcdfb1414dc051f869a",
+        "vertical": "ecommerce_specialty",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Specialty)"
+      },
+      {
+        "_id": "68fbddc1fb1414dc051f866c",
+        "vertical": "e-commerce_specialty",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Specialty)"
+      },
+      {
+        "_id": "68fbddcefb1414dc051f869b",
+        "vertical": "ecommerce_sporting_goods",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Sporting Goods)"
+      },
+      {
+        "_id": "68fbddc1fb1414dc051f866d",
+        "vertical": "e-commerce_sporting_goods",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Sporting Goods)"
+      },
+      {
+        "_id": "68fbddcefb1414dc051f869d",
+        "vertical": "ecommerce_toys_hobbies",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Toys and Hobbies)"
+      },
+      {
+        "_id": "68fbddc1fb1414dc051f866f",
+        "vertical": "e-commerce_toys_hobbies",
+        "category": "ecommerce",
+        "display_name": "E-commerce (Toys and Hobbies)"
+      },
+      {
+        "_id": "68fbddcbfb1414dc051f8692",
+        "vertical": "ecommerce_eyewear",
+        "category": "ecommerce",
+        "display_name": "Eyewear"
+      },
+      {
+        "_id": "68fbddc6fb1414dc051f8680",
+        "vertical": "ecommerce_fast_fashion",
+        "category": "ecommerce",
+        "display_name": "Fast Fashion"
+      },
+      {
+        "_id": "68fbddccfb1414dc051f8693",
+        "vertical": "ecommerce_fitness_wellness",
+        "category": "ecommerce",
+        "display_name": "Fitness and Wellness"
+      },
+      {
+        "_id": "68fbddc7fb1414dc051f8682",
+        "vertical": "ecommerce_footwear",
+        "category": "ecommerce",
+        "display_name": "Footwear"
+      },
+      {
+        "_id": "68fbddcafb1414dc051f868d",
+        "vertical": "ecommerce_fragrance",
+        "category": "ecommerce",
+        "display_name": "Fragrance"
+      },
+      {
+        "_id": "68fbddcafb1414dc051f868e",
+        "vertical": "ecommerce_haircare",
+        "category": "ecommerce",
+        "display_name": "Haircare"
+      },
+      {
+        "_id": "68fbddc7fb1414dc051f8681",
+        "vertical": "ecommerce_hats",
+        "category": "ecommerce",
+        "display_name": "Hats"
+      },
+      {
+        "_id": "68fbddcafb1414dc051f868f",
+        "vertical": "ecommerce_makeup",
+        "category": "ecommerce",
+        "display_name": "Makeup"
+      },
+      {
+        "_id": "68fbddc7fb1414dc051f8684",
+        "vertical": "ecommerce_maternity_children's_clothes",
+        "category": "ecommerce",
+        "display_name": "Maternity and Children's clothes"
+      },
+      {
+        "_id": "68fbddccfb1414dc051f8695",
+        "vertical": "ecommerce_other",
+        "category": "ecommerce",
+        "display_name": "Other"
+      },
+      {
+        "_id": "68fbddcbfb1414dc051f8690",
+        "vertical": "ecommerce_skincare",
+        "category": "ecommerce",
+        "display_name": "Skincare"
+      },
+      {
+        "_id": "68fbddccfb1414dc051f8694",
+        "vertical": "ecommerce_supplements",
+        "category": "ecommerce",
+        "display_name": "Supplements"
+      },
+      {
+        "_id": "68fbddbffb1414dc051f8667",
+        "vertical": "e-commerce_health_beauty_supplements_&_wellness",
+        "category": "ecommerce",
+        "display_name": "Supplements & Wellness"
+      },
+      {
+        "_id": "68fbddc8fb1414dc051f8685",
+        "vertical": "ecommerce_swimwear",
+        "category": "ecommerce",
+        "display_name": "Swimwear"
+      }
+    ],
+    "education": [
+      {
+        "_id": "68fbddc3fb1414dc051f8673",
+        "vertical": "education",
+        "category": "education",
+        "display_name": "Education"
+      }
+    ],
+    "finance": [
+      {
+        "_id": "68fbddc2fb1414dc051f8672",
+        "vertical": "banking_finance_insurance",
+        "category": "finance",
+        "display_name": "Banking, Finance, and Insurance"
+      }
+    ],
+    "government": [
+      {
+        "_id": "68fbddc3fb1414dc051f8676",
+        "vertical": "politics_government",
+        "category": "government",
+        "display_name": "Politics and Government"
+      }
+    ],
+    "health_wellness": [
+      {
+        "_id": "68fbddcffb1414dc051f86a3",
+        "vertical": "wellness_health_fitness",
+        "category": "health_wellness",
+        "display_name": "Health Fitness"
+      },
+      {
+        "_id": "68fbddcffb1414dc051f86a4",
+        "vertical": "wellness_medical_dental_healthcare",
+        "category": "health_wellness",
+        "display_name": "Medical Dental Healthcare"
+      },
+      {
+        "_id": "68fbddc5fb1414dc051f867d",
+        "vertical": "wellness_fitness_services",
+        "category": "health_wellness",
+        "display_name": "Wellness and Fitness Services"
+      }
+    ],
+    "hospitality": [
+      {
+        "_id": "68fbddc3fb1414dc051f8674",
+        "vertical": "events_entertainment",
+        "category": "hospitality",
+        "display_name": "Events and Entertainment"
+      },
+      {
+        "_id": "68fbddc4fb1414dc051f8678",
+        "vertical": "restaurants",
+        "category": "hospitality",
+        "display_name": "Restaurants"
+      },
+      {
+        "_id": "68fbddc5fb1414dc051f867c",
+        "vertical": "travel",
+        "category": "hospitality",
+        "display_name": "Travel"
+      }
+    ],
+    "nonprofit": [
+      {
+        "_id": "68fbddc3fb1414dc051f8675",
+        "vertical": "non-profit",
+        "category": "nonprofit",
+        "display_name": "Non-profit"
+      },
+      {
+        "_id": "68fbddcffb1414dc051f86a2",
+        "vertical": "nonprofit",
+        "category": "nonprofit",
+        "display_name": "Non-profit"
+      }
+    ],
+    "other": [
+      {
+        "_id": "68fbddc2fb1414dc051f8670",
+        "vertical": "e-commerce",
+        "category": "other",
+        "display_name": "E-commerce"
+      },
+      {
+        "_id": "68fbddc6fb1414dc051f867e",
+        "vertical": "other",
+        "category": "other",
+        "display_name": "Other"
+      }
+    ],
+    "real_estate": [
+      {
+        "_id": "68fbddc4fb1414dc051f8677",
+        "vertical": "real_estate_construction",
+        "category": "real_estate",
+        "display_name": "Real Estate and Construction"
+      }
+    ],
+    "services": [
+      {
+        "_id": "68fbddc5fb1414dc051f867b",
+        "vertical": "telecommunications",
+        "category": "services",
+        "display_name": "Telecommunications"
+      }
+    ]
+  },
+  "flat": [
+    {
+      "objectId": "68fbddc2fb1414dc051f8671",
+      "vertical": "agency_marketing_consulting",
+      "displayName": "Agency, Marketing, and Consulting",
+      "category": "b2b"
+    },
+    {
+      "objectId": "68fbddc4fb1414dc051f8679",
+      "vertical": "software_saas",
+      "displayName": "Software and SaaS",
+      "category": "b2b"
+    },
+    {
+      "objectId": "68fbddc6fb1414dc051f867f",
+      "vertical": "ecommerce_activewear",
+      "displayName": "Activewear",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbffb1414dc051f8666",
+      "vertical": "e-commerce_health_beauty_beauty_&_cosmetics",
+      "displayName": "Beauty & Cosmetics",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcbfb1414dc051f8691",
+      "vertical": "ecommerce_dental_products",
+      "displayName": "Dental Products",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcefb1414dc051f869e",
+      "vertical": "ecommerce_general",
+      "displayName": "E-commerce",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbdfb1414dc051f865e",
+      "vertical": "e-commerce_apparel_accessories",
+      "displayName": "E-commerce (Apparel and Accessories)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbdfb1414dc051f865f",
+      "vertical": "e-commerce_automotive",
+      "displayName": "E-commerce (Automotive)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc8fb1414dc051f8686",
+      "vertical": "ecommerce_automotive",
+      "displayName": "E-commerce (Automotive)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc8fb1414dc051f8687",
+      "vertical": "ecommerce_electronics",
+      "displayName": "E-commerce (Electronics)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbdfb1414dc051f8660",
+      "vertical": "e-commerce_electronics",
+      "displayName": "E-commerce (Electronics)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbefb1414dc051f8661",
+      "vertical": "e-commerce_food_beverage",
+      "displayName": "E-commerce (Food and Beverage)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc8fb1414dc051f8688",
+      "vertical": "ecommerce_food_beverage",
+      "displayName": "E-commerce (Food and Beverage)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc9fb1414dc051f868b",
+      "vertical": "ecommerce_hardware_home_improvement",
+      "displayName": "E-commerce (Hardware and Home Improvement)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbffb1414dc051f8664",
+      "vertical": "e-commerce_hardware_home_improvement",
+      "displayName": "E-commerce (Hardware and Home Improvement)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbffb1414dc051f8669",
+      "vertical": "e-commerce_health_beauty",
+      "displayName": "E-commerce (Health and Beauty)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbefb1414dc051f8663",
+      "vertical": "e-commerce_home_garden",
+      "displayName": "E-commerce (Home and Garden)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc9fb1414dc051f868a",
+      "vertical": "ecommerce_home_garden",
+      "displayName": "E-commerce (Home and Garden)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbefb1414dc051f8662",
+      "vertical": "e-commerce_jewelry",
+      "displayName": "E-commerce (Jewelry)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc9fb1414dc051f8689",
+      "vertical": "ecommerce_jewelry",
+      "displayName": "E-commerce (Jewelry)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc0fb1414dc051f866a",
+      "vertical": "e-commerce_mass_merchant",
+      "displayName": "E-commerce (Mass Merchant)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcdfb1414dc051f8698",
+      "vertical": "ecommerce_mass_merchant",
+      "displayName": "E-commerce (Mass Merchant)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcdfb1414dc051f8699",
+      "vertical": "ecommerce_office_supplies",
+      "displayName": "E-commerce (Office Supplies)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc0fb1414dc051f866b",
+      "vertical": "e-commerce_office_supplies",
+      "displayName": "E-commerce (Office Supplies)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcdfb1414dc051f869a",
+      "vertical": "ecommerce_specialty",
+      "displayName": "E-commerce (Specialty)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc1fb1414dc051f866c",
+      "vertical": "e-commerce_specialty",
+      "displayName": "E-commerce (Specialty)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcefb1414dc051f869b",
+      "vertical": "ecommerce_sporting_goods",
+      "displayName": "E-commerce (Sporting Goods)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc1fb1414dc051f866d",
+      "vertical": "e-commerce_sporting_goods",
+      "displayName": "E-commerce (Sporting Goods)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcefb1414dc051f869d",
+      "vertical": "ecommerce_toys_hobbies",
+      "displayName": "E-commerce (Toys and Hobbies)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc1fb1414dc051f866f",
+      "vertical": "e-commerce_toys_hobbies",
+      "displayName": "E-commerce (Toys and Hobbies)",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcbfb1414dc051f8692",
+      "vertical": "ecommerce_eyewear",
+      "displayName": "Eyewear",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc6fb1414dc051f8680",
+      "vertical": "ecommerce_fast_fashion",
+      "displayName": "Fast Fashion",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddccfb1414dc051f8693",
+      "vertical": "ecommerce_fitness_wellness",
+      "displayName": "Fitness and Wellness",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc7fb1414dc051f8682",
+      "vertical": "ecommerce_footwear",
+      "displayName": "Footwear",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcafb1414dc051f868d",
+      "vertical": "ecommerce_fragrance",
+      "displayName": "Fragrance",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcafb1414dc051f868e",
+      "vertical": "ecommerce_haircare",
+      "displayName": "Haircare",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc7fb1414dc051f8681",
+      "vertical": "ecommerce_hats",
+      "displayName": "Hats",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcafb1414dc051f868f",
+      "vertical": "ecommerce_makeup",
+      "displayName": "Makeup",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc7fb1414dc051f8684",
+      "vertical": "ecommerce_maternity_children's_clothes",
+      "displayName": "Maternity and Children's clothes",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddccfb1414dc051f8695",
+      "vertical": "ecommerce_other",
+      "displayName": "Other",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddcbfb1414dc051f8690",
+      "vertical": "ecommerce_skincare",
+      "displayName": "Skincare",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddccfb1414dc051f8694",
+      "vertical": "ecommerce_supplements",
+      "displayName": "Supplements",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddbffb1414dc051f8667",
+      "vertical": "e-commerce_health_beauty_supplements_&_wellness",
+      "displayName": "Supplements & Wellness",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc8fb1414dc051f8685",
+      "vertical": "ecommerce_swimwear",
+      "displayName": "Swimwear",
+      "category": "ecommerce"
+    },
+    {
+      "objectId": "68fbddc3fb1414dc051f8673",
+      "vertical": "education",
+      "displayName": "Education",
+      "category": "education"
+    },
+    {
+      "objectId": "68fbddc2fb1414dc051f8672",
+      "vertical": "banking_finance_insurance",
+      "displayName": "Banking, Finance, and Insurance",
+      "category": "finance"
+    },
+    {
+      "objectId": "68fbddc3fb1414dc051f8676",
+      "vertical": "politics_government",
+      "displayName": "Politics and Government",
+      "category": "government"
+    },
+    {
+      "objectId": "68fbddcffb1414dc051f86a3",
+      "vertical": "wellness_health_fitness",
+      "displayName": "Health Fitness",
+      "category": "health_wellness"
+    },
+    {
+      "objectId": "68fbddcffb1414dc051f86a4",
+      "vertical": "wellness_medical_dental_healthcare",
+      "displayName": "Medical Dental Healthcare",
+      "category": "health_wellness"
+    },
+    {
+      "objectId": "68fbddc5fb1414dc051f867d",
+      "vertical": "wellness_fitness_services",
+      "displayName": "Wellness and Fitness Services",
+      "category": "health_wellness"
+    },
+    {
+      "objectId": "68fbddc3fb1414dc051f8674",
+      "vertical": "events_entertainment",
+      "displayName": "Events and Entertainment",
+      "category": "hospitality"
+    },
+    {
+      "objectId": "68fbddc4fb1414dc051f8678",
+      "vertical": "restaurants",
+      "displayName": "Restaurants",
+      "category": "hospitality"
+    },
+    {
+      "objectId": "68fbddc5fb1414dc051f867c",
+      "vertical": "travel",
+      "displayName": "Travel",
+      "category": "hospitality"
+    },
+    {
+      "objectId": "68fbddc3fb1414dc051f8675",
+      "vertical": "non-profit",
+      "displayName": "Non-profit",
+      "category": "nonprofit"
+    },
+    {
+      "objectId": "68fbddcffb1414dc051f86a2",
+      "vertical": "nonprofit",
+      "displayName": "Non-profit",
+      "category": "nonprofit"
+    },
+    {
+      "objectId": "68fbddc2fb1414dc051f8670",
+      "vertical": "e-commerce",
+      "displayName": "E-commerce",
+      "category": "other"
+    },
+    {
+      "objectId": "68fbddc6fb1414dc051f867e",
+      "vertical": "other",
+      "displayName": "Other",
+      "category": "other"
+    },
+    {
+      "objectId": "68fbddc4fb1414dc051f8677",
+      "vertical": "real_estate_construction",
+      "displayName": "Real Estate and Construction",
+      "category": "real_estate"
+    },
+    {
+      "objectId": "68fbddc5fb1414dc051f867b",
+      "vertical": "telecommunications",
+      "displayName": "Telecommunications",
+      "category": "services"
+    }
+  ]
+}

@@ -1,0 +1,612 @@
+[
+  {
+    "vertical": "agency_marketing_consulting",
+    "display_name": "Agency, Marketing, and Consulting",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "services",
+    "subcategories": {
+      "agency": {
+        "openRate": 38.89,
+        "clickRate": 1.22,
+        "ctor": 5.07,
+        "unsubscribeRate": 0.05
+      },
+      "consulting": {
+        "openRate": 45.74,
+        "clickRate": 1.93,
+        "ctor": 4.88,
+        "unsubscribeRate": 0.05
+      },
+      "marketing_advertising": {
+        "openRate": 39.05,
+        "clickRate": 1.11,
+        "ctor": 3.32,
+        "unsubscribeRate": 0.01
+      },
+      "creative_services": {
+        "openRate": 50.00,
+        "clickRate": 2.08,
+        "ctor": 4.88,
+        "unsubscribeRate": 0.06
+      }
+    },
+    "campaigns": {
+      "openRate": {
+        "median": 43.42,
+        "range": [38.89, 50.00],
+        "top10": 58.0
+      },
+      "clickRate": {
+        "median": 1.59,
+        "range": [1.11, 2.08],
+        "top10": 4.5
+      },
+      "ctor": {
+        "median": 4.55,
+        "range": [3.32, 5.07],
+        "top10": 9.0,
+        "note": "Marketing/advertising has lowest CTOR (3.32%)"
+      },
+      "unsubscribeRate": {
+        "median": 0.04,
+        "range": [0.01, 0.06]
+      }
+    },
+    "insights": [
+      "Creative services/agency has highest open rate (50%) in this category",
+      "Marketing and advertising has lowest click rate (1.11%) - content fatigue",
+      "Consulting performs well with engaged B2B audiences",
+      "Case studies and results-driven content performs best"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts, 3.3M+ campaigns"
+  },
+  {
+    "vertical": "banking_finance_insurance",
+    "display_name": "Banking, Finance, and Insurance",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "financial_services",
+    "subcategories": {
+      "business_finance": {
+        "openRate": 43.26,
+        "clickRate": 1.63,
+        "ctor": 4.36,
+        "unsubscribeRate": 0.03
+      },
+      "insurance": {
+        "openRate": 44.27,
+        "clickRate": 1.79,
+        "ctor": 4.76,
+        "unsubscribeRate": 0.00
+      }
+    },
+    "campaigns": {
+      "openRate": {
+        "median": 43.77,
+        "range": [43.26, 44.27],
+        "top10": 57.0
+      },
+      "clickRate": {
+        "median": 1.71,
+        "range": [1.63, 1.79],
+        "top10": 4.6
+      },
+      "ctor": {
+        "median": 4.56,
+        "range": [4.36, 4.76],
+        "top10": 9.5
+      },
+      "unsubscribeRate": {
+        "median": 0.02,
+        "range": [0.00, 0.03],
+        "note": "Insurance has 0% unsubscribe rate"
+      }
+    },
+    "insights": [
+      "Insurance has 0% unsubscribe rate - indicates high list quality",
+      "Financial content requires trust and compliance",
+      "Educational content about financial planning performs well",
+      "Personalized rate/quote information drives engagement"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "education",
+    "display_name": "Education",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "education",
+    "subcategories": {
+      "educational_institution": {
+        "openRate": 45.32,
+        "clickRate": 2.26,
+        "ctor": 5.96,
+        "unsubscribeRate": 0.06
+      },
+      "higher_education": {
+        "openRate": 45.37,
+        "clickRate": 2.80,
+        "ctor": 6.97,
+        "unsubscribeRate": 0.02
+      },
+      "online_courses": {
+        "openRate": 43.81,
+        "clickRate": 2.00,
+        "ctor": 5.48,
+        "unsubscribeRate": 0.10
+      }
+    },
+    "campaigns": {
+      "openRate": {
+        "median": 44.83,
+        "range": [43.81, 45.37],
+        "note": "Highest open rates across industries",
+        "top10": 58.0
+      },
+      "clickRate": {
+        "median": 2.35,
+        "range": [2.00, 2.80],
+        "top10": 5.5
+      },
+      "ctor": {
+        "median": 6.14,
+        "range": [5.48, 6.97],
+        "top10": 12.0
+      },
+      "unsubscribeRate": {
+        "median": 0.06,
+        "range": [0.02, 0.10]
+      }
+    },
+    "insights": [
+      "Education sector sees highest open rates across industries",
+      "Higher education has strongest performance with 6.97% CTOR",
+      "Course updates and learning materials drive high engagement",
+      "Value of content (promotions, materials) drives opens"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks, Constant Contact 2024",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "events_entertainment",
+    "display_name": "Events and Entertainment",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "entertainment",
+    "campaigns": {
+      "openRate": {
+        "median": 43.79,
+        "top10": 57.0
+      },
+      "clickRate": {
+        "median": 1.72,
+        "top10": 4.5
+      },
+      "ctor": {
+        "median": 4.57,
+        "top10": 9.5
+      },
+      "unsubscribeRate": {
+        "median": 0.12
+      }
+    },
+    "insights": [
+      "Urgency and scarcity tactics perform well",
+      "Event reminders and countdowns drive clicks",
+      "Visual content and performer information critical"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "nonprofit",
+    "display_name": "Non-profit",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "nonprofit",
+    "campaigns": {
+      "openRate": {
+        "median": 53.21,
+        "note": "Third highest across all industries",
+        "top10": 62.0
+      },
+      "clickRate": {
+        "median": 3.25,
+        "note": "Above average engagement",
+        "top10": 6.5
+      },
+      "ctor": {
+        "median": 7.14,
+        "note": "Strong content engagement",
+        "top10": 13.0
+      },
+      "unsubscribeRate": {
+        "median": 0.00,
+        "note": "Zero unsubscribe rate indicates mission-driven loyalty"
+      }
+    },
+    "insights": [
+      "High engagement due to loyal, mission-driven audiences",
+      "Zero unsubscribe rate - highest audience loyalty",
+      "Storytelling and impact stories drive high clicks",
+      "Third highest open rate (53.21%) across all industries",
+      "Donation appeals and volunteer opportunities perform well"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "politics_government",
+    "display_name": "Politics and Government",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "public_sector",
+    "subcategories": {
+      "politics": {
+        "openRate": 44.83,
+        "clickRate": 1.59,
+        "ctor": 4.35,
+        "unsubscribeRate": 0.08
+      },
+      "government": {
+        "openRate": 47.11,
+        "clickRate": 4.31,
+        "ctor": 10.00,
+        "unsubscribeRate": 0.00
+      }
+    },
+    "campaigns": {
+      "openRate": {
+        "median": 45.97,
+        "range": [44.83, 47.11],
+        "top10": 58.0
+      },
+      "clickRate": {
+        "median": 2.95,
+        "range": [1.59, 4.31],
+        "note": "Government has exceptional 4.31% click rate",
+        "top10": 6.5
+      },
+      "ctor": {
+        "median": 7.18,
+        "range": [4.35, 10.00],
+        "note": "Government has highest CTOR (10%) across all industries",
+        "top10": 14.0
+      },
+      "unsubscribeRate": {
+        "median": 0.04,
+        "range": [0.00, 0.08],
+        "note": "Government has 0% unsubscribe rate"
+      }
+    },
+    "insights": [
+      "Government has highest CTOR (10%) across all industries",
+      "Government emails likely contain critical civic information",
+      "Politics sees lower engagement than government communications",
+      "Cleanest email lists with lowest bounce rates",
+      "Urgent/actionable content drives exceptional government engagement"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "real_estate_construction",
+    "display_name": "Real Estate and Construction",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "real_estate",
+    "subcategories": {
+      "real_estate": {
+        "openRate": 40.00,
+        "clickRate": 1.14,
+        "ctor": 3.47,
+        "unsubscribeRate": 0.06
+      },
+      "architecture_construction": {
+        "openRate": 41.35,
+        "clickRate": 2.07,
+        "ctor": 5.88,
+        "unsubscribeRate": 0.13
+      },
+      "construction": {
+        "openRate": 35.12,
+        "clickRate": 2.05,
+        "ctor": 6.25,
+        "unsubscribeRate": 0.11
+      }
+    },
+    "campaigns": {
+      "openRate": {
+        "median": 38.82,
+        "range": [35.12, 41.35],
+        "top10": 53.0
+      },
+      "clickRate": {
+        "median": 1.75,
+        "range": [1.14, 2.07],
+        "top10": 4.5
+      },
+      "ctor": {
+        "median": 5.20,
+        "range": [3.47, 6.25],
+        "note": "Real estate has lowest CTOR (3.47%)",
+        "top10": 11.0
+      },
+      "unsubscribeRate": {
+        "median": 0.10,
+        "range": [0.06, 0.13]
+      }
+    },
+    "insights": [
+      "Real estate has lower CTOR (3.47%) - may need stronger CTAs",
+      "High-value content drives higher opens in real estate",
+      "Construction/architecture shows better engagement than general real estate",
+      "Property listings and market updates perform well"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks, Constant Contact 2024",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "restaurants",
+    "display_name": "Restaurants",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "food_service",
+    "campaigns": {
+      "openRate": {
+        "median": 43.69,
+        "top10": 56.0
+      },
+      "clickRate": {
+        "median": 1.13,
+        "note": "Third lowest across all industries",
+        "top10": 3.8
+      },
+      "ctor": {
+        "median": 2.93,
+        "note": "Lowest CTOR across all industries",
+        "top10": 7.0
+      },
+      "unsubscribeRate": {
+        "median": 0.17
+      }
+    },
+    "insights": [
+      "Lowest CTOR (2.93%) across all industries",
+      "High open rate but low click rate - weak CTAs or relevancy issues",
+      "Best for limited-time offers, discounts, and special events",
+      "Mobile optimization critical - people browse menus on phones",
+      "Visual content (food imagery) essential but not driving clicks effectively"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks, Constant Contact 2024",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "software_saas",
+    "display_name": "Software and SaaS",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "technology",
+    "campaigns": {
+      "openRate": {
+        "median": 38.14,
+        "top10": 52.0
+      },
+      "clickRate": {
+        "median": 2.04,
+        "top10": 5.2
+      },
+      "ctor": {
+        "median": 6.18,
+        "top10": 12.5
+      },
+      "unsubscribeRate": {
+        "median": 0.14
+      }
+    },
+    "insights": [
+      "Segmentation by user activity (frequent vs. infrequent) critical",
+      "Product update emails drive high engagement",
+      "Free trial and feature highlight content performs well",
+      "Educational content about features drives clicks",
+      "Behavioral triggers (usage patterns) improve performance"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "telecommunications",
+    "display_name": "Telecommunications",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "technology",
+    "campaigns": {
+      "openRate": {
+        "median": 33.02,
+        "note": "Second lowest across industries",
+        "top10": 48.0
+      },
+      "clickRate": {
+        "median": 1.79,
+        "top10": 4.5
+      },
+      "ctor": {
+        "median": 5.88,
+        "top10": 11.5
+      },
+      "unsubscribeRate": {
+        "median": 0.01,
+        "note": "Among lowest unsubscribe rates"
+      }
+    },
+    "insights": [
+      "Maintains cleanest email lists with lowest bounce rates",
+      "Very low unsubscribe rate (0.01%) despite low opens",
+      "Service-related emails (billing, upgrades) drive engagement",
+      "Account management content performs better than promotional"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "travel",
+    "display_name": "Travel",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "hospitality",
+    "campaigns": {
+      "openRate": {
+        "median": 22.57,
+        "note": "LOWEST across all industries",
+        "top10": 42.0
+      },
+      "clickRate": {
+        "median": 0.77,
+        "note": "LOWEST across all industries",
+        "top10": 3.2
+      },
+      "ctor": {
+        "median": 3.94,
+        "top10": 8.5
+      },
+      "unsubscribeRate": {
+        "median": 0.00,
+        "note": "Zero unsubscribe rate despite low engagement"
+      }
+    },
+    "insights": [
+      "Lowest open rate (22.57%) AND click rate (0.77%) across ALL industries",
+      "Zero unsubscribe rate suggests list quality issues, not content rejection",
+      "High competition in inboxes from multiple travel brands",
+      "Testing various offers and incentives critical to improve performance",
+      "Personalized destination recommendations may improve engagement"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "wellness_fitness",
+    "display_name": "Wellness and Fitness Services",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "health_wellness",
+    "subcategories": {
+      "health_fitness": {
+        "openRate": 48.9,
+        "clickRate": 1.74,
+        "ctor": 4.27,
+        "unsubscribeRate": 0.12
+      },
+      "medical_dental_healthcare": {
+        "openRate": 44.60,
+        "clickRate": 1.75,
+        "ctor": 4.64,
+        "unsubscribeRate": 0.11
+      }
+    },
+    "campaigns": {
+      "openRate": {
+        "median": 46.75,
+        "range": [44.60, 48.9],
+        "top10": 58.0
+      },
+      "clickRate": {
+        "median": 1.75,
+        "range": [1.74, 1.75],
+        "top10": 4.5
+      },
+      "ctor": {
+        "median": 4.46,
+        "range": [4.27, 4.64],
+        "top10": 9.5
+      },
+      "unsubscribeRate": {
+        "median": 0.12,
+        "range": [0.11, 0.12],
+        "note": "Higher unsubscribe rates - relevancy critical"
+      }
+    },
+    "insights": [
+      "High open rates but also higher unsubscribe rates",
+      "Relevancy is critical - irrelevant or frequent emails cause unsubscribes",
+      "Health/fitness content requires careful frequency management",
+      "Educational health content performs well",
+      "Appointment reminders and health tips drive engagement"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  },
+  {
+    "vertical": "other",
+    "display_name": "Other",
+    "year": 2025,
+    "version": "2025-Q1",
+    "category": "uncategorized",
+    "campaigns": {
+      "openRate": {
+        "median": 44.97,
+        "top10": 57.0
+      },
+      "clickRate": {
+        "median": 2.17,
+        "top10": 5.2
+      },
+      "ctor": {
+        "median": 5.77,
+        "top10": 11.5
+      },
+      "unsubscribeRate": {
+        "median": 0.04
+      }
+    },
+    "insights": [
+      "Catch-all category for industries not otherwise specified",
+      "Performance sits near overall industry averages",
+      "Use as baseline when specific vertical not available"
+    ],
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "is_active": true,
+    "data_source": "MailerLite 2025 Benchmarks",
+    "sample_size": "155,000+ accounts"
+  }
+]

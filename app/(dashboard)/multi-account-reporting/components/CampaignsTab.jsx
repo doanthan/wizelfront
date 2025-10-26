@@ -251,7 +251,8 @@ const CampaignsTab = ({
   availableAccounts,
   campaignsData,
   campaignsLoading,
-  campaignsError
+  campaignsError,
+  onTabDataUpdate
 }) => {
   // Handle both prop formats for backward compatibility
   const effectiveAccountIds = useMemo(() => {
@@ -366,6 +367,19 @@ const CampaignsTab = ({
   // Sorting state
   const [sortColumn, setSortColumn] = useState('sentAt');
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+
+  // Update AI context whenever campaign data changes
+  useEffect(() => {
+    if (onTabDataUpdate && campaigns && aggregateStats && !loading) {
+      onTabDataUpdate({
+        campaigns,
+        aggregateStats,
+        chartData,
+        loading,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [campaigns, aggregateStats, chartData, loading]);
 
   // Email/SMS Preview Panel Component
   const EmailPreviewPanel = ({ messageId, storeId }) => {
