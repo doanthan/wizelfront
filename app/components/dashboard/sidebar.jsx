@@ -399,10 +399,10 @@ export default function Sidebar() {
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <Link href="/dashboard" className={cn(
               "flex items-center",
-              isCollapsed ? "justify-center" : "gap-3"
+              isCollapsed ? "justify-center" : "gap-0"
             )}>
-              <div className="w-10 h-10 bg-gradient-to-br from-sky-blue to-vivid-violet rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white" aria-hidden="true">
+              <div className="w-8 h-8 bg-gradient-to-br from-sky-blue to-vivid-violet rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white" aria-hidden="true">
                   <path d="M12 8V4H8"></path>
                   <rect width="16" height="12" x="4" y="8" rx="2"></rect>
                   <path d="M2 14h2"></path>
@@ -412,9 +412,26 @@ export default function Sidebar() {
                 </svg>
               </div>
               {!isCollapsed && (
-                <span className="text-xl font-bold text-gray-900 dark:text-white">
-                  wizel
-                </span>
+                <svg width="105" height="32" viewBox="0 0 210 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 -ml-3 mt-1">
+                  <defs>
+                    <filter id="sidebar-logo-shadow">
+                      <feDropShadow dx="2" dy="2" stdDeviation="0" floodColor="#8B5CF6" floodOpacity="0.3"/>
+                    </filter>
+                  </defs>
+                  <text
+                    x="105"
+                    y="50"
+                    fontFamily="var(--font-rajdhani), Rajdhani, sans-serif"
+                    fontSize="56"
+                    fontWeight="700"
+                    fontStyle="italic"
+                    fill="#8B5CF6"
+                    textAnchor="middle"
+                    filter="url(#sidebar-logo-shadow)"
+                  >
+                    Wizel
+                  </text>
+                </svg>
               )}
             </Link>
             {!isCollapsed && (

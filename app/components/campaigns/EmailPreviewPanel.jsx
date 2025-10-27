@@ -5,7 +5,7 @@ import { FileText, MessageSquare } from 'lucide-react';
 import MorphingLoader from '@/app/components/ui/loading';
 import { cn } from '@/lib/utils';
 
-export const EmailPreviewPanel = ({ messageId, storeId, compact = false, messageType = 'campaign' }) => {
+export const EmailPreviewPanel = ({ messageId, storeId, campaign, compact = false, messageType = 'campaign' }) => {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,10 +18,97 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false, message
         return;
       }
 
-      console.log('📧 EmailPreviewPanel: Fetching content for:', { messageId, storeId, messageType });
+      console.log('📧 EmailPreviewPanel: Fetching content for:', { messageId, storeId, campaign, messageType });
 
       try {
         setLoading(true);
+
+        // Check if we have stored preview URLs first (for sent campaigns)
+        const channel = campaign?.channel || campaign?.type || campaign?.groupings?.send_channel;
+        const hasStoredPreview = channel === 'email'
+          ? (campaign?.preview_image_html || campaign?.preview_image_url)
+          : channel === 'sms'
+            ? campaign?.preview_sms_url
+            : false;
+
+        if (hasStoredPreview) {
+          console.log('✅ EmailPreviewPanel: Using stored preview URLs:', {
+            channel,
+            preview_image_html: campaign?.preview_image_html,
+            preview_image_url: campaign?.preview_image_url,
+            preview_sms_url: campaign?.preview_sms_url
+          });
+
+          // For email with HTML preview
+          if (channel === 'email' && campaign.preview_image_html) {
+            // Fetch the HTML content directly from R2 (fastest)
+            try {
+              console.log('📧 Fetching email preview from R2:', campaign.preview_image_html);
+
+              const htmlResponse = await fetch(campaign.preview_image_html);
+              if (!htmlResponse.ok) {
+                throw new Error(`R2 fetch failed: ${htmlResponse.status}`);
+              }
+
+              const htmlContent = await htmlResponse.text();
+              console.log('✅ Email preview loaded from R2:', {
+                contentLength: htmlContent.length,
+                url: campaign.preview_image_html
+              });
+
+              setContent({
+                channel: 'email',
+                type: 'email',
+                html: htmlContent, // Load HTML directly
+                previewHtmlUrl: campaign.preview_image_html,
+                previewImageUrl: campaign.preview_image_url,
+                fromLabel: campaign.from_label || campaign.fromLabel,
+                fromEmail: campaign.from_address || campaign.fromAddress,
+                subject: campaign.subject_line || campaign.subject
+              });
+              setLoading(false);
+              return;
+            } catch (error) {
+              console.error('❌ Failed to fetch HTML preview from R2:', error);
+              console.log('Falling back to Klaviyo API...');
+              // Fall through to fetch from Klaviyo API
+            }
+          }
+
+          // For SMS with text preview
+          if (channel === 'sms' && campaign.preview_sms_url) {
+            // Fetch the SMS text content directly from R2 (fastest)
+            try {
+              console.log('📱 Fetching SMS preview from R2:', campaign.preview_sms_url);
+
+              const smsResponse = await fetch(campaign.preview_sms_url);
+              if (!smsResponse.ok) {
+                throw new Error(`R2 fetch failed: ${smsResponse.status}`);
+              }
+
+              const smsText = await smsResponse.text();
+              console.log('✅ SMS preview loaded from R2:', {
+                textLength: smsText.length,
+                url: campaign.preview_sms_url
+              });
+
+              setContent({
+                channel: 'sms',
+                type: 'sms',
+                body: smsText,
+                previewUrl: campaign.preview_sms_url
+              });
+              setLoading(false);
+              return;
+            } catch (error) {
+              console.error('❌ Failed to fetch SMS preview from R2:', error);
+              console.log('Falling back to Klaviyo API...');
+              // Fall through to fetch from Klaviyo API
+            }
+          }
+        }
+
+        // If no stored preview or fetch failed, fall back to API
         // StoreId is required for the API
         if (!storeId) {
           console.error('EmailPreviewPanel: StoreId is required to fetch content');
@@ -36,11 +123,11 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false, message
           ? `/api/flow-messages/${messageId}?storeId=${storeId}&include=template`
           : `/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`;
 
-        console.log('🔗 EmailPreviewPanel: Fetching from URL:', url);
+        console.log('🔗 EmailPreviewPanel: Fetching from Klaviyo API:', url);
         const response = await fetch(url);
         if (response.ok) {
           const result = await response.json();
-          console.log('✅ EmailPreviewPanel: Received content:', {
+          console.log('✅ EmailPreviewPanel: Received content from API:', {
             success: result.success,
             channel: result.data?.channel || result.data?.type,
             hasHtml: !!result.data?.html,
@@ -63,7 +150,7 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false, message
     };
 
     fetchContent();
-  }, [messageId, storeId, messageType]);
+  }, [messageId, storeId, campaign, messageType]);
 
   if (loading) {
     return (
@@ -216,12 +303,25 @@ export const EmailPreviewPanel = ({ messageId, storeId, compact = false, message
           </div>
         </div>
       )}
-      
+
       {/* Email content - scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-gray-900">
         <div className={compact ? "p-2" : "p-4"}>
-          {content.html ? (
-            <div 
+          {content.previewHtmlUrl ? (
+            // Display stored HTML preview via iframe
+            <iframe
+              src={content.previewHtmlUrl}
+              title="Email Preview"
+              className="w-full h-full min-h-[600px] border-0"
+              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              style={{
+                maxWidth: '600px',
+                margin: '0 auto',
+                display: 'block'
+              }}
+            />
+          ) : content.html ? (
+            <div
               className="email-content"
               dangerouslySetInnerHTML={{ __html: content.html }}
               style={{

@@ -74,6 +74,29 @@ const CampaignStatSchema = new mongoose.Schema({
     created_at: { type: Date },
     scheduled_at: { type: Date },
     updated_at: { type: Date },
+
+    // ===== Preview URLs (stored in Cloudflare R2) =====
+    // For EMAIL campaigns (send_channel='email')
+    preview_image_url: {
+        type: String,
+        default: null
+    },
+    preview_image_html: {
+        type: String,
+        default: null
+    },
+
+    // For SMS campaigns (send_channel='sms')
+    preview_sms_url: {
+        type: String,
+        default: null
+    },
+
+    // Common field for both
+    preview_generated_at: {
+        type: Date,
+        default: null
+    },
 });
 
 // Static method for multi-account search with access control

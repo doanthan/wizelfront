@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Inter, Rajdhani } from "next/font/google";
 import "./globals.css";
 import AuthSessionProvider from "./components/providers/session-provider";
 import ThemeScript from "./components/theme-script";
@@ -7,6 +7,13 @@ const inter = Inter({
   subsets: ["latin"],
   display: 'swap',
   variable: "--font-inter",
+});
+
+const rajdhani = Rajdhani({
+  weight: ['700'],
+  subsets: ["latin"],
+  display: 'swap',
+  variable: "--font-rajdhani",
 });
 
 export const metadata = {
@@ -24,7 +31,7 @@ export default function RootLayout({ children }) {
         <ThemeScript />
       </head>
       <body
-        className={`${inter.variable} ${inter.className} antialiased bg-white dark:bg-gray-900`}
+        className={`${inter.variable} ${rajdhani.variable} ${inter.className} antialiased bg-white dark:bg-gray-900`}
         suppressHydrationWarning
       >
         <AuthSessionProvider>

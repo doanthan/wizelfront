@@ -305,9 +305,10 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                         
                                         if (messageId && storeId) {
                                             return (
-                                                <EmailPreviewPanel 
+                                                <EmailPreviewPanel
                                                     messageId={messageId}
                                                     storeId={storeId}
+                                                    campaign={data}
                                                 />
                                             );
                                         }

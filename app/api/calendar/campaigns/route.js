@@ -223,7 +223,14 @@ export async function GET(request) {
       audiences: {
         included: campaign.included_audiences || [],
         excluded: campaign.excluded_audiences || []
-      }
+      },
+      // Preview URLs (for stored previews from Cloudflare R2)
+      preview_image_html: campaign.preview_image_html || null,
+      preview_image_url: campaign.preview_image_url || null,
+      preview_sms_url: campaign.preview_sms_url || null,
+      preview_generated_at: campaign.preview_generated_at || null,
+      // Also include groupings for easier access to send_channel
+      groupings: campaign.groupings
     }));
 
     // Format future campaigns for calendar display
