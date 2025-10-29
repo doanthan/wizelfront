@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/app/components/ui/hover-card"
 import MorphingLoader from "@/app/components/ui/loading"
 import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils'
-import { Mail, MessageSquare, Bell, Users, MousePointer, Filter, DollarSign, Eye, Target } from "lucide-react"
+import { Mail, MessageSquare, Bell, Users, MousePointer, Filter, DollarSign, Eye, Image as ImageIcon } from "lucide-react"
 import { selectStyles, selectStylesDark } from "@/app/components/selectStyles"
 import { useTheme } from "@/app/contexts/theme-context"
 
@@ -34,6 +35,7 @@ export default function RecentCampaigns({ stores, onCampaignsLoad }) {
   const [showCampaignModal, setShowCampaignModal] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [smsContent, setSmsContent] = useState({}) // Cache for SMS content
   const itemsPerPage = 10
   const { theme } = useTheme()
 
@@ -41,6 +43,63 @@ export default function RecentCampaigns({ stores, onCampaignsLoad }) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Fetch SMS content directly from CDN (CORS configured on R2)
+  const fetchSmsContent = async (campaign) => {
+    // Check if already cached
+    if (smsContent[campaign.id]) {
+      return smsContent[campaign.id]
+    }
+
+    // Check if SMS preview URL exists
+    if (!campaign.preview_sms_url) {
+      return null
+    }
+
+    try {
+      console.log('🔍 Fetching SMS from URL:', campaign.preview_sms_url)
+
+      // Fetch directly from R2 CDN (CORS enabled)
+      const response = await fetch(campaign.preview_sms_url, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          'Accept': 'text/plain, */*'
+        }
+      })
+
+      console.log('📥 SMS fetch response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+
+      if (!response.ok) {
+        console.error('❌ Failed to fetch SMS content:', response.status, response.statusText)
+        return null
+      }
+
+      const text = await response.text()
+      console.log('✅ SMS content fetched:', text.substring(0, 100) + '...')
+
+      // Cache the content
+      setSmsContent(prev => ({
+        ...prev,
+        [campaign.id]: text
+      }))
+
+      return text
+    } catch (error) {
+      console.error('❌ Error fetching SMS content:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        url: campaign.preview_sms_url
+      })
+      return null
+    }
+  }
 
   useEffect(() => {
     const fetchRecentCampaigns = async () => {
@@ -220,99 +279,261 @@ export default function RecentCampaigns({ stores, onCampaignsLoad }) {
               No campaigns found in the past 14 days
             </div>
           ) : (
-            paginatedCampaigns.map((campaign, index) => (
-              <div
-                key={campaign.id || `recent-${index}`}
-                className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
-                onClick={() => {
-                  setSelectedCampaign(campaign)
-                  setShowCampaignModal(true)
-                }}
-              >
-                <div className="flex items-start justify-between">
-                  {/* Left side: Icon, Name, Store, Date */}
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="flex-shrink-0 mt-0.5">
-                      {getChannelIcon(campaign.channel)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate flex-1">
-                          {campaign.name || 'Unnamed Campaign'}
+            paginatedCampaigns.map((campaign, index) => {
+              // Check if campaign has a preview (email or SMS)
+              const hasEmailPreview = campaign.preview_image_url || campaign.preview_image_html
+              const hasSMSPreview = campaign.channel === 'sms' && campaign.preview_sms_url
+              const hasPreview = hasEmailPreview || hasSMSPreview
+
+              return (
+                <HoverCard
+                  key={campaign.id || `recent-${index}`}
+                  openDelay={200}
+                  closeDelay={100}
+                  onOpenChange={(open) => {
+                    // Prefetch SMS content when hover opens
+                    if (open && hasSMSPreview && !smsContent[campaign.id]) {
+                      fetchSmsContent(campaign)
+                    }
+                  }}
+                >
+                  <HoverCardTrigger asChild>
+                    <div
+                      className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedCampaign(campaign)
+                        setShowCampaignModal(true)
+                      }}
+                    >
+                      <div className="flex items-start justify-between">
+                        {/* Left side: Icon, Name, Store, Date */}
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0 mt-0.5">
+                            {getChannelIcon(campaign.channel)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate flex-1">
+                                {campaign.name || 'Unnamed Campaign'}
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {campaign.storeName || 'Unknown'}
+                              </Badge>
+                              {hasPreview && (
+                                <ImageIcon className="h-3 w-3 text-gray-400" title="Preview available" />
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {formatDate(campaign.date)}
+                            </div>
+                          </div>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {campaign.storeName || 'Unknown'}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {formatDate(campaign.date)}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Right side: Performance Metrics */}
-                  <div className="flex items-center gap-3 ml-4">
-                    {/* Recipients */}
-                    <div className="text-right flex-shrink-0">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                        <Users className="h-3 w-3" />
-                        <span>Recipients</span>
-                      </div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {formatNumber(campaign.performance?.recipients || campaign.statistics?.recipients || 0)}
-                      </div>
-                    </div>
+                        {/* Right side: Performance Metrics */}
+                        <div className="flex items-center gap-3 ml-4">
+                          {/* Recipients */}
+                          <div className="text-right flex-shrink-0">
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                              <Users className="h-3 w-3" />
+                              <span>Recipients</span>
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {formatNumber(campaign.performance?.recipients || campaign.statistics?.recipients || 0)}
+                            </div>
+                          </div>
 
-                    {/* Opens (email only) */}
-                    {campaign.channel === 'email' && (
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <Eye className="h-3 w-3" />
-                          <span>Opens</span>
+                          {/* Opens (email only) */}
+                          {campaign.channel === 'email' && (
+                            <div className="text-right flex-shrink-0">
+                              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                <Eye className="h-3 w-3" />
+                                <span>Opens</span>
+                              </div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {campaign.performance?.openRate !== undefined
+                                  ? formatPercentage(campaign.performance.openRate * 100)
+                                  : campaign.statistics?.open_rate
+                                  ? formatPercentage(campaign.statistics.open_rate * 100)
+                                  : '0%'}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Clicks */}
+                          <div className="text-right flex-shrink-0">
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                              <MousePointer className="h-3 w-3" />
+                              <span>Clicks</span>
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {campaign.performance?.clickRate !== undefined
+                                ? formatPercentage(campaign.performance.clickRate * 100)
+                                : campaign.statistics?.click_rate
+                                ? formatPercentage(campaign.statistics.click_rate * 100)
+                                : '0%'}
+                            </div>
+                          </div>
+
+                          {/* Total Revenue */}
+                          <div className="text-right flex-shrink-0">
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                              <DollarSign className="h-3 w-3 text-green-600" />
+                              <span>Revenue</span>
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {campaign.performance?.revenue > 0
+                                ? formatCurrency(campaign.performance.revenue)
+                                : campaign.statistics?.conversion_value > 0
+                                ? formatCurrency(campaign.statistics.conversion_value)
+                                : '$0'}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {campaign.performance?.openRate !== undefined
-                            ? formatPercentage(campaign.performance.openRate * 100)
-                            : campaign.statistics?.open_rate
-                            ? formatPercentage(campaign.statistics.open_rate * 100)
-                            : '0%'}
+                      </div>
+                    </div>
+                  </HoverCardTrigger>
+
+                  {/* Preview Popover (Email or SMS) */}
+                  {hasPreview && (
+                    <HoverCardContent
+                      className="w-[320px] p-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl"
+                      side="top"
+                      align="center"
+                    >
+                      <div className="space-y-0">
+                        {/* Campaign Info Header */}
+                        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
+                            {campaign.name || 'Unnamed Campaign'}
+                          </div>
+                          {campaign.subject && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 truncate mb-2">
+                              {campaign.subject}
+                            </div>
+                          )}
+                          {/* Quick Stats */}
+                          <div className="flex items-center gap-3 text-xs">
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3 text-gray-400" />
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">
+                                {formatNumber(campaign.performance?.recipients || campaign.statistics?.recipients || 0)}
+                              </span>
+                            </div>
+                            {campaign.channel === 'email' && (
+                              <div className="flex items-center gap-1">
+                                <Eye className="h-3 w-3 text-gray-400" />
+                                <span className="text-gray-900 dark:text-gray-100 font-medium">
+                                  {campaign.performance?.openRate !== undefined
+                                    ? formatPercentage(campaign.performance.openRate * 100)
+                                    : campaign.statistics?.open_rate
+                                    ? formatPercentage(campaign.statistics.open_rate * 100)
+                                    : '0%'}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <MousePointer className="h-3 w-3 text-gray-400" />
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">
+                                {campaign.performance?.clickRate !== undefined
+                                  ? formatPercentage(campaign.performance.clickRate * 100)
+                                  : campaign.statistics?.click_rate
+                                  ? formatPercentage(campaign.statistics.click_rate * 100)
+                                  : '0%'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3 text-green-600" />
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">
+                                {campaign.performance?.revenue > 0
+                                  ? formatCurrency(campaign.performance.revenue)
+                                  : campaign.statistics?.conversion_value > 0
+                                  ? formatCurrency(campaign.statistics.conversion_value)
+                                  : '$0'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
 
-                    {/* Clicks */}
-                    <div className="text-right flex-shrink-0">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                        <MousePointer className="h-3 w-3" />
-                        <span>Clicks</span>
+                        {/* SMS Preview */}
+                        {hasSMSPreview ? (
+                          <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                            <div className="p-4">
+                              {/* SMS Message Bubble */}
+                              <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-bl-sm shadow-md p-4 max-w-[280px]">
+                                {smsContent[campaign.id] ? (
+                                  <>
+                                    <div className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words leading-relaxed">
+                                      {smsContent[campaign.id]}
+                                    </div>
+                                    {/* Character count */}
+                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                                      {smsContent[campaign.id].length} characters
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+                                    Loading SMS content...
+                                  </div>
+                                )}
+                              </div>
+                              {/* SMS indicator */}
+                              <div className="mt-2 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                <MessageSquare className="h-3 w-3" />
+                                <span>SMS Message</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Email Preview - Above the fold only */
+                          campaign.preview_image_url ? (
+                            <div className="relative overflow-hidden bg-gray-50 dark:bg-gray-800">
+                              <div className="relative h-[280px] overflow-hidden">
+                                <img
+                                  src={campaign.preview_image_url}
+                                  alt={`Preview of ${campaign.name || 'campaign'}`}
+                                  className="w-full h-auto object-cover object-top"
+                                  style={{
+                                    maxHeight: 'none',
+                                    minHeight: '280px'
+                                  }}
+                                  onError={(e) => {
+                                    // Fallback if image fails to load
+                                    e.target.style.display = 'none'
+                                    e.target.nextSibling.style.display = 'flex'
+                                  }}
+                                />
+                                <div
+                                  className="hidden items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm"
+                                  style={{ display: 'none' }}
+                                >
+                                  <div className="text-center">
+                                    <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                    <p>Preview not available</p>
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Fade overlay at bottom */}
+                              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-100 dark:from-gray-800 to-transparent pointer-events-none" />
+                            </div>
+                          ) : campaign.preview_image_html ? (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 p-4 text-center">
+                              <a
+                                href={campaign.preview_image_html}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                              >
+                                View HTML Preview
+                              </a>
+                            </div>
+                          ) : null
+                        )}
                       </div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {campaign.performance?.clickRate !== undefined
-                          ? formatPercentage(campaign.performance.clickRate * 100)
-                          : campaign.statistics?.click_rate
-                          ? formatPercentage(campaign.statistics.click_rate * 100)
-                          : '0%'}
-                      </div>
-                    </div>
-
-                    {/* Total Revenue */}
-                    <div className="text-right flex-shrink-0">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                        <DollarSign className="h-3 w-3 text-green-600" />
-                        <span>Revenue</span>
-                      </div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {campaign.performance?.revenue > 0
-                          ? formatCurrency(campaign.performance.revenue)
-                          : campaign.statistics?.conversion_value > 0
-                          ? formatCurrency(campaign.statistics.conversion_value)
-                          : '$0'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
+                    </HoverCardContent>
+                  )}
+                </HoverCard>
+              )
+            })
           )}
         </div>
 

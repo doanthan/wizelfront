@@ -161,7 +161,8 @@ export default function DeliverabilityDetailsModal({ campaign, isOpen, onClose, 
                                 <div className="pb-40">
                                     {(() => {
                                         const messageId = campaign.message_id || campaign.messageId || campaign.campaign_message_id;
-                                        const storeId = campaignStore?.klaviyo_integration?.public_id || campaignStore?.public_id;
+                                        // IMPORTANT: Must use store's public_id (NOT klaviyo_integration.public_id)
+                                        const storeId = campaignStore?.public_id;
 
                                         console.log('🔍 Deliverability Preview Debug:', {
                                             messageId,

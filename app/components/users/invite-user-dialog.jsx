@@ -309,17 +309,19 @@ export default function InviteUserDialog({ isOpen, onClose, contractId, onSucces
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 max-w-xl">
                   {roles.map((role) => (
-                    <SelectItem key={role._id} value={role._id}>
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        <span className="font-medium">{role.display_name}</span>
-                        {!role.is_system_role && (
-                          <Badge className="text-xs bg-sky-blue text-white">Custom</Badge>
-                        )}
-                        <span className="text-xs text-gray-500 truncate max-w-[200px]">
-                          ({role.description})
+                    <SelectItem key={role._id} value={role._id} className="py-3">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-vivid-violet flex-shrink-0" />
+                          <span className="font-semibold text-gray-900 dark:text-white">{role.display_name}</span>
+                          {!role.is_system_role && (
+                            <Badge className="text-xs bg-sky-blue text-white">Custom</Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 ml-6 line-clamp-2">
+                          {role.description}
                         </span>
                       </div>
                     </SelectItem>
@@ -464,18 +466,20 @@ export default function InviteUserDialog({ isOpen, onClose, contractId, onSucces
                         className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer transition-colors"
                         onClick={() => toggleStoreSelection(store._id)}
                       >
-                        <Checkbox
-                          checked={selectedStores.includes(store._id)}
-                          onCheckedChange={() => toggleStoreSelection(store._id)}
-                        />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedStores.includes(store._id)}
+                            onCheckedChange={() => toggleStoreSelection(store._id)}
+                          />
+                        </div>
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <StoreIcon className="h-4 w-4 text-vivid-violet flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm text-gray-900 dark:text-white block truncate">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">
                               {store.name}
                             </span>
                             {store.public_id && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
                                 ID: {store.public_id}
                               </span>
                             )}

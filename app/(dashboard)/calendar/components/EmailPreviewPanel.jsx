@@ -305,20 +305,8 @@ export const EmailPreviewPanel = ({ messageId, storeId, campaign, compact = fals
       {/* Email content - scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-gray-900">
         <div className={compact ? "p-2" : "p-4"}>
-          {content.previewHtmlUrl ? (
-            // Display stored HTML preview via iframe
-            <iframe
-              src={content.previewHtmlUrl}
-              title="Email Preview"
-              className="w-full h-full min-h-[600px] border-0"
-              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-              style={{
-                maxWidth: '600px',
-                margin: '0 auto',
-                display: 'block'
-              }}
-            />
-          ) : content.html ? (
+          {content.html ? (
+            // Display HTML content directly (faster and more secure than iframe)
             <div
               className="email-content"
               dangerouslySetInnerHTML={{ __html: content.html }}

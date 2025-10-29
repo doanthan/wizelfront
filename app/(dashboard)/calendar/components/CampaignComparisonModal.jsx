@@ -20,11 +20,40 @@ export default function CampaignComparisonModal({
   
   if (selectedCampaigns.length === 0) return null;
   
+  // Debug: Log available stores
+  console.log('🏪 Available stores in comparison modal:', stores?.map(s => ({
+    name: s.name,
+    public_id: s.public_id,
+    klaviyo_public_id: s.klaviyo_integration?.public_id
+  })));
+
+  // Debug: Log campaigns being compared
+  console.log('📊 Campaigns to compare:', selectedCampaigns.map(c => ({
+    name: c.name,
+    klaviyo_public_id: c.klaviyo_public_id,
+    store_public_id: c.store_public_id,
+    storeIds: c.storeIds
+  })));
+
   // Prepare data for each campaign
   const campaignData = selectedCampaigns.map(campaign => {
-    const store = stores?.find(s => 
-      s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
+    // Find store by matching klaviyo_public_id first, then by store_public_id, then by storeIds array
+    const store = stores?.find(s =>
+      s.klaviyo_integration?.public_id === campaign.klaviyo_public_id ||
+      s.public_id === campaign.store_public_id ||
+      campaign.storeIds?.includes(s.public_id)
     );
+
+    console.log(`🔍 Store lookup for campaign "${campaign.name}":`, {
+      found: !!store,
+      storeName: store?.name,
+      storePublicId: store?.public_id,
+      matchedBy: store ? (
+        store.klaviyo_integration?.public_id === campaign.klaviyo_public_id ? 'klaviyo_public_id' :
+        store.public_id === campaign.store_public_id ? 'store_public_id' :
+        campaign.storeIds?.includes(store.public_id) ? 'storeIds array' : 'unknown'
+      ) : 'not found'
+    });
     const { openRate, clickRate, revenue } = getCampaignMetrics(campaign);
     const recipients = campaign.performance?.recipients || campaign.recipients || 0;
     const delivered = campaign.performance?.delivered || campaign.delivered || recipients;
@@ -119,12 +148,50 @@ export default function CampaignComparisonModal({
                   </div>
                   
                   {/* Email/SMS Preview - Individual scrollable containers */}
-                  <div className="flex-1 min-h-0 bg-white dark:bg-gray-950 overflow-y-auto">
-                    <EmailPreviewPanel 
-                      messageId={campaign.messageId} 
-                      storeId={campaign.klaviyo_public_id || campaign.store?.klaviyo_integration?.public_id || campaign.storeIds?.[0]}
-                      compact={true}
-                    />
+                  <div className="flex-1 min-h-0 bg-white dark:bg-gray-950 overflow-y-auto comparison-preview-scroll">
+                    {(() => {
+                      // Get the store's public_id (NOT klaviyo_public_id)
+                      // Priority:
+                      // 1. campaign.store.public_id (from store lookup)
+                      // 2. campaign.store_public_id (direct field - historical campaigns)
+                      // 3. campaign.store_public_ids[0] (plural array - future campaigns)
+                      // 4. campaign.storeIds[0] (alias array)
+                      // 5. Find store by klaviyo_public_id and get its public_id
+                      let storeId = campaign.store?.public_id ||
+                                   campaign.store_public_id ||           // Historical campaigns (singular)
+                                   campaign.store_public_ids?.[0] ||     // Future campaigns (plural array)
+                                   campaign.storeIds?.[0];               // Alias array
+
+                      // Only fall back to klaviyo_public_id lookup if we still don't have a storeId
+                      if (!storeId && campaign.klaviyo_public_id) {
+                        const foundStore = stores?.find(s =>
+                          s.klaviyo_integration?.public_id === campaign.klaviyo_public_id
+                        );
+                        storeId = foundStore?.public_id;
+                      }
+
+                      console.log('🔍 Comparison Modal Preview Debug:', {
+                        campaignName: campaign.name,
+                        messageId: campaign.messageId,
+                        finalStoreId: storeId,
+                        hasStore: !!campaign.store,
+                        storePublicId: campaign.store?.public_id,
+                        campaignStorePublicId: campaign.store_public_id,
+                        storeIds: campaign.storeIds,
+                        storePublicIds: campaign.store_public_ids,
+                        klaviyoPublicId: campaign.klaviyo_public_id,
+                        storeKlaviyoId: campaign.store?.klaviyo_integration?.public_id
+                      });
+
+                      return (
+                        <EmailPreviewPanel
+                          messageId={campaign.messageId}
+                          storeId={storeId}
+                          campaign={campaign}
+                          compact={true}
+                        />
+                      );
+                    })()}
                   </div>
                 </div>
               ))}

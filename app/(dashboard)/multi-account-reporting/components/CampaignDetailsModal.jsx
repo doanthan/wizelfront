@@ -261,10 +261,11 @@ export default function CampaignDetailsModal({ campaign, isOpen, onClose, stores
                                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Campaign Preview</h3>
                             </div>
                             <div className="flex-1 overflow-hidden">
-                                {(data.message_id || data.groupings?.campaign_message_id) && (campaignStore?.public_id || campaignStore?.klaviyo_integration?.public_id) ? (
-                                    <EmailPreviewPanel 
+                                {(data.message_id || data.groupings?.campaign_message_id) && campaignStore?.public_id ? (
+                                    <EmailPreviewPanel
                                         messageId={data.message_id || data.groupings?.campaign_message_id}
-                                        storeId={campaignStore?.klaviyo_integration?.public_id || campaignStore?.public_id}
+                                        storeId={campaignStore?.public_id}
+                                        campaign={data}
                                     />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-gray-500">

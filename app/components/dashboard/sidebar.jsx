@@ -401,18 +401,8 @@ export default function Sidebar() {
               "flex items-center",
               isCollapsed ? "justify-center" : "gap-0"
             )}>
-              <div className="w-8 h-8 bg-gradient-to-br from-sky-blue to-vivid-violet rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white" aria-hidden="true">
-                  <path d="M12 8V4H8"></path>
-                  <rect width="16" height="12" x="4" y="8" rx="2"></rect>
-                  <path d="M2 14h2"></path>
-                  <path d="M20 14h2"></path>
-                  <path d="M15 13v2"></path>
-                  <path d="M9 13v2"></path>
-                </svg>
-              </div>
               {!isCollapsed && (
-                <svg width="105" height="32" viewBox="0 0 210 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 -ml-3 mt-1">
+                <svg width="105" height="32" viewBox="0 0 210 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mt-1">
                   <defs>
                     <filter id="sidebar-logo-shadow">
                       <feDropShadow dx="2" dy="2" stdDeviation="0" floodColor="#8B5CF6" floodOpacity="0.3"/>

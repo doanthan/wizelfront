@@ -548,11 +548,27 @@ export default function StoreDetailsPage() {
           </Button>
           <Button
             variant="ghost"
+            onClick={() => router.push(`/store/${storePublicId}/products`)}
+            className="rounded-none border-b-2 border-transparent hover:border-gray-300 px-4 py-2"
+          >
+            Products
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => router.push(`/store/${storePublicId}/ctas`)}
             className="rounded-none border-b-2 border-transparent hover:border-gray-300 px-4 py-2"
           >
             CTAs
           </Button>
+          {process.env.NEXT_PUBLIC_NODE_ENV === 'development' && (
+            <Button
+              variant="ghost"
+              onClick={() => router.push(`/store/${storePublicId}/apps`)}
+              className="rounded-none border-b-2 border-transparent hover:border-gray-300 px-4 py-2"
+            >
+              Apps
+            </Button>
+          )}
           <Button
             variant="ghost"
             onClick={() => router.push(`/store/${storePublicId}/users`)}

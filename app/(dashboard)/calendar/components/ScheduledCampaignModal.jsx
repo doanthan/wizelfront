@@ -335,9 +335,11 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
     // Memoize messageId and storeId for EmailPreviewPanel
     const emailPreviewProps = useMemo(() => {
         const messageId = data.messageId || data.message_id;
-        const storeId = campaignStore?.klaviyo_integration?.public_id || campaignStore?.public_id;
+        // IMPORTANT: Must use store's public_id (NOT klaviyo_integration.public_id)
+        // The API expects the store's public_id and will look up Klaviyo credentials from there
+        const storeId = campaignStore?.public_id;
         return { messageId, storeId };
-    }, [data.messageId, data.message_id, campaignStore?.klaviyo_integration?.public_id, campaignStore?.public_id])
+    }, [data.messageId, data.message_id, campaignStore?.public_id])
 
     const formatDate = (date) => {
         if (!date) return 'N/A'
@@ -715,8 +717,8 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                             </Button>
 
                             <div className="flex items-center gap-2">
-                                {/* Action buttons for scheduled campaigns - always show since this is ScheduledCampaignModal */}
-                                <Button
+                                {/* Action buttons for scheduled campaigns - temporarily commented out */}
+                                {/* <Button
                                     variant="outline"
                                     onClick={() => setShowUpdateModal(true)}
                                     className="text-sm bg-gradient-to-r from-sky-blue to-vivid-violet hover:from-royal-blue hover:to-deep-purple text-white border-0"
@@ -732,7 +734,7 @@ export default function ScheduledCampaignModal({ campaign, isOpen, onClose, stor
                                 >
                                     <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                                     Delete Campaign
-                                </Button>
+                                </Button> */}
                             </div>
                         </div>
                     </div>

@@ -7,14 +7,14 @@ import { logAuditEvent } from '@/lib/posthog-audit';
 async function completeConnection(store, apiKey, metricId, reportingMetricId, refundMetricIds) {
   try {
     console.log("Completing Klaviyo connection with metrics:", { conversion: metricId, reporting: reportingMetricId, refund: refundMetricIds });
-    
+
     // Fetch account info to verify API key
     const account = await klaviyoGetAll("accounts", { apiKey });
-    
+
     if (!account || !account.data || account.data.length === 0) {
       return NextResponse.json({ error: 'Invalid API key' }, { status: 400 });
     }
-    
+
     // Update store with Klaviyo integration
     store.klaviyo_integration = {
       status: 'connected',
@@ -29,7 +29,7 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
       connected_at: new Date(),
       last_sync: new Date()
     };
-    
+
     // Save timezone and currency from Klaviyo account
     if (account.data[0].attributes?.timezone) {
       store.timezone = account.data[0].attributes.timezone;
@@ -37,10 +37,73 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
     if (account.data[0].attributes?.preferred_currency) {
       store.currency = account.data[0].attributes.preferred_currency;
     }
-    
+
+    // Check if it's Shopify Placed Order and store this information
+    // Also search for subscription metrics
+    let isShopifyPlacedOrder = false;
+    const subscriptionMetrics = {
+      email_subscribe: null,
+      email_unsubscribe: null,
+      sms_subscribe: null,
+      sms_unsubscribe: null
+    };
+
+    if (metricId) {
+      try {
+        const metrics = await klaviyoGetAll("metrics", { apiKey });
+        const selectedMetric = metrics.data.find(m => m.id === metricId);
+        isShopifyPlacedOrder = selectedMetric &&
+                               selectedMetric.attributes.name === "Placed Order" &&
+                               selectedMetric.attributes.integration?.key === "shopify";
+
+        // Search for subscription metrics (Klaviyo internal integration)
+        metrics.data.forEach(metric => {
+          const isKlaviyoIntegration = metric.attributes.integration?.name === "Klaviyo" ||
+                                       metric.attributes.integration?.key === "klaviyo";
+
+          if (isKlaviyoIntegration) {
+            const metricName = metric.attributes.name;
+
+            if (metricName === "Subscribed to Email Marketing") {
+              subscriptionMetrics.email_subscribe = metric.id;
+              console.log(`Found Email Subscribe metric: ${metric.id}`);
+            } else if (metricName === "Unsubscribed from Email Marketing") {
+              subscriptionMetrics.email_unsubscribe = metric.id;
+              console.log(`Found Email Unsubscribe metric: ${metric.id}`);
+            } else if (metricName === "Subscribed to SMS Marketing") {
+              subscriptionMetrics.sms_subscribe = metric.id;
+              console.log(`Found SMS Subscribe metric: ${metric.id}`);
+            } else if (metricName === "Unsubscribed from SMS Marketing") {
+              subscriptionMetrics.sms_unsubscribe = metric.id;
+              console.log(`Found SMS Unsubscribe metric: ${metric.id}`);
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Error checking metric type:", e);
+      }
+    }
+
+    // Add is_shopify_placed_order flag and subscription metrics to klaviyo_integration
+    store.klaviyo_integration.is_shopify_placed_order = isShopifyPlacedOrder;
+
+    // Save subscription metrics if found
+    if (subscriptionMetrics.email_subscribe) {
+      store.klaviyo_integration.email_subscribe_metric = subscriptionMetrics.email_subscribe;
+    }
+    if (subscriptionMetrics.email_unsubscribe) {
+      store.klaviyo_integration.email_unsubscribe_metric = subscriptionMetrics.email_unsubscribe;
+    }
+    if (subscriptionMetrics.sms_subscribe) {
+      store.klaviyo_integration.sms_subscribe_metric = subscriptionMetrics.sms_subscribe;
+    }
+    if (subscriptionMetrics.sms_unsubscribe) {
+      store.klaviyo_integration.sms_unsubscribe_metric = subscriptionMetrics.sms_unsubscribe;
+    }
+
     await store.save();
-    console.log("Store saved with Klaviyo integration");
-    
+    console.log("Store saved with Klaviyo integration and subscription metrics");
+
     // Log audit event for Klaviyo connection
     await logAuditEvent({
       action: 'KLAVIYO_CONNECT',
@@ -51,28 +114,17 @@ async function completeConnection(store, apiKey, metricId, reportingMetricId, re
         auth_type: 'api_key',
         has_conversion_metric: !!metricId,
         has_reporting_metric: !!reportingMetricId,
-        refund_metric_count: refundMetricIds?.length || 0
+        refund_metric_count: refundMetricIds?.length || 0,
+        subscription_metrics_found: {
+          email_subscribe: !!subscriptionMetrics.email_subscribe,
+          email_unsubscribe: !!subscriptionMetrics.email_unsubscribe,
+          sms_subscribe: !!subscriptionMetrics.sms_subscribe,
+          sms_unsubscribe: !!subscriptionMetrics.sms_unsubscribe
+        }
       },
       severity: 'info',
       success: true
     });
-    
-    // Check if it's Shopify Placed Order and store this information
-    let isShopifyPlacedOrder = false;
-    if (metricId) {
-      try {
-        const metrics = await klaviyoGetAll("metrics", { apiKey });
-        const selectedMetric = metrics.data.find(m => m.id === metricId);
-        isShopifyPlacedOrder = selectedMetric &&
-                               selectedMetric.attributes.name === "Placed Order" &&
-                               selectedMetric.attributes.integration?.key === "shopify";
-      } catch (e) {
-        console.error("Error checking metric type:", e);
-      }
-    }
-
-    // Add is_shopify_placed_order flag to klaviyo_integration
-    store.klaviyo_integration.is_shopify_placed_order = isShopifyPlacedOrder;
 
     // Trigger sync if we have a metric
     if (metricId) {
@@ -187,13 +239,13 @@ export const POST = withStoreAccess(async (request, context) => {
     if (action === 'test') {
       try {
         console.log("Testing Klaviyo API and fetching metrics...");
-        
+
         // Fetch account and standard metrics (required)
         const [account, standardMetrics] = await Promise.all([
           klaviyoGetAll("accounts", { apiKey }),
           klaviyoGetAll("metrics", { apiKey })
         ]);
-        
+
         // Try to fetch custom metrics, but don't fail if it errors
         let customMetrics = { data: [] };
         try {
@@ -203,10 +255,66 @@ export const POST = withStoreAccess(async (request, context) => {
           console.warn("Failed to fetch custom metrics:", customError.message);
           // Continue without custom metrics
         }
-        
+
+        // Search for subscription metrics (Klaviyo internal integration)
+        const subscriptionMetrics = {
+          email_subscribe: null,
+          email_unsubscribe: null,
+          sms_subscribe: null,
+          sms_unsubscribe: null
+        };
+
+        standardMetrics.data.forEach(metric => {
+          const isKlaviyoIntegration = metric.attributes.integration?.name === "Klaviyo" ||
+                                       metric.attributes.integration?.key === "klaviyo";
+
+          if (isKlaviyoIntegration) {
+            const metricName = metric.attributes.name;
+
+            if (metricName === "Subscribed to Email Marketing") {
+              subscriptionMetrics.email_subscribe = metric.id;
+              console.log(`Found Email Subscribe metric: ${metric.id}`);
+            } else if (metricName === "Unsubscribed from Email Marketing") {
+              subscriptionMetrics.email_unsubscribe = metric.id;
+              console.log(`Found Email Unsubscribe metric: ${metric.id}`);
+            } else if (metricName === "Subscribed to SMS Marketing") {
+              subscriptionMetrics.sms_subscribe = metric.id;
+              console.log(`Found SMS Subscribe metric: ${metric.id}`);
+            } else if (metricName === "Unsubscribed from SMS Marketing") {
+              subscriptionMetrics.sms_unsubscribe = metric.id;
+              console.log(`Found SMS Unsubscribe metric: ${metric.id}`);
+            }
+          }
+        });
+
+        // Save subscription metrics to store immediately upon finding them
+        if (subscriptionMetrics.email_subscribe || subscriptionMetrics.email_unsubscribe ||
+            subscriptionMetrics.sms_subscribe || subscriptionMetrics.sms_unsubscribe) {
+
+          if (!store.klaviyo_integration) {
+            store.klaviyo_integration = {};
+          }
+
+          if (subscriptionMetrics.email_subscribe) {
+            store.klaviyo_integration.email_subscribe_metric = subscriptionMetrics.email_subscribe;
+          }
+          if (subscriptionMetrics.email_unsubscribe) {
+            store.klaviyo_integration.email_unsubscribe_metric = subscriptionMetrics.email_unsubscribe;
+          }
+          if (subscriptionMetrics.sms_subscribe) {
+            store.klaviyo_integration.sms_subscribe_metric = subscriptionMetrics.sms_subscribe;
+          }
+          if (subscriptionMetrics.sms_unsubscribe) {
+            store.klaviyo_integration.sms_unsubscribe_metric = subscriptionMetrics.sms_unsubscribe;
+          }
+
+          await store.save();
+          console.log("Saved subscription metrics to store:", subscriptionMetrics);
+        }
+
         // Combine and format metrics for frontend
         const allMetrics = [];
-        
+
         // Add standard metrics
         standardMetrics.data.forEach(metric => {
           allMetrics.push({
@@ -214,11 +322,11 @@ export const POST = withStoreAccess(async (request, context) => {
             name: metric.attributes.name,
             integration: metric.attributes.integration?.name || 'Standard',
             category: metric.attributes.integration?.category || 'STANDARD',
-            isShopifyPlacedOrder: metric.attributes.name === "Placed Order" && 
+            isShopifyPlacedOrder: metric.attributes.name === "Placed Order" &&
                                  metric.attributes.integration?.key === "shopify"
           });
         });
-        
+
         // Add custom metrics (custom-metrics endpoint returns different structure)
         const existingIds = new Set(allMetrics.map(m => m.id));
         if (customMetrics.data && Array.isArray(customMetrics.data)) {
@@ -235,26 +343,27 @@ export const POST = withStoreAccess(async (request, context) => {
             }
           });
         }
-        
+
         // Sort metrics: Shopify Placed Order first, then alphabetically
         allMetrics.sort((a, b) => {
           if (a.isShopifyPlacedOrder) return -1;
           if (b.isShopifyPlacedOrder) return 1;
           return a.name.localeCompare(b.name);
         });
-        
+
         return NextResponse.json({
           success: true,
           action: 'test',
           account: {
             id: account.data[0].id,
-            name: account.data[0].attributes.contact_information?.organization_name || 
-                  account.data[0].attributes.contact_information?.contact_email || 
+            name: account.data[0].attributes.contact_information?.organization_name ||
+                  account.data[0].attributes.contact_information?.contact_email ||
                   'Unknown Account'
           },
-          metrics: allMetrics
+          metrics: allMetrics,
+          subscription_metrics: subscriptionMetrics
         });
-        
+
       } catch (error) {
         console.error("Error testing Klaviyo API:", error);
         return NextResponse.json({
@@ -273,7 +382,15 @@ export const POST = withStoreAccess(async (request, context) => {
       // Check if store already has OAuth connection
       if (store.klaviyo_integration?.auth_type === 'oauth' && store.klaviyo_integration?.oauth_token) {
         // Check if the selected metric is Shopify Placed Order for OAuth connections
+        // Also search for subscription metrics
         let isShopifyPlacedOrderOAuth = false;
+        const subscriptionMetrics = {
+          email_subscribe: null,
+          email_unsubscribe: null,
+          sms_subscribe: null,
+          sms_unsubscribe: null
+        };
+
         if (metricId) {
           try {
             // We need to get metrics using OAuth token - for now, we'll use the auth helper
@@ -284,6 +401,30 @@ export const POST = withStoreAccess(async (request, context) => {
             isShopifyPlacedOrderOAuth = selectedMetric &&
                                       selectedMetric.attributes.name === "Placed Order" &&
                                       selectedMetric.attributes.integration?.key === "shopify";
+
+            // Search for subscription metrics (Klaviyo internal integration)
+            metrics.data.forEach(metric => {
+              const isKlaviyoIntegration = metric.attributes.integration?.name === "Klaviyo" ||
+                                           metric.attributes.integration?.key === "klaviyo";
+
+              if (isKlaviyoIntegration) {
+                const metricName = metric.attributes.name;
+
+                if (metricName === "Subscribed to Email Marketing") {
+                  subscriptionMetrics.email_subscribe = metric.id;
+                  console.log(`Found Email Subscribe metric: ${metric.id}`);
+                } else if (metricName === "Unsubscribed from Email Marketing") {
+                  subscriptionMetrics.email_unsubscribe = metric.id;
+                  console.log(`Found Email Unsubscribe metric: ${metric.id}`);
+                } else if (metricName === "Subscribed to SMS Marketing") {
+                  subscriptionMetrics.sms_subscribe = metric.id;
+                  console.log(`Found SMS Subscribe metric: ${metric.id}`);
+                } else if (metricName === "Unsubscribed from SMS Marketing") {
+                  subscriptionMetrics.sms_unsubscribe = metric.id;
+                  console.log(`Found SMS Unsubscribe metric: ${metric.id}`);
+                }
+              }
+            });
           } catch (e) {
             console.error("Error checking OAuth metric type:", e);
           }
@@ -295,7 +436,23 @@ export const POST = withStoreAccess(async (request, context) => {
         store.klaviyo_integration.refund_metric_ids = refund_metric_ids || [];
         store.klaviyo_integration.conversion_type = conversion_type || 'value';
         store.klaviyo_integration.is_shopify_placed_order = isShopifyPlacedOrderOAuth;
+
+        // Save subscription metrics if found
+        if (subscriptionMetrics.email_subscribe) {
+          store.klaviyo_integration.email_subscribe_metric = subscriptionMetrics.email_subscribe;
+        }
+        if (subscriptionMetrics.email_unsubscribe) {
+          store.klaviyo_integration.email_unsubscribe_metric = subscriptionMetrics.email_unsubscribe;
+        }
+        if (subscriptionMetrics.sms_subscribe) {
+          store.klaviyo_integration.sms_subscribe_metric = subscriptionMetrics.sms_subscribe;
+        }
+        if (subscriptionMetrics.sms_unsubscribe) {
+          store.klaviyo_integration.sms_unsubscribe_metric = subscriptionMetrics.sms_unsubscribe;
+        }
+
         await store.save();
+        console.log("OAuth connection updated with subscription metrics");
 
         return NextResponse.json({
           success: true,
@@ -311,16 +468,22 @@ export const POST = withStoreAccess(async (request, context) => {
     // Otherwise, complete the connection with the selected metric (legacy flow)
     let finalMetricId = conversion_metric_id || conversionMetricId;
     let isShopifyPlacedOrder = false; // Define in outer scope
-    
+    const subscriptionMetrics = {
+      email_subscribe: null,
+      email_unsubscribe: null,
+      sms_subscribe: null,
+      sms_unsubscribe: null
+    };
+
     try {
       console.time("klaviyo fetches");
-      
+
       // Fetch account info and metrics to verify the selected metric
       const [account, metrics] = await Promise.all([
         klaviyoGetAll("accounts", { apiKey }),
         klaviyoGetAll("metrics", { apiKey })
       ]);
-      
+
       // Check if the selected metric is Shopify Placed Order
       const selectedMetric = metrics.data.find(m => m.id === conversion_metric_id);
       isShopifyPlacedOrder = selectedMetric &&
@@ -328,6 +491,33 @@ export const POST = withStoreAccess(async (request, context) => {
                              selectedMetric.attributes.integration?.key === "shopify";
 
       console.log(`Selected metric: ${selectedMetric?.attributes?.name}, Is Shopify Placed Order: ${isShopifyPlacedOrder}`);
+
+      // Search for subscription metrics (Klaviyo internal integration)
+      console.log(`Searching for subscription metrics in ${metrics.data.length} total metrics...`);
+      metrics.data.forEach(metric => {
+        const isKlaviyoIntegration = metric.attributes.integration?.name === "Klaviyo" ||
+                                     metric.attributes.integration?.key === "klaviyo";
+
+        if (isKlaviyoIntegration) {
+          const metricName = metric.attributes.name;
+
+          if (metricName === "Subscribed to Email Marketing") {
+            subscriptionMetrics.email_subscribe = metric.id;
+            console.log(`Found Email Subscribe metric: ${metric.id}`);
+          } else if (metricName === "Unsubscribed from Email Marketing") {
+            subscriptionMetrics.email_unsubscribe = metric.id;
+            console.log(`Found Email Unsubscribe metric: ${metric.id}`);
+          } else if (metricName === "Subscribed to SMS Marketing") {
+            subscriptionMetrics.sms_subscribe = metric.id;
+            console.log(`Found SMS Subscribe metric: ${metric.id}`);
+          } else if (metricName === "Unsubscribed from SMS Marketing") {
+            subscriptionMetrics.sms_unsubscribe = metric.id;
+            console.log(`Found SMS Unsubscribe metric: ${metric.id}`);
+          }
+        }
+      });
+
+      console.log('Subscription metrics search complete:', subscriptionMetrics);
 
       // Update store with Klaviyo integration in the correct format (matching old code structure)
       store.klaviyo_integration = {
@@ -348,11 +538,26 @@ export const POST = withStoreAccess(async (request, context) => {
         flow_series_last_update: null,
         form_series_last_update: null
       };
-      
+
+      // Save subscription metrics if found
+      if (subscriptionMetrics.email_subscribe) {
+        store.klaviyo_integration.email_subscribe_metric = subscriptionMetrics.email_subscribe;
+      }
+      if (subscriptionMetrics.email_unsubscribe) {
+        store.klaviyo_integration.email_unsubscribe_metric = subscriptionMetrics.email_unsubscribe;
+      }
+      if (subscriptionMetrics.sms_subscribe) {
+        store.klaviyo_integration.sms_subscribe_metric = subscriptionMetrics.sms_subscribe;
+      }
+      if (subscriptionMetrics.sms_unsubscribe) {
+        store.klaviyo_integration.sms_unsubscribe_metric = subscriptionMetrics.sms_unsubscribe;
+      }
+
       console.timeEnd("klaviyo fetches");
-      
+
       // Save the store with updated integration
       await store.save();
+      console.log("Legacy connection saved with subscription metrics");
       
       // Log audit event for successful connection
       await logAuditEvent({

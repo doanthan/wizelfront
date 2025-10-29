@@ -183,6 +183,7 @@ export async function GET(request) {
       
       // Account and store info
       accountId: campaign.klaviyo_public_id,
+      klaviyo_public_id: campaign.klaviyo_public_id, // Add klaviyo_public_id for EmailPreviewPanel
       storeIds: campaign.store_public_ids || [],
       
       // Audiences
@@ -195,7 +196,16 @@ export async function GET(request) {
       
       // Additional fields
       fromAddress: campaign.from_address || '',
-      fromLabel: campaign.from_label || ''
+      fromLabel: campaign.from_label || '',
+
+      // Preview URLs (for stored previews from Cloudflare R2)
+      preview_image_html: campaign.preview_image_html || null,
+      preview_image_url: campaign.preview_image_url || null,
+      preview_sms_url: campaign.preview_sms_url || null,
+      preview_generated_at: campaign.preview_generated_at || null,
+
+      // Include groupings for easier access to campaign details
+      groupings: campaign.groupings || null
     }));
 
     // Calculate aggregate statistics

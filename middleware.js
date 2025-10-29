@@ -19,10 +19,10 @@ const securityHeaders = {
   // Control referrer information
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   
-  // Content Security Policy - Updated to include PostHog
-  'Content-Security-Policy': process.env.NODE_ENV === 'production' 
-    ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.posthog.com https://us.i.posthog.com https://*.sentry.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://a.klaviyo.com https://*.posthog.com https://us.i.posthog.com https://*.sentry.io wss://localhost:* ws://localhost:*"
-    : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.posthog.com https://us.i.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://a.klaviyo.com https://*.posthog.com https://us.i.posthog.com wss://localhost:* ws://localhost:*",
+  // Content Security Policy - Updated to include PostHog, R2 domain (wizel.ai, cdn.wizel.ai), and Klaviyo static resources
+  'Content-Security-Policy': process.env.NODE_ENV === 'production'
+    ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.posthog.com https://us.i.posthog.com https://*.sentry.io; style-src 'self' 'unsafe-inline' https://*.klaviyo.com; img-src 'self' data: https: blob:; font-src 'self' data: https://*.klaviyo.com; frame-src 'self' https://wizel.ai; connect-src 'self' https://a.klaviyo.com https://*.posthog.com https://us.i.posthog.com https://wizel.ai https://cdn.wizel.ai https://*.sentry.io wss://localhost:* ws://localhost:*"
+    : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.posthog.com https://us.i.posthog.com; style-src 'self' 'unsafe-inline' https://*.klaviyo.com; img-src 'self' data: https: blob:; font-src 'self' data: https://*.klaviyo.com; frame-src 'self' https://wizel.ai; connect-src 'self' https://a.klaviyo.com https://*.posthog.com https://us.i.posthog.com https://wizel.ai https://cdn.wizel.ai wss://localhost:* ws://localhost:*",
   
   // Strict Transport Security (HSTS)
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',

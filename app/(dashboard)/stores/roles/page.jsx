@@ -482,55 +482,6 @@ export default function RolesPage() {
                     );
                   })}
 
-                  {/* Capabilities Section */}
-                  {selectedRole.capabilities && (
-                    <Card className="border-gray-200 dark:border-gray-700">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <Settings className="h-5 w-5 text-vivid-violet" />
-                          Special Capabilities
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {Object.entries(selectedRole.capabilities).map(([key, value]) => {
-                            const isBoolean = typeof value === 'boolean';
-                            const isAllowed = isBoolean ? value : value !== 'low';
-
-                            return (
-                              <div
-                                key={key}
-                                className={`flex items-center justify-between p-3 rounded-lg border ${
-                                  isAllowed
-                                    ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800'
-                                    : 'border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700'
-                                }`}
-                              >
-                                <span className={`text-sm font-medium ${
-                                  isAllowed
-                                    ? 'text-green-700 dark:text-green-400'
-                                    : 'text-gray-600 dark:text-gray-400'
-                                }`}>
-                                  {key.replace(/([A-Z])/g, ' $1').trim()}
-                                </span>
-                                {isBoolean ? (
-                                  isAllowed ? (
-                                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                  ) : (
-                                    <X className="h-4 w-4 text-gray-400" />
-                                  )
-                                ) : (
-                                  <Badge variant="outline" className="text-xs">
-                                    {value}
-                                  </Badge>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
                 </div>
               </div>
             </>

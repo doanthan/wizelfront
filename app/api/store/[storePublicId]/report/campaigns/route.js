@@ -224,6 +224,11 @@ export const GET = withStoreAccess(async (request, context) => {
       revenue: campaign.statistics?.conversion_value || 0,
       delivery_rate: campaign.statistics?.delivery_rate || 0,
 
+      // Preview URLs for hover previews
+      preview_image_url: campaign.preview_image_url,
+      preview_sms_url: campaign.preview_sms_url,
+      subject: campaign.subject,
+
       // Full statistics for reference
       statistics: campaign.statistics,
       groupings: campaign.groupings,

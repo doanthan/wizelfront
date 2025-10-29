@@ -19,6 +19,7 @@ import LoadingSpinner, { InlineLoading } from '@/app/components/ui/loading-spinn
 import MorphingLoader from '@/app/components/ui/loading';
 import AccountPerformanceChart from '@/app/components/campaigns/AccountPerformanceChart';
 import SendTimeOptimizationMatrix from '@/app/components/campaigns/SendTimeOptimizationMatrix';
+import CampaignROIMatrix from '@/app/(dashboard)/store/[storePublicId]/report/campaigns/components/CampaignROIMatrix';
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ import {
 } from '@/app/components/ui/popover';
 import { AccountSelector } from '@/app/components/ui/account-selector';
 import { DateRangeSelector } from '@/app/components/ui/date-range-selector';
+import { EmailPreviewPanel } from '@/app/components/campaigns/EmailPreviewPanel';
 import { cn, formatNumber, formatCurrency, formatPercentage, calculatePercentageChange, formatPercentageChange } from '@/lib/utils';
 import {
   LineChart,
@@ -52,192 +54,6 @@ import {
 
 // Cache for campaign data to avoid refetching
 const campaignDataCache = new Map();
-
-// Email Preview Panel Component
-const EmailPreviewPanel = ({ messageId, storeId }) => {
-  const [content, setContent] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!messageId || !storeId) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchContent = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(`/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch campaign content');
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          setContent(data.data);
-        } else {
-          throw new Error(data.error || 'Failed to load content');
-        }
-      } catch (err) {
-        console.error('Error fetching campaign content:', err);
-
-        // Provide more helpful error messages
-        if (err.message?.includes('does not exist')) {
-          setError('Campaign preview not available. The campaign message may have been deleted from Klaviyo.');
-        } else if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-          setError('Authentication failed. Please reconnect your Klaviyo account.');
-        } else if (err.message?.includes('404')) {
-          setError('Campaign not found. It may have been deleted or is no longer available.');
-        } else {
-          setError(err.message || 'Failed to load campaign preview');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, [messageId, storeId]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <InlineLoading text="Loading preview..." />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="text-center max-w-md">
-          <div className="mb-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/20">
-              <Info className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Preview Unavailable
-          </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-
-          {/* Show debug info in a subtle way */}
-          <details className="text-left bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
-            <summary className="text-xs font-medium text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
-              Technical Details
-            </summary>
-            <div className="mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-500">
-              <p><strong>Message ID:</strong> {messageId || 'Not provided'}</p>
-              <p><strong>Store ID:</strong> {storeId || 'Not provided'}</p>
-            </div>
-          </details>
-        </div>
-      </div>
-    );
-  }
-
-  if (!content) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-gray-800 dark:text-gray-400">No preview available</p>
-      </div>
-    );
-  }
-
-  // Render SMS Preview
-  if (content.type === 'sms' || content.channel === 'sms') {
-    return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
-        <div className="max-w-sm">
-          {/* Phone Frame */}
-          <div className="bg-black rounded-[2.5rem] p-4 shadow-2xl">
-            <div className="bg-white rounded-[2rem] p-4 h-[600px] overflow-hidden">
-              {/* Phone Header */}
-              <div className="flex items-center justify-between mb-4 pb-2 border-b">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-blue to-vivid-violet"></div>
-                  <div>
-                    <p className="text-sm font-semibold">Your Brand</p>
-                    <p className="text-xs text-gray-500">{content.fromPhone || 'SMS'}</p>
-                  </div>
-                </div>
-                <div className="text-xs text-gray-400">now</div>
-              </div>
-              
-              {/* Message Content */}
-              <div className="space-y-3">
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{content.body || content.rawBody}</p>
-                    {content.mediaUrl && (
-                      <img 
-                        src={content.mediaUrl} 
-                        alt="SMS Media" 
-                        className="mt-2 rounded-lg w-full"
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Render Email Preview
-  return (
-    <div className="flex flex-col h-full">
-      {/* Email Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex-shrink-0">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-700 dark:text-gray-400">From:</span>
-            <span className="text-gray-900 dark:text-white">
-              {content.fromLabel && content.fromEmail ? 
-                `${content.fromLabel} <${content.fromEmail}>` : 
-                content.fromEmail || 'No sender'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-700 dark:text-gray-400">Subject:</span>
-            <span className="text-gray-900 dark:text-white font-medium">
-              {content.subject || 'No subject'}
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Email Content */}
-      <div className="flex-1 bg-white overflow-hidden">
-        {content.html ? (
-          <iframe
-            srcDoc={content.html}
-            className="w-full h-full border-0"
-            title="Email Preview"
-            sandbox="allow-same-origin"
-          />
-        ) : content.text ? (
-          <div className="p-4">
-            <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans">
-              {content.text}
-            </pre>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-gray-700 dark:text-gray-400">No content available</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const CampaignsTab = ({
   accountIds,
@@ -381,170 +197,6 @@ const CampaignsTab = ({
     }
   }, [campaigns, aggregateStats, chartData, loading]);
 
-  // Email/SMS Preview Panel Component
-  const EmailPreviewPanel = ({ messageId, storeId }) => {
-    const [content, setContent] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-      const fetchContent = async () => {
-        if (!messageId) {
-          setLoading(false);
-          return;
-        }
-        
-        try {
-          setLoading(true);
-          setError(null);
-
-          // StoreId is required for the API
-          if (!storeId) {
-            console.error('StoreId is required to fetch campaign content');
-            setError('Store ID is required to fetch campaign content');
-            setContent(null);
-            setLoading(false);
-            return;
-          }
-
-          console.log('Fetching campaign preview:', { messageId, storeId });
-
-          const url = `/api/klaviyo/campaign-message/${messageId}?storeId=${storeId}`;
-          const response = await fetch(url);
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-              setContent(result.data || result);
-            } else {
-              throw new Error(result.error || 'Failed to load content');
-            }
-          } else {
-            // Get error details from response
-            let errorMessage = `Failed to fetch campaign content (${response.status})`;
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.error || errorMessage;
-            } catch (e) {
-              // If we can't parse the error, use the status code message
-            }
-
-            console.error('Failed to fetch campaign content:', response.status, errorMessage);
-            throw new Error(errorMessage);
-          }
-        } catch (error) {
-          console.error('Error fetching content:', error);
-
-          // Provide more helpful error messages
-          if (error.message?.includes('does not exist')) {
-            setError('Campaign preview not available. The campaign message may have been deleted from Klaviyo.');
-          } else if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-            setError('Authentication failed. Please reconnect your Klaviyo account.');
-          } else if (error.message?.includes('404')) {
-            setError('Campaign not found. It may have been deleted or is no longer available.');
-          } else {
-            setError(error.message || 'Failed to load campaign preview');
-          }
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchContent();
-    }, [messageId, storeId]);
-
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center h-full p-8">
-          <MorphingLoader size="medium" showText={true} text="Loading campaign preview..." />
-        </div>
-      );
-    }
-
-    if (!content) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-gray-500">
-          <FileText className="h-12 w-12 mb-3 text-gray-600" />
-          <p>No preview available</p>
-        </div>
-      );
-    }
-
-    // Handle SMS content
-    if (content.channel === 'sms' || content.type === 'sms') {
-      return (
-        <div className="h-full w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-md w-full mx-auto p-8">
-            {/* Phone mockup */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-4 border-8 border-gray-900 dark:border-gray-700">
-              <div className="bg-gray-100 dark:bg-gray-900 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">SMS Message</span>
-                </div>
-                <div className="space-y-3">
-                  {content.from_number && (
-                    <p className="text-xs text-gray-500">From: {content.from_number}</p>
-                  )}
-                  <div className="bg-green-500 text-white rounded-2xl rounded-bl-none p-3 max-w-[80%]">
-                    <p className="text-sm">
-                      {content.content || content.body || 'No content available'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Handle Email content
-    const htmlContent = content.html || content.html_content || content.content;
-    const subject = content.subject || 'No subject';
-    const previewText = content.preview_text || content.previewText || '';
-
-    return (
-      <div className="h-full w-full flex flex-col bg-white">
-        {/* Email Header Info */}
-        <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-sky-blue" />
-              <span className="text-xs text-gray-800 dark:text-gray-400">Email Preview</span>
-            </div>
-            <p className="font-medium text-gray-900 dark:text-white text-sm">{subject}</p>
-            {previewText && (
-              <p className="text-xs text-gray-700 dark:text-gray-400 italic">
-                Preview: {previewText}
-              </p>
-            )}
-          </div>
-        </div>
-        {/* Email Content */}
-        <div className="flex-1 overflow-hidden bg-white">
-          {htmlContent ? (
-            <iframe
-              srcDoc={htmlContent}
-              className="w-full h-full border-0"
-              title="Email Preview"
-              sandbox="allow-same-origin allow-popups"
-              style={{ minHeight: '600px', backgroundColor: 'white' }}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full p-8 text-gray-500 bg-gray-50">
-              <div className="text-center">
-                <Mail className="h-12 w-12 mb-3 text-gray-600 mx-auto" />
-                <p className="text-gray-600">No email content available</p>
-                <p className="text-xs text-gray-500 mt-2">The email preview could not be loaded</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-  
   // Handler for campaign click
   const handleCampaignClick = (campaign) => {
     console.log('===== CAMPAIGN CLICK DEBUG =====');
@@ -2453,6 +2105,30 @@ const CampaignsTab = ({
           />
         )}
 
+        {/* Campaign ROI & Performance Matrix */}
+        <CampaignROIMatrix
+          campaigns={campaigns.map(c => ({
+            ...c,
+            campaign_name: c.name || c.campaign_name,
+            send_channel: c.channel || c.send_channel || c.type,
+            statistics: {
+              click_rate: c.clickRate || c.click_rate || 0,
+              conversion_rate: c.conversionRate || c.conversion_rate || 0,
+              conversion_value: c.revenue || c.conversion_value || 0,
+              recipients: c.recipients || 0,
+              opens: c.opens || 0,
+              opens_unique: c.opensUnique || c.opens_unique || 0,
+              clicks: c.clicks || 0,
+              clicks_unique: c.clicksUnique || c.clicks_unique || 0,
+              conversions: c.conversions || 0,
+              open_rate: c.openRate || c.open_rate || 0
+            },
+            preview_image_url: c.preview_image_url,
+            preview_sms_url: c.preview_sms_url,
+            subject: c.subject
+          }))}
+          loading={loading}
+        />
 
       </div>
 
@@ -3328,9 +3004,10 @@ const CampaignsTab = ({
                     </div>
                   </div>
                   <div className="flex-1 min-h-0 overflow-hidden bg-gray-100 dark:bg-gray-950">
-                    <EmailPreviewPanel 
-                      messageId={selectedCampaignDetails.messageId} 
+                    <EmailPreviewPanel
+                      messageId={selectedCampaignDetails.messageId}
                       storeId={selectedCampaignDetails.klaviyo_public_id || selectedCampaignDetails.accountId}
+                      campaign={selectedCampaignDetails}
                     />
                   </div>
                 </div>

@@ -487,6 +487,42 @@
   word-wrap: break-word;
 }
 
+/* Scrollable preview containers in comparison modal */
+.comparison-preview-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #60A5FA #f1f5f9;
+}
+
+.comparison-preview-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.comparison-preview-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.dark .comparison-preview-scroll::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.comparison-preview-scroll::-webkit-scrollbar-thumb {
+  background: #60A5FA;
+  border-radius: 4px;
+}
+
+.comparison-preview-scroll::-webkit-scrollbar-thumb:hover {
+  background: #2563EB;
+}
+
+.dark .comparison-preview-scroll::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+}
+
+.dark .comparison-preview-scroll::-webkit-scrollbar-thumb:hover {
+  background: #60A5FA;
+}
+
 /* Ensure proper scrolling in modal tabs */
 .dialog-content-tabs {
   display: flex;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useStores } from "@/app/contexts/store-context";
 import { DateRangeSelector } from "@/app/components/ui/date-range-selector";
@@ -76,6 +76,10 @@ export default function StoreCampaignsReportPage() {
   const [healthLoading, setHealthLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hoveredCampaign, setHoveredCampaign] = useState(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [smsContent, setSmsContent] = useState({});
+  const hoverTimeoutRef = useRef(null);
 
   // Get active tab from URL or default to "summary"
   const activeTab = searchParams?.get('tab') || 'summary';
@@ -176,6 +180,97 @@ export default function StoreCampaignsReportPage() {
     console.log('Opening campaign modal:', transformedCampaign);
     setSelectedCampaign(transformedCampaign);
     setIsModalOpen(true);
+  };
+
+  // Fetch SMS content for hover preview
+  const fetchSmsContent = async (campaign) => {
+    if (smsContent[campaign.name]) {
+      return smsContent[campaign.name];
+    }
+
+    if (!campaign.preview_sms_url) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(campaign.preview_sms_url, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          'Accept': 'text/plain, */*'
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch SMS content:', response.status);
+        return null;
+      }
+
+      const text = await response.text();
+
+      setSmsContent(prev => ({
+        ...prev,
+        [campaign.name]: text
+      }));
+
+      return text;
+    } catch (error) {
+      console.error('Error fetching SMS content:', error);
+      return null;
+    }
+  };
+
+  // Handle row hover for preview
+  const handleRowHover = (campaign, event) => {
+    // Clear any pending timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+
+    // Get row position for tooltip placement
+    const rect = event.currentTarget.getBoundingClientRect();
+    setHoverPosition({
+      x: rect.right + 20, // Position to the right of the row
+      y: rect.top
+    });
+
+    setHoveredCampaign(campaign);
+
+    // Prefetch SMS content if needed
+    if (campaign.type === 'sms' && campaign.preview_sms_url && !smsContent[campaign.name]) {
+      fetchSmsContent(campaign);
+    }
+  };
+
+  // Handle row hover out
+  const handleRowHoverOut = () => {
+    // Delay hiding to allow cursor to move to tooltip
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCampaign(null);
+    }, 500); // 500ms delay
+  };
+
+  // Handle hover preview mouse enter
+  const handlePreviewMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  // Handle hover preview mouse leave
+  const handlePreviewMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCampaign(null);
+    }, 500);
   };
 
   // Fetch campaign data from API
@@ -484,6 +579,159 @@ export default function StoreCampaignsReportPage() {
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tab);
     router.push(url.pathname + url.search);
+  };
+
+  // Render hover preview tooltip
+  const renderHoverPreview = () => {
+    if (!hoveredCampaign) return null;
+
+    const campaign = hoveredCampaign;
+    const hasEmailPreview = campaign.preview_image_url;
+    const hasSMSPreview = campaign.type === 'sms' && campaign.preview_sms_url;
+    const hasPreview = hasEmailPreview || hasSMSPreview;
+
+    const tooltipStyle = {
+      position: 'fixed',
+      left: `${hoverPosition.x}px`,
+      top: `${hoverPosition.y}px`,
+      transform: 'translateY(-50%)', // Center vertically with row
+      minWidth: hasPreview ? '320px' : '280px',
+      maxWidth: '380px',
+      maxHeight: hasPreview ? '600px' : 'auto',
+      overflowY: hasPreview ? 'auto' : 'visible',
+      overflowX: 'hidden',
+      scrollBehavior: 'smooth',
+      zIndex: 1000,
+      pointerEvents: 'auto'
+    };
+
+    return (
+      <div
+        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl campaign-preview-scroll"
+        style={tooltipStyle}
+        onMouseEnter={handlePreviewMouseEnter}
+        onMouseLeave={handlePreviewMouseLeave}
+      >
+        <style jsx>{`
+          .campaign-preview-scroll::-webkit-scrollbar {
+            width: 8px;
+          }
+          .campaign-preview-scroll::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .campaign-preview-scroll::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+          }
+          .campaign-preview-scroll::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+          }
+          .dark .campaign-preview-scroll::-webkit-scrollbar-thumb {
+            background: #4b5563;
+          }
+          .dark .campaign-preview-scroll::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+          }
+        `}</style>
+
+        {/* Header - Sticky */}
+        <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-10">
+          <div className="text-sm font-semibold text-gray-900 dark:text-white truncate mb-1">
+            {campaign.name}
+          </div>
+          {campaign.subject && (
+            <div className="text-xs text-gray-600 dark:text-gray-400 truncate mb-1">
+              {campaign.subject}
+            </div>
+          )}
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="outline" className={campaign.type === 'sms' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'}>
+              {campaign.type === 'sms' ? 'SMS' : 'Email'}
+            </Badge>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="flex items-center gap-3 text-xs flex-wrap">
+            <div className="flex items-center gap-1">
+              <Users className="h-3 w-3 text-gray-400" />
+              <span className="font-medium text-gray-900 dark:text-white">{formatNumber(campaign.recipients)}</span>
+            </div>
+            {campaign.type === 'email' && campaign.open_rate && (
+              <div className="flex items-center gap-1">
+                <Eye className="h-3 w-3 text-gray-400" />
+                <span className="font-medium text-gray-900 dark:text-white">{formatPercentage(campaign.open_rate)}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <MousePointer className="h-3 w-3 text-gray-400" />
+              <span className="font-medium text-gray-900 dark:text-white">{formatPercentage(campaign.click_rate || 0)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Target className="h-3 w-3 text-gray-400" />
+              <span className="font-medium text-gray-900 dark:text-white">{formatPercentage(campaign.conversion_rate || 0)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <DollarSign className="h-3 w-3 text-green-600" />
+              <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(campaign.revenue || 0)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Preview Section */}
+        {hasPreview && (
+          <div>
+            {/* SMS Preview */}
+            {hasSMSPreview ? (
+              <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                <div className="p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-bl-sm shadow-md p-4 max-w-[280px]">
+                    {smsContent[campaign.name] ? (
+                      <>
+                        <div className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words leading-relaxed">
+                          {smsContent[campaign.name]}
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                          {smsContent[campaign.name].length} characters
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+                        Loading SMS content...
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <MessageSquare className="h-3 w-3" />
+                    <span>SMS Message</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Email Preview */
+              hasEmailPreview && (
+                <div className="relative bg-gray-50 dark:bg-gray-800">
+                  <img
+                    src={campaign.preview_image_url}
+                    alt={`Preview of ${campaign.name}`}
+                    className="w-full h-auto object-cover object-top"
+                    style={{
+                      maxHeight: 'none',
+                      minHeight: '400px'
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  <div className="sticky bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-100 dark:from-gray-800 to-transparent pointer-events-none flex items-center justify-center">
+                    <div className="text-xs text-gray-400 dark:text-gray-500">Scroll for more</div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const filteredCampaigns = useMemo(() => {
@@ -1245,6 +1493,8 @@ export default function StoreCampaignsReportPage() {
                     key={campaign.id}
                     className="text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     onClick={() => handleCampaignClick(campaign)}
+                    onMouseEnter={(e) => handleRowHover(campaign, e)}
+                    onMouseLeave={handleRowHoverOut}
                   >
                     <TableCell className="py-2">
                       <div className="max-w-[160px]">
@@ -1335,6 +1585,9 @@ export default function StoreCampaignsReportPage() {
           stores={stores || []}
         />
       )}
+
+      {/* Hover Preview Tooltip */}
+      {renderHoverPreview()}
     </div>
   );
 }

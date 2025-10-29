@@ -363,6 +363,16 @@ export default function CollectionsPage() {
             >
               CTAs
             </Button>
+            {process.env.NEXT_PUBLIC_NODE_ENV === 'development' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(`/store/${storePublicId}/apps`)}
+                className="rounded-none border-b-2 border-transparent hover:border-gray-300 px-3 py-1.5 text-sm"
+              >
+                Apps
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

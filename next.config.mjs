@@ -26,6 +26,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
+              connect-src 'self' https://a.klaviyo.com https://*.posthog.com https://us.i.posthog.com https://wizel.ai https://cdn.wizel.ai wss://localhost:* ws://localhost:*;
               style-src 'self' 'unsafe-inline' https://static-forms.klaviyo.com;
               style-src-elem 'self' 'unsafe-inline' https://static-forms.klaviyo.com;
               font-src 'self' https://static-forms.klaviyo.com https://fonts.klaviyo.com;

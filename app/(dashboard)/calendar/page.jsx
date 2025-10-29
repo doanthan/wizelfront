@@ -795,6 +795,8 @@ export default function CalendarPage() {
             loading={loading}
             loadingStores={loadingStores}
             onRefresh={handleRefresh}
+            displayMode={displayMode}
+            setDisplayMode={setDisplayMode}
           />
 
 
@@ -855,6 +857,8 @@ export default function CalendarPage() {
             view={view}
             date={date}
             loading={pastLoading || loadingStores}
+            displayMode={displayMode}
+            setDisplayMode={setDisplayMode}
           />
         </>
       )}

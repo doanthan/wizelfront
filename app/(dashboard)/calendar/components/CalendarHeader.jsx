@@ -1,8 +1,9 @@
 "use client";
 
-import { Plus, CalendarDays, CalendarRange, CalendarClock, ChevronLeft, ChevronRight, GitCompare, RefreshCw } from 'lucide-react';
+import { Plus, CalendarDays, CalendarRange, CalendarClock, ChevronLeft, ChevronRight, GitCompare, RefreshCw, Calendar, Table } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export const CalendarHeader = ({
   date,
@@ -28,7 +29,9 @@ export const CalendarHeader = ({
   pastLoading,
   loading,
   loadingStores,
-  onRefresh
+  onRefresh,
+  displayMode,
+  setDisplayMode
 }) => {
   const navigateDate = (direction) => {
     const newDate = new Date(date);
@@ -128,6 +131,38 @@ export const CalendarHeader = ({
             <RefreshCw className={`h-4 w-4 ${(pastLoading || futureLoading) ? 'animate-spin' : ''}`} />
           </Button>
         )}
+
+        {/* Display Mode Toggle */}
+        <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+          <Button
+            variant={displayMode === 'calendar' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setDisplayMode('calendar')}
+            className={cn(
+              "gap-1.5",
+              displayMode === 'calendar'
+                ? "bg-sky-blue hover:bg-royal-blue text-white"
+                : "text-gray-600 dark:text-gray-400"
+            )}
+          >
+            <Calendar className="h-4 w-4" />
+            Calendar
+          </Button>
+          <Button
+            variant={displayMode === 'table' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setDisplayMode('table')}
+            className={cn(
+              "gap-1.5",
+              displayMode === 'table'
+                ? "bg-sky-blue hover:bg-royal-blue text-white"
+                : "text-gray-600 dark:text-gray-400"
+            )}
+          >
+            <Table className="h-4 w-4" />
+            Performance Table
+          </Button>
+        </div>
 
         {/* View Selector */}
         <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">

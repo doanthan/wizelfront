@@ -78,6 +78,12 @@ export async function POST(request) {
         // Include groupings for modal preview
         groupings: campaign.groupings,
 
+        // CRITICAL: Include preview URLs for stored previews
+        preview_image_html: campaign.preview_image_html,
+        preview_image_url: campaign.preview_image_url,
+        preview_sms_url: campaign.preview_sms_url,
+        preview_generated_at: campaign.preview_generated_at,
+
         // Store information
         klaviyo_public_id: campaign.klaviyo_public_id,
         store_public_ids: campaign.store_public_ids || associatedStores.map(s => s.public_id),
@@ -231,6 +237,12 @@ export async function GET(request) {
 
         // Include groupings for modal preview
         groupings: campaign.groupings,
+
+        // CRITICAL: Include preview URLs for stored previews
+        preview_image_html: campaign.preview_image_html,
+        preview_image_url: campaign.preview_image_url,
+        preview_sms_url: campaign.preview_sms_url,
+        preview_generated_at: campaign.preview_generated_at,
 
         // Store information
         klaviyo_public_id: campaign.klaviyo_public_id,

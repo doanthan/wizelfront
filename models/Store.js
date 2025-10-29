@@ -267,6 +267,11 @@ const StoreSchema = new mongoose.Schema({
         conversion_metric_id: { type: String, default: null },
         reporting_metric_id: { type: String, default: null },
         refund_metric_ids: [{ type: String }], // Array of metric IDs for cancelled/refunded orders
+        // Subscription metric IDs
+        email_subscribe_metric: { type: String, default: null }, // Subscribed to Email Marketing
+        email_unsubscribe_metric: { type: String, default: null }, // Unsubscribed from Email Marketing
+        sms_subscribe_metric: { type: String, default: null }, // Subscribed to SMS Marketing
+        sms_unsubscribe_metric: { type: String, default: null }, // Unsubscribed from SMS Marketing
         apiKey: { type: String, default: null }, // Legacy API key (pk_*)
         // OAuth fields
         oauth_token: { type: String, default: null }, // OAuth access token

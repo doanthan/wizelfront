@@ -307,6 +307,7 @@ export async function GET(request) {
         tags: campaign.attributes?.tags || [],
         storeIds: [campaign.storeInfo?.publicId] || [],
         store_public_ids: [campaign.storeInfo?.publicId] || [],
+        store_public_id: campaign.storeInfo?.publicId,  // Singular field for backward compatibility
         storeName: campaign.storeInfo?.name || 'Unknown Store',
         klaviyo_public_id: campaign.storeInfo?.klaviyoPublicId, // Match historical format
         fromAddress: campaign.attributes?.from_email || '',

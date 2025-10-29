@@ -25,6 +25,17 @@ export const EmailPreviewPanel = ({ messageId, storeId, campaign, compact = fals
 
         // Check if we have stored preview URLs first (for sent campaigns)
         const channel = campaign?.channel || campaign?.type || campaign?.groupings?.send_channel;
+
+        // DEBUG: Log channel detection
+        console.log('🔍 Channel detection:', {
+          channel,
+          'campaign.channel': campaign?.channel,
+          'campaign.type': campaign?.type,
+          'campaign.groupings?.send_channel': campaign?.groupings?.send_channel,
+          'campaign.preview_image_html': campaign?.preview_image_html,
+          'campaign.preview_sms_url': campaign?.preview_sms_url
+        });
+
         const hasStoredPreview = channel === 'email'
           ? (campaign?.preview_image_html || campaign?.preview_image_url)
           : channel === 'sms'
@@ -176,7 +187,7 @@ export const EmailPreviewPanel = ({ messageId, storeId, campaign, compact = fals
     const displayBody = content.body || content.rawBody || content.text || '';
     
     // Highlight template variables if they exist
-    const processedBody = displayBody.replace(/\{\{([^}]+)\}\}/g, (match, variable) => {
+    const processedBody = displayBody.replace(/\{\{([^}]+)\}\}/g, (_, variable) => {
       return `[${variable.trim()}]`;
     });
     
@@ -307,20 +318,8 @@ export const EmailPreviewPanel = ({ messageId, storeId, campaign, compact = fals
       {/* Email content - scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-gray-900">
         <div className={compact ? "p-2" : "p-4"}>
-          {content.previewHtmlUrl ? (
-            // Display stored HTML preview via iframe
-            <iframe
-              src={content.previewHtmlUrl}
-              title="Email Preview"
-              className="w-full h-full min-h-[600px] border-0"
-              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-              style={{
-                maxWidth: '600px',
-                margin: '0 auto',
-                display: 'block'
-              }}
-            />
-          ) : content.html ? (
+          {content.html ? (
+            // Display HTML content directly (faster and more secure than iframe)
             <div
               className="email-content"
               dangerouslySetInnerHTML={{ __html: content.html }}
